@@ -4,6 +4,7 @@ import { PlayerProvider } from "@/components/player-provider";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { PlayerBar } from "@/components/player-bar";
+import { SITE_URL } from "@/lib/station";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -28,20 +29,35 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.musicsquareradio.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Musicsquare Radio — AI magic with human expertise. Always on air.",
     template: "%s — Musicsquare Radio",
   },
   description:
     "A 24/7 station for music made by people and machines together. Pop, R&B, Afrobeat and Country, streaming live from California.",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Musicsquare Radio",
     description:
       "AI magic with human expertise. One frequency, always on. Streaming 24/7 from California.",
-    url: "https://www.musicsquareradio.com",
+    url: SITE_URL,
     siteName: "Musicsquare Radio",
+    locale: "en_US",
     type: "website",
+  },
+  /**
+   * X ignores the Open Graph tags, so the card has to be declared again here.
+   * `summary_large_image` is what gets the artwork rendered at full width
+   * instead of as a thumbnail beside the title.
+   */
+  twitter: {
+    card: "summary_large_image",
+    title: "Musicsquare Radio",
+    description:
+      "AI magic with human expertise. One frequency, always on. Streaming 24/7 from California.",
   },
 };
 

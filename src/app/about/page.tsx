@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "Musicsquare Radio is a 24/7 station playing AI-made, human-assisted music across sixteen genres and several languages — over 2,000 songs from close to 300 artists. Operated by Squaredrum LLC, founded 2024.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {

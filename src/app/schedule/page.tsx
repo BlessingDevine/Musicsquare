@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Schedule",
   description:
     "The full week on Musicsquare Radio — every block, hour by hour, from Afro Mix at midnight to Sunday Church. All times shown in your own timezone.",
+  alternates: { canonical: "/schedule" },
 };
 
 export default function SchedulePage() {

@@ -1,5 +1,13 @@
 /** Station constants and home-page content. */
 
+/**
+ * The canonical origin. Kept here rather than inline in `layout.tsx` so the
+ * metadata base, the sitemap and robots.txt can never disagree about where the
+ * station lives — a mismatch there is what makes share cards resolve to a
+ * dead image host.
+ */
+export const SITE_URL = "https://www.musicsquareradio.com";
+
 export const STREAM_URL = "https://play.radioking.io/music-square-radio/812353";
 
 export const STATION = {

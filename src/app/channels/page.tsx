@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Channels",
   description:
     "Four channels on one signal — Pop, R&B, Afrobeat and Country — plus the blocks that fill the rest of the day. What each room plays, and when it is on air.",
+  /**
+   * Canonical only. Declaring an `openGraph` block here would replace the
+   * root one rather than merge into it, dropping `og:image` and putting this
+   * page back to a blank share card — the canonical is what stops it
+   * reporting itself as a duplicate of the home page.
+   */
+  alternates: { canonical: "/channels" },
 };
 
 export default function ChannelsPage() {

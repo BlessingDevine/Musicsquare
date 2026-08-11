@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Privacy",
   description:
     "What this site does and does not collect, and which third parties are involved when you press play.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

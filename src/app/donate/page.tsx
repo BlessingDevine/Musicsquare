@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Support the station",
   description:
     "Musicsquare Radio runs 24 hours a day with no ads and no paywall. Here is what actually keeps it on air.",
+  alternates: { canonical: "/donate" },
 };
 
 export default function DonatePage() {
