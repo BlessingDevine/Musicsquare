@@ -1,0 +1,138 @@
+.strip {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-top: 1px solid var(--rule-dark);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding-block: 1.6rem 1.8rem;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.col + .col {
+  padding-left: clamp(1.5rem, 4vw, 3.5rem);
+  border-left: 1px solid var(--rule-dark);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--color-gold);
+  margin: 0 0 0.2rem;
+}
+
+.tagQuiet {
+  color: var(--color-ash-dark);
+}
+
+/* ---------- what's on ---------- */
+
+.show,
+.showNext {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.show {
+  font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.showNext {
+  font-size: clamp(1.1rem, 1.9vw, 1.5rem);
+  font-weight: 700;
+}
+
+.detail {
+  margin: 0;
+  color: var(--color-ash-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The programming block, as context under the track. */
+.block {
+  margin: 0.4rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--rule-dark);
+  color: var(--color-ash-dark);
+  font-size: 0.5625rem;
+}
+
+.colNow .block {
+  color: var(--color-gold);
+  opacity: 0.75;
+}
+
+/* ---------- log ---------- */
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.history li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--rule-dark);
+}
+
+.history li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pastTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.72);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pastMeta {
+  flex: none;
+  color: var(--color-ash-dark);
+  font-size: 0.5625rem;
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+  }
+  .col + .col {
+    padding-left: 0;
+    padding-top: 1.4rem;
+    border-left: 0;
+    border-top: 1px solid var(--rule-dark);
+  }
+  /* On a phone, what is on air comes first. */
+  .colNow {
+    order: -1;
+    padding-top: 0;
+    border-top: 0;
+  }
+}

@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+/* ============================================================
+   MUSICSQUARE RADIO — design tokens
+   Two worlds on one frequency: engraved print (human) and
+   machine telemetry (AI). Palette held to white / black / gold.
+   ============================================================ */
+
+@theme {
+  --color-ink: #0a0a0b;
+  --color-ink-2: #141417;
+  --color-ink-3: #1e1e22;
+  --color-paper: #ffffff;
+  --color-paper-2: #f0f0ee;
+  --color-gold: #c8a44d;
+  --color-gold-hi: #f3e0a8;
+  --color-gold-deep: #8a6a22;
+  --color-ash: #6b6b6b;
+  --color-ash-dark: #8c8c92;
+
+  --font-display: var(--font-bodoni), "Bodoni MT", Didot, serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, "SF Mono", monospace;
+}
+
+:root {
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);
+  --maxw: 1560px;
+  --rule-dark: rgba(255, 255, 255, 0.14);
+  --rule-light: rgba(10, 10, 11, 0.14);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Anchor targets clear the docked header. */
+  scroll-padding-top: 5.5rem;
+  background: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  /* Taps shouldn't flash a grey box — :focus-visible does the signalling. */
+  -webkit-tap-highlight-color: transparent;
+  transition: padding-bottom 0.4s var(--ease-out);
+}
+
+/* The docked player is fixed; give the page room so it can't cover the footer. */
+body[data-playing="true"] {
+  padding-bottom: calc(4.4rem + env(safe-area-inset-bottom));
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+/* ---------- shared primitives ---------- */
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Machine voice: every number, code and status on the page. */
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* Engraved voice: the display face, always huge, always tight. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.84;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.display em {
+  font-style: italic;
+  font-weight: 500;
+}
+
+.rule {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: var(--rule-light);
+}
+
+.on-ink .rule {
+  background: var(--rule-dark);
+}
+
+/* Section eyebrow: label + hairline that runs to the edge. */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-gold-deep);
+}
+
+.on-ink .eyebrow {
+  color: var(--color-gold);
+}
+
+.eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.32;
+}
+
+.btn {
+  --btn-fg: var(--color-ink);
+  --btn-bg: var(--color-gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.95rem 1.6rem;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border: 1px solid var(--btn-bg);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.4s var(--ease-out), color 0.4s var(--ease-out);
+}
+
+.btn:hover {
+  background: var(--color-gold-hi);
+  border-color: var(--color-gold-hi);
+}
+
+.btn-ghost {
+  --btn-bg: transparent;
+  --btn-fg: currentColor;
+  border-color: currentColor;
+  opacity: 0.85;
+}
+
+.btn-ghost:hover {
+  background: currentColor;
+  border-color: currentColor;
+  opacity: 1;
+}
+
+.btn-ghost:hover > * {
+  mix-blend-mode: difference;
+}
+
+/* Live pip — the only thing on the page allowed to blink. */
+.pip {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  animation: pip 2.4s steps(1, end) infinite;
+}
+
+@keyframes pip {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* Scroll-reveal: opt-in, one transform, no stagger soup. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 620px) {
+  /* Wide tracking is a display device; at phone sizes it costs legibility. */
+  .mono {
+    letter-spacing: 0.16em;
+  }
+  .btn {
+    padding: 1rem 1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,132 @@
+.section {
+  background: var(--color-paper);
+  padding-block: clamp(4.5rem, 10vw, 9rem) clamp(3.5rem, 8vw, 7rem);
+}
+
+.head {
+  max-width: 60rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.title {
+  font-size: clamp(3rem, 8vw, 7.5rem);
+  margin-block: 1.4rem 1.2rem;
+}
+
+.title em {
+  color: var(--color-gold-deep);
+}
+
+.lede {
+  max-width: 44ch;
+  color: var(--color-ash);
+  margin: 0;
+}
+
+.more {
+  display: inline-block;
+  margin-top: 1.6rem;
+  color: var(--color-gold-deep);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.3rem;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--rule-light);
+  border-block: 1px solid var(--rule-light);
+}
+
+.card {
+  background: var(--color-paper);
+  padding: 1.6rem clamp(1rem, 1.8vw, 1.75rem) 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Square sleeves — the station's own shape. Colour never appears in the
+   artwork; the only colour on the page is gold, and it belongs to type. */
+.art {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-paper-2);
+  margin-bottom: 0.4rem;
+}
+
+.img {
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.04) brightness(1.02);
+  transition: filter 0.7s var(--ease-out), transform 0.9s var(--ease-out);
+}
+
+.card:hover .img,
+.card:focus-within .img {
+  filter: grayscale(1) contrast(1.14) brightness(1.06);
+  transform: scale(1.035);
+}
+
+.air {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-paper);
+  color: var(--color-ash);
+}
+
+.airLive {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.name {
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  margin: 0;
+}
+
+.strap {
+  margin: 0;
+  color: var(--color-ash);
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule-light);
+  color: var(--color-ash);
+}
+
+.cardBtn {
+  justify-content: center;
+  color: var(--color-ink);
+}
+
+@media (max-width: 1080px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .art {
+    aspect-ratio: 16 / 10;
+  }
+}

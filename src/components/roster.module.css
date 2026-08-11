@@ -1,0 +1,74 @@
+.section {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding-block: clamp(4.5rem, 10vw, 9rem);
+  overflow: hidden;
+}
+
+.head {
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.title {
+  font-size: clamp(3rem, 8vw, 7.5rem);
+  margin-top: 1.4rem;
+}
+
+.title em {
+  color: var(--color-gold);
+}
+
+.rail {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--gutter) 1.5rem;
+  display: flex;
+  gap: clamp(1rem, 2vw, 2rem);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* Snapped cards land on the gutter, not flush to the viewport edge. */
+  scroll-padding-inline: var(--gutter);
+  /* Stops a swipe past the last card triggering the browser's back gesture. */
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold) transparent;
+}
+
+.card {
+  flex: 0 0 clamp(15rem, 22vw, 22rem);
+  scroll-snap-align: start;
+}
+
+.frame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--color-ink-2);
+  margin-bottom: 1.1rem;
+}
+
+.img {
+  object-fit: cover;
+  filter: grayscale(1) brightness(0.8) contrast(1.12);
+  transition: filter 0.7s var(--ease-out), transform 1s var(--ease-out);
+}
+
+.card:hover .img {
+  filter: grayscale(1) brightness(1.02) contrast(1.05);
+  transform: scale(1.04);
+}
+
+.name {
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  margin-bottom: 0.5rem;
+}
+
+.lane {
+  margin: 0;
+  color: var(--color-gold);
+}
+
+.drag {
+  margin: 1.5rem 0 0;
+  color: var(--color-ash-dark);
+}

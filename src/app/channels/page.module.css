@@ -1,0 +1,83 @@
+.header {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding-block: calc(9rem + env(safe-area-inset-top)) clamp(3rem, 7vw, 5rem);
+  position: relative;
+  overflow: hidden;
+}
+
+/* The same centre hairline the home page is built on. */
+.header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(200, 164, 77, 0.28) 30%,
+    rgba(200, 164, 77, 0.28) 78%,
+    transparent
+  );
+}
+
+.title {
+  font-size: clamp(3rem, 9vw, 8rem);
+  margin-block: 1.5rem 1.4rem;
+  position: relative;
+}
+
+.title em {
+  color: var(--color-gold);
+}
+
+.lede {
+  max-width: 46ch;
+  color: var(--color-ash-dark);
+  margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+  position: relative;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin: 0;
+  background: var(--rule-dark);
+  border-top: 1px solid var(--rule-dark);
+  position: relative;
+}
+
+.summary > div {
+  background: var(--color-ink);
+  padding: 1.2rem 1rem 0 0;
+}
+
+.summary dt {
+  color: var(--color-ash-dark);
+  margin-bottom: 0.6rem;
+}
+
+.summary dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.list {
+  padding-block: 0 clamp(4rem, 9vw, 8rem);
+  background: var(--color-paper);
+}
+
+@media (max-width: 620px) {
+  .header {
+    padding-top: calc(7.5rem + env(safe-area-inset-top));
+  }
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

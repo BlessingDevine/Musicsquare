@@ -1,0 +1,307 @@
+/* Five tones instead of five colours. The scale is ordered, so a week reads
+   as texture; gold is reserved for whatever is on air. */
+.grid [data-tone="0"],
+.mobile [data-tone="0"],
+.key [data-tone="0"] {
+  --tone: #17171a;
+  --tone-fg: #ffffff;
+}
+.grid [data-tone="1"],
+.mobile [data-tone="1"],
+.key [data-tone="1"] {
+  --tone: #3d3d43;
+  --tone-fg: #ffffff;
+}
+.grid [data-tone="2"],
+.mobile [data-tone="2"],
+.key [data-tone="2"] {
+  --tone: #6d6d75;
+  --tone-fg: #ffffff;
+}
+.grid [data-tone="3"],
+.mobile [data-tone="3"],
+.key [data-tone="3"] {
+  --tone: #a8a8ae;
+  --tone-fg: #0a0a0b;
+}
+.grid [data-tone="4"],
+.mobile [data-tone="4"],
+.key [data-tone="4"] {
+  --tone: #dcdcdd;
+  --tone-fg: #0a0a0b;
+}
+.grid [data-tone="5"],
+.mobile [data-tone="5"],
+.key [data-tone="5"] {
+  --tone: #f0f0ee;
+  --tone-fg: #0a0a0b;
+}
+
+/* ---------- desktop grid ---------- */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr));
+  gap: 0 2px;
+  position: relative;
+}
+
+.rail {
+  position: relative;
+  height: 100%;
+  margin-top: 2.6rem;
+}
+
+.rail span {
+  position: absolute;
+  right: 0.9rem;
+  transform: translateY(-50%);
+  color: var(--color-ash);
+  font-size: 0.625rem;
+}
+
+.rail span::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 0.35rem);
+  top: 50%;
+  width: 0.35rem;
+  height: 1px;
+  background: var(--rule-light);
+}
+
+.column {
+  min-width: 0;
+}
+
+.dayHead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.6rem;
+  margin: 0;
+  font-weight: 400;
+  color: var(--color-ash);
+  border-bottom: 1px solid var(--color-ink);
+}
+
+.today {
+  color: var(--color-gold-deep);
+}
+
+.day {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* 24 hours, drawn to scale. */
+  height: 62rem;
+}
+
+.block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  padding: 0.5rem 0.55rem;
+  background: var(--tone);
+  color: var(--tone-fg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: filter 0.3s var(--ease-out);
+}
+
+.block:hover {
+  filter: brightness(1.15);
+}
+
+.blockName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.blockTime {
+  font-size: 0.5625rem;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+}
+
+.blockLive {
+  background: var(--color-gold);
+  color: var(--color-ink);
+  outline: 2px solid var(--color-ink);
+  outline-offset: -2px;
+  z-index: 2;
+}
+
+.nowLine {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: var(--color-ink);
+  z-index: 3;
+}
+
+.nowLine::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-ink);
+}
+
+/* ---------- mobile ---------- */
+
+.mobile {
+  display: none;
+}
+
+.dayStrip {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.dayStrip::-webkit-scrollbar {
+  display: none;
+}
+
+.dayTab {
+  flex: 1 0 auto;
+  min-width: 3.4rem;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: none;
+  border: 1px solid var(--rule-light);
+  color: var(--color-ash);
+  cursor: pointer;
+}
+
+.dayTabOn {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-gold);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.2rem 1rem;
+  padding: 1rem 0 1rem 0.9rem;
+  border-top: 1px solid var(--rule-light);
+  border-left: 4px solid var(--tone);
+}
+
+.listTime {
+  grid-row: span 2;
+  color: var(--color-ash);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.listTime em {
+  font-style: normal;
+  opacity: 0.55;
+}
+
+.listName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.listBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--color-gold);
+  color: var(--color-ink);
+  font-size: 0.5rem;
+}
+
+.listFamily {
+  color: var(--color-ash);
+  font-size: 0.5625rem;
+}
+
+.listLive {
+  border-left-color: var(--color-gold);
+}
+
+/* ---------- key ---------- */
+
+.key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.6rem;
+  margin: 2.5rem 0 0;
+  padding: 1.4rem 0 0;
+  border-top: 1px solid var(--rule-light);
+  color: var(--color-ash);
+}
+
+.key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.key li span {
+  width: 0.85rem;
+  height: 0.85rem;
+  background: var(--tone);
+  flex: none;
+}
+
+@media (max-width: 1080px) {
+  .grid {
+    display: none;
+  }
+  .mobile {
+    display: block;
+  }
+}

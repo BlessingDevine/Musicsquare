@@ -1,0 +1,95 @@
+.footer {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding-top: clamp(3.5rem, 8vw, 6rem);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  gap: clamp(2rem, 4vw, 3.5rem);
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pitch {
+  margin: 0;
+  max-width: 32ch;
+  color: var(--color-ash-dark);
+  font-size: 0.95rem;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.col :global(.eyebrow) {
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+
+.col a {
+  color: var(--color-paper);
+  opacity: 0.75;
+  transition: opacity 0.3s var(--ease-out), color 0.3s var(--ease-out);
+  font-size: 0.95rem;
+}
+
+.col a:hover {
+  opacity: 1;
+  color: var(--color-gold);
+}
+
+.base {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--rule-dark);
+  color: var(--color-ash-dark);
+}
+
+.base p {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr 1fr;
+  }
+  .brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+  /* Footer links are the smallest touch targets on the page — give them a
+     proper row height rather than a 20px line of text. */
+  .col {
+    gap: 0;
+  }
+  .col a {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    width: 100%;
+    border-bottom: 1px solid var(--rule-dark);
+    font-size: 1rem;
+    opacity: 0.85;
+  }
+  .base {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+}

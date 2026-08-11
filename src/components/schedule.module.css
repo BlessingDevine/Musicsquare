@@ -1,0 +1,167 @@
+.section {
+  background: var(--color-paper);
+  padding-block: clamp(4.5rem, 10vw, 9rem);
+}
+
+.head {
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.title {
+  font-size: clamp(3rem, 8vw, 7.5rem);
+  margin-top: 1.4rem;
+}
+
+.title em {
+  color: var(--color-gold-deep);
+}
+
+/* ---------- the day, to scale ---------- */
+
+.bar {
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+.track {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 46px;
+}
+
+.seg {
+  background: var(--color-paper-2);
+  transition: background 0.4s var(--ease-out);
+}
+
+.segLive {
+  background: var(--color-gold);
+}
+
+.now {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--color-ink);
+}
+
+.now::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  background: var(--color-ink);
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.7rem 0 0;
+  color: var(--color-ash);
+}
+
+/* ---------- the timetable ---------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table caption {
+  text-align: left;
+  color: var(--color-ash);
+  padding-bottom: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 1.05rem 1rem 1.05rem 0;
+  border-top: 1px solid var(--rule-light);
+  vertical-align: baseline;
+}
+
+.table thead th {
+  color: var(--color-ash);
+  font-weight: 400;
+  padding-bottom: 0.7rem;
+  border-top: 0;
+  border-bottom: 1px solid var(--color-ink);
+}
+
+.table td:first-child {
+  width: 14rem;
+  color: var(--color-ash);
+  white-space: nowrap;
+}
+
+.more {
+  display: inline-block;
+  margin-top: 2.5rem;
+  color: var(--color-gold-deep);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.3rem;
+}
+
+.block {
+  font-size: clamp(1.3rem, 2.4vw, 2.1rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  width: 40%;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: 1rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-gold);
+  color: var(--color-ink);
+  vertical-align: middle;
+}
+
+.note {
+  color: var(--color-ash);
+}
+
+.rowLive td,
+.rowLive th {
+  border-top-color: var(--color-ink);
+}
+
+.rowLive td:first-child {
+  color: var(--color-ink);
+}
+
+@media (max-width: 760px) {
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .table tr {
+    display: grid;
+    gap: 0.3rem;
+    padding-block: 1.1rem;
+    border-top: 1px solid var(--rule-light);
+  }
+  .table th,
+  .table td {
+    border: 0;
+    padding: 0;
+    width: auto;
+  }
+  .table td:first-child {
+    width: auto;
+  }
+  .block {
+    width: auto;
+  }
+}

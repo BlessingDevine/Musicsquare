@@ -1,0 +1,138 @@
+.header {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding-block: calc(9rem + env(safe-area-inset-top)) clamp(3rem, 7vw, 5rem);
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(200, 164, 77, 0.28) 30%,
+    rgba(200, 164, 77, 0.28) 78%,
+    transparent
+  );
+}
+
+.title {
+  font-size: clamp(3rem, 9vw, 8rem);
+  margin-block: 1.5rem 1.4rem;
+  position: relative;
+}
+
+.title em {
+  color: var(--color-gold);
+}
+
+.lede {
+  max-width: 46ch;
+  color: var(--color-ash-dark);
+  margin: 0;
+  position: relative;
+}
+
+.body {
+  padding-block: clamp(3rem, 7vw, 5.5rem) clamp(4rem, 9vw, 8rem);
+}
+
+.ways {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: way;
+  display: grid;
+  gap: 0;
+}
+
+/* Numbering earns its place here — this is a ranked list, most useful first. */
+.ways li {
+  counter-increment: way;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3rem);
+  padding-block: clamp(2rem, 4vw, 3rem);
+  border-top: 1px solid var(--rule-light);
+}
+
+.ways li::before {
+  content: counter(way, decimal-leading-zero);
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  color: var(--color-gold-deep);
+  padding-top: 0.6rem;
+}
+
+/* Everything except the counter shares the second column; grid items stretch
+   by default, which turns the button into a full-width slab. */
+.ways li > * {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.wayTitle {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  margin: 0 0 0.9rem;
+}
+
+.ways p {
+  margin: 0 0 1.6rem;
+  max-width: 48ch;
+  color: var(--color-ash);
+}
+
+.link {
+  display: inline-block;
+  color: var(--color-gold-deep);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.3rem;
+}
+
+.socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.note {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule-light);
+  color: var(--color-ash);
+  line-height: 1.9;
+  max-width: 52ch;
+}
+
+@media (max-width: 620px) {
+  .header {
+    padding-top: calc(7.5rem + env(safe-area-inset-top));
+  }
+  .ways li {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  .ways li::before {
+    grid-column: 1;
+    padding-top: 0;
+  }
+  .ways li > * {
+    grid-column: 1;
+    justify-self: stretch;
+  }
+  .ways li :global(.btn) {
+    justify-content: center;
+  }
+  .socials {
+    gap: 1rem 1.5rem;
+  }
+}
