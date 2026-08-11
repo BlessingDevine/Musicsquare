@@ -118,7 +118,7 @@ when convenient and update the constant.
 
 ## Note on the home folder
 
-`/Users/robertsimenya` is itself a git repository, so this project sits nested
+Your home folder is itself a git repository, so this project sits nested
 inside one. That is harmless — git treats a directory with its own `.git` as a
 separate repo and will not track its contents — but it means `git` commands run
 from your home folder are talking to a *different* repository. Always `cd` into
