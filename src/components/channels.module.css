@@ -101,6 +101,17 @@
   flex: 1;
 }
 
+.nowTitle {
+  display: block;
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.nowArtist {
+  display: block;
+  margin-top: 0.35rem;
+}
+
 .stats {
   display: flex;
   justify-content: space-between;

@@ -9,7 +9,7 @@ import styles from "./player-bar.module.css";
  * scrolled away — the two never show at the same time.
  */
 export function PlayerBar() {
-  const { status, source, now, listening, stop, toggleLive } = usePlayer();
+  const { status, source, now, listening, stop, toggleLive, playChannel } = usePlayer();
   const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
@@ -33,9 +33,19 @@ export function PlayerBar() {
   }, [active]);
 
   const title =
-    source.kind === "track" ? source.title : (now?.title ?? "Musicsquare Radio");
+    source.kind === "track"
+      ? source.title
+      : source.kind === "channel"
+        ? (source.track?.title ?? source.name)
+        : (now?.title ?? "Musicsquare Radio");
   const artist =
-    source.kind === "track" ? source.artist : (now?.artist ?? "Live stream");
+    source.kind === "track"
+      ? source.artist
+      : source.kind === "channel"
+        ? (source.track?.artist ?? "Tuning in…")
+        : (now?.artist ?? "Live stream");
+  const reconnect = () =>
+    source.kind === "channel" ? playChannel(source.slug, source.name) : toggleLive();
 
   return (
     <div className={`${styles.bar} ${open ? styles.open : ""}`} aria-hidden={!open}>
@@ -67,13 +77,15 @@ export function PlayerBar() {
             <button
               type="button"
               className={styles.retry}
-              onClick={toggleLive}
+              onClick={reconnect}
               tabIndex={open ? 0 : -1}
             >
               Stream dropped — reconnect
             </button>
           ) : source.kind === "live" ? (
             <>Live · {clock(listening)}</>
+          ) : source.kind === "channel" ? (
+            <>{source.name} · live</>
           ) : (
             "Single track"
           )}

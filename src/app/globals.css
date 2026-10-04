@@ -204,6 +204,16 @@ a {
   }
 }
 
+/* Read by screen readers, invisible on screen. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Scroll-reveal: opt-in, one transform, no stagger soup. */
 .reveal {
   opacity: 0;

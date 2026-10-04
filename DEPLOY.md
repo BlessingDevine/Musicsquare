@@ -27,7 +27,20 @@ git push -u origin main
 
 Go to **vercel.com/new** and import the repository. Vercel detects Next.js on
 its own — do not change the build command, output directory or install command.
-There are no environment variables to set.
+
+**Environment variables** (Settings → Environment Variables, all environments).
+The live channels need exactly these three, all safe to be public:
+
+| Name | Value |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → Data API → Project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → Publishable key |
+| `NEXT_PUBLIC_AUDIO_BASE_URL` | `https://d1j1hqrpj9spbo.cloudfront.net` |
+
+**Never add `SUPABASE_SECRET_KEY` to Vercel.** Only the importer on the Mac
+uses it. Without these three, the site still builds and runs; the channels page
+just says the channels are being tuned and the home page hides its channel
+cards. After adding or changing them, redeploy — they are read at build time.
 
 The first build takes about a minute and gives you a live `.vercel.app` URL.
 Check it before touching DNS.

@@ -18,7 +18,7 @@ export function ListenButton({ className = "" }: { className?: string }) {
       <span>
         {liveOn
           ? "Stop the stream"
-          : status === "loading"
+          : status === "loading" && source.kind === "live"
             ? "Connecting"
             : "Listen live"}
       </span>

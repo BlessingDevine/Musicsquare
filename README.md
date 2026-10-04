@@ -117,8 +117,7 @@ Things that are easy to break if you edit the hero:
 page gets it. Page files only render their own `<main>`.
 
 - `/` — the home page.
-- `/channels` — the four channels in full, plus the blocks that fill the rest of
-  the week.
+- `/channels` — every live channel, from the catalogue (see "Live channels").
 - `/schedule` — the whole week, hour by hour.
 - `/about` — what the station is, how the music is made, who runs it.
 - `/privacy` — describes what the site actually does. Accurate as built; it
@@ -127,19 +126,11 @@ page gets it. Page files only render their own `<main>`.
   so the page shows the three free ways to help and hides the contribution
   block entirely. Set that constant and the fourth item appears.
 
-**Everything numeric on both pages is derived from `WEEK`** via `airtime(label)`
-and friends: hours a week, days a week, when each slot runs, what is on air now,
-what is next, and the ranking on the schedule page. Nothing is typed in twice,
-so no page can drift out of agreement with the timetable. `OTHER_BLOCKS` is
-likewise computed as "every label on the timetable that isn't one of the four
-channels".
-
-Those thirteen deliberately get a quieter treatment with no artwork. The
-station's own sleeves carry baked-in typography and there are no roster
-portraits that honestly represent them, so inventing imagery would have been
-worse than the hierarchy being explicit: four channels have catalogues, the
-rest is schedule. See the caveat at the end of "The schedule" — that hierarchy
-is a claim about catalogues, not about airtime.
+**Everything numeric on the schedule is derived from `WEEK`** via
+`airtime(label)` and friends: hours a week, days a week, when each slot runs,
+what is on air now, what is next, and the ranking on the schedule page.
+Nothing is typed in twice, so no page can drift out of agreement with the
+timetable.
 
 Nav hrefs are absolute (`/channels`, `/#drop`) so they work from any page. The
 scroll-spy only watches the `/#` entries and only on the home page.
@@ -258,9 +249,69 @@ the old site:
 Only French is named as a language on the page, because the standing French Mix
 block is the one piece of direct evidence. Ask before naming others.
 
-## Still to build
+## Live channels
 
-Built so far: the home page and `/channels`. Roster, Schedule, About, Contact,
-Media and Donate still only exist as sections on the home page or not at all.
+The channels are separate from the RadioKing stream. Each is its own station
+playing the catalogue around the clock, and **all of it is files**: there is no
+streaming server.
+
+- **Audio** is in a private S3 bucket (`musicsquare-audio-<account id>`,
+  us-west-1) served only through CloudFront
+  (`https://d1j1hqrpj9spbo.cloudfront.net`). The bucket policy lets CloudFront
+  read `audio/*` and nothing else, so WAV masters under `masters/` are never
+  public. Made by `scripts/aws/setup-audio.sh`.
+- **The catalogue** is in Supabase. The schema is
+  `supabase/migrations/20261004000000_catalog.sql` — a slice of the SquareDrum
+  Database Schema document (KNOWLEDGE BASE/CATALOG), same table names and
+  status vocabularies, deviations marked in the file. Row Level Security lets
+  the website's publishable key read only released songs; the `channel_tracks`
+  view is what the site reads.
+- **Being live** is arithmetic (`src/lib/live-channel.ts`). Each channel has a
+  rotation with exact song lengths and a fixed start time (`epoch`). From the
+  clock alone every browser works out the same song and the same second, then
+  plays that file from that point. Each pass through a rotation is reshuffled
+  with a seed of channel + pass number, so the order varies but is identical
+  for everyone.
+- **The player** (`player-provider.tsx`) starts the song that is on air
+  *inside the tap*, using the summary the page already has — iOS Safari blocks
+  `play()` after an `await`. The full rotation loads in the background and is
+  used when that song ends. The audio element deliberately has no
+  `crossOrigin`: plain playback doesn't need CORS, and requesting it made every
+  song fail on a CloudFront edge that hadn't received the CORS policy yet.
+- **Server side**, `src/lib/catalog.ts` holds rotations in memory for five
+  minutes. `/api/channels` returns what every channel is airing (polled by the
+  cards, timed to the next song change); `/api/channels/[slug]` returns one
+  rotation for the player.
+
+### Adding music
+
+Put songs in the catalogue folder (`SQUARE BUSINESS/IMPRINT/<Imprint - Genre>/
+[ARISTS/]<Artist>/MUSIC/[<Album>/]`), then:
+
+```bash
+aws login
+node scripts/catalog/ingest.mjs
+```
+
+The importer is resumable and skips anything already imported (by path, or by
+checksum if a file was moved). It rebuilds every channel's rotation at the end
+without touching any channel's `epoch`, so nobody listening hears a jump.
+`node scripts/catalog/scan.mjs` is a dry run that changes nothing.
+
+What the importer decides, all in `scan.mjs` / `ingest.mjs`:
+
+- Imprint, genre, artist and album come from the folder names (the ID3 artist
+  tags are unusable — the most common value is "informs"). Capitalised folder
+  names are title-cased; files named with no capitals ("adicto-a-tu-amor",
+  "boots dirty and worn") get rebuilt titles. Known folder typos (Reggaton,
+  Sqaure, Amampiano, Voll) are corrected for display only.
+- New songs are `released_radio` — they already air on RadioKing — with
+  `rights_status` `unknown`. "(ALT)" takes import as drafts and stay out of
+  rotation. Where an artist has two recordings of the same title, only the
+  first goes into the rotation; both stay in the catalogue.
+- A WAV with a matching MP3 is filed as that song's private master.
+- Channels: one per imprint, named for its genres, biggest catalogue first.
+
+## Still to build
 
 The old site remains at `../musicsquareradio3` as a reference.

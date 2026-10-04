@@ -4,13 +4,19 @@ import { Channels } from "@/components/channels";
 import { Drop } from "@/components/drop";
 import { Roster } from "@/components/roster";
 import { Schedule } from "@/components/schedule";
+import { getChannelSummaries } from "@/lib/catalog";
 
-export default function Home() {
+// The channel cards refresh themselves in the browser; the page is rebuilt
+// once a minute so the first paint is never far behind.
+export const revalidate = 60;
+
+export default async function Home() {
+  const channels = await getChannelSummaries();
   return (
     <main>
       <Hero />
       <OnNow />
-      <Channels />
+      <Channels initial={channels} />
       <Drop />
       <Roster />
       <Schedule />

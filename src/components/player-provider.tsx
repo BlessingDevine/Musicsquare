@@ -10,11 +10,17 @@ import {
   useState,
 } from "react";
 import { STREAM_URL } from "@/lib/station";
+import { type ChannelTrack, onAirAt } from "@/lib/live-channel";
 import type { Live, Track } from "@/app/api/live/route";
+import type { ChannelRotation } from "@/app/api/channels/[slug]/route";
 
 type Source =
   | { kind: "live" }
-  | { kind: "track"; url: string; title: string; artist: string };
+  | { kind: "track"; url: string; title: string; artist: string }
+  | { kind: "channel"; slug: string; name: string; track: ChannelTrack | null; endsAt: number };
+
+/** The song a channel is airing, as the channels page already knows it. */
+export type ChannelHint = { track: ChannelTrack; startedAt: number; endsAt: number } | null;
 
 type PlayerValue = {
   status: "idle" | "loading" | "playing" | "error";
@@ -26,8 +32,11 @@ type PlayerValue = {
   listening: number;
   toggleLive: () => void;
   playTrack: (t: { url: string; title: string; artist: string }) => void;
+  /** Tune in to a live channel, joining it wherever it is right now. */
+  playChannel: (slug: string, name: string, hint?: ChannelHint) => void;
   stop: () => void;
   isPlaying: (url?: string) => boolean;
+  isOnChannel: (slug: string) => boolean;
 };
 
 const PlayerContext = createContext<PlayerValue | null>(null);
@@ -87,17 +96,36 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [status]);
 
+  // The audio element's listeners are attached once, so anything they need
+  // to know about the current source goes through refs.
+  const sourceRef = useRef<Source>(source);
+  const rotations = useRef(new Map<string, Promise<ChannelRotation | null>>());
+  const onEnded = useRef<() => void>(() => setStatus("idle"));
+
+  const changeSource = useCallback((next: Source) => {
+    sourceRef.current = next;
+    setSource(next);
+  }, []);
+
   const ensureAudio = useCallback(() => {
     if (!audioRef.current) {
       const el = new Audio();
       el.preload = "none";
-      el.crossOrigin = "anonymous";
+      // No crossOrigin: plain playback doesn't need CORS, and requesting it
+      // makes every song fail outright if any CDN edge omits the header.
+      // Only a Web Audio visualiser would need it — add it back with one.
       el.addEventListener("playing", () => setStatus("playing"));
       el.addEventListener("waiting", () => setStatus("loading"));
-      el.addEventListener("pause", () => setStatus("idle"));
+      el.addEventListener("pause", () => {
+        // A channel moving to its next song pauses on the way; don't flash idle.
+        if (!el.ended) setStatus("idle");
+      });
       el.addEventListener("error", () => setStatus("error"));
-      el.addEventListener("ended", () => setStatus("idle"));
+      el.addEventListener("ended", () => onEnded.current());
       audioRef.current = el;
+      if (process.env.NODE_ENV === "development") {
+        (window as unknown as { __audio?: HTMLAudioElement }).__audio = el;
+      }
     }
     return audioRef.current;
   }, []);
@@ -107,18 +135,110 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setStatus("idle");
   }, []);
 
+  // --- live channels ----------------------------------------------------------
+
+  const rotationFor = useCallback((slug: string) => {
+    let pending = rotations.current.get(slug);
+    if (!pending) {
+      pending = fetch(`/api/channels/${slug}`)
+        .then((r) => (r.ok ? (r.json() as Promise<ChannelRotation>) : null))
+        .catch(() => null);
+      rotations.current.set(slug, pending);
+      // Don't keep a failure cached; the next tune-in should try again.
+      pending.then((r) => r ?? rotations.current.delete(slug));
+    }
+    return pending;
+  }, []);
+
+  /**
+   * Plays one song of a channel from wherever the channel has got to. The
+   * #t fragment starts it at the right point; once the file's metadata is in,
+   * the position is corrected for however long loading took.
+   */
+  const startChannelTrack = useCallback(
+    (slug: string, name: string, air: { track: ChannelTrack; startedAt: number; endsAt: number }) => {
+      const el = ensureAudio();
+      changeSource({ kind: "channel", slug, name, track: air.track, endsAt: air.endsAt });
+      setStatus("loading");
+      const offset = Math.max(0, (Date.now() - air.startedAt) / 1000);
+      el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(1)}` : air.track.src;
+      el.addEventListener(
+        "loadedmetadata",
+        () => {
+          const target = (Date.now() - air.startedAt) / 1000;
+          if (Math.abs(el.currentTime - target) > 1.5) el.currentTime = target;
+        },
+        { once: true },
+      );
+      el.play().catch(() => setStatus("error"));
+    },
+    [ensureAudio, changeSource],
+  );
+
+  /** Re-reads the clock and plays whatever the channel is on now. */
+  const resyncChannel = useCallback(
+    async (slug: string, name: string) => {
+      const rotation = await rotationFor(slug);
+      const current = sourceRef.current;
+      if (current.kind !== "channel" || current.slug !== slug) return; // tuned away meanwhile
+      const air = rotation && onAirAt(rotation, Date.now());
+      if (!air) {
+        setStatus("error");
+        return;
+      }
+      startChannelTrack(slug, name, air);
+    },
+    [rotationFor, startChannelTrack],
+  );
+
+  useEffect(() => {
+    onEnded.current = () => {
+      const current = sourceRef.current;
+      if (current.kind === "channel") resyncChannel(current.slug, current.name);
+      else setStatus("idle");
+    };
+  }, [resyncChannel]);
+
+  const playChannel = useCallback<PlayerValue["playChannel"]>(
+    (slug, name, hint) => {
+      if (source.kind === "channel" && source.slug === slug && status !== "idle") {
+        stop();
+        return;
+      }
+      // Fetch the rotation now: it's needed when this song ends.
+      rotationFor(slug);
+      if (hint && Date.now() < hint.endsAt - 1000) {
+        // Start inside the tap — iOS Safari blocks play() after an await.
+        startChannelTrack(slug, name, hint);
+      } else {
+        ensureAudio();
+        changeSource({ kind: "channel", slug, name, track: null, endsAt: 0 });
+        setStatus("loading");
+        resyncChannel(slug, name);
+      }
+    },
+    [source, status, stop, rotationFor, startChannelTrack, ensureAudio, changeSource, resyncChannel],
+  );
+
+  const isOnChannel = useCallback(
+    (slug: string) => source.kind === "channel" && source.slug === slug && status !== "idle",
+    [source, status],
+  );
+
+  // --- the main stream and single tracks ------------------------------------------
+
   const toggleLive = useCallback(() => {
     const el = ensureAudio();
     if (source.kind === "live" && status === "playing") {
       stop();
       return;
     }
-    setSource({ kind: "live" });
+    changeSource({ kind: "live" });
     setStatus("loading");
     // Cache-bust so a resumed stream starts at the live edge, not a stale buffer.
     el.src = `${STREAM_URL}?t=${Date.now()}`;
     el.play().catch(() => setStatus("error"));
-  }, [ensureAudio, source.kind, status, stop]);
+  }, [ensureAudio, source.kind, status, stop, changeSource]);
 
   const playTrack = useCallback<PlayerValue["playTrack"]>(
     (track) => {
@@ -127,12 +247,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         stop();
         return;
       }
-      setSource({ kind: "track", ...track });
+      changeSource({ kind: "track", ...track });
       setStatus("loading");
       el.src = track.url;
       el.play().catch(() => setStatus("error"));
     },
-    [ensureAudio, source, status, stop],
+    [ensureAudio, source, status, stop, changeSource],
   );
 
   const isPlaying = useCallback<PlayerValue["isPlaying"]>(
@@ -155,10 +275,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       listening,
       toggleLive,
       playTrack,
+      playChannel,
       stop,
       isPlaying,
+      isOnChannel,
     }),
-    [status, source, live, listening, toggleLive, playTrack, stop, isPlaying],
+    [status, source, live, listening, toggleLive, playTrack, playChannel, stop, isPlaying, isOnChannel],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;

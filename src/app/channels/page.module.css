@@ -69,8 +69,47 @@
 }
 
 .list {
-  padding-block: 0 clamp(4rem, 9vw, 8rem);
+  padding-block: clamp(3rem, 6vw, 5rem) clamp(4rem, 9vw, 8rem);
   background: var(--color-paper);
+}
+
+.empty {
+  max-width: 46ch;
+  color: var(--color-ash);
+  margin: 0;
+}
+
+.main {
+  margin-top: clamp(4rem, 9vw, 7rem);
+  max-width: 60rem;
+}
+
+.mainTitle {
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  margin-block: 1.2rem 1rem;
+}
+
+.mainTitle em {
+  color: var(--color-gold-deep);
+}
+
+.mainLede {
+  max-width: 44ch;
+  color: var(--color-ash);
+  margin: 0 0 2rem;
+}
+
+.mainActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem 2rem;
+}
+
+.toSchedule {
+  color: var(--color-gold-deep);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.3rem;
 }
 
 @media (max-width: 620px) {

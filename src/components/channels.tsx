@@ -2,108 +2,97 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { CHANNELS, DAYS, blockAt } from "@/lib/station";
+import type { ChannelSummary } from "@/lib/channel-summary";
+import { CHANNELS } from "@/lib/station";
+import { useChannelSummaries } from "./live-channels";
 import { usePlayer } from "./player-provider";
 import { Reveal } from "./reveal";
 import styles from "./channels.module.css";
 
-type Clock = { day: number; hour: number };
+// The four channels with portraits on the site, matched to their live
+// channel in the catalogue by slug.
+const FEATURED: Record<string, (typeof CHANNELS)[number] | undefined> = {
+  pop: CHANNELS.find((c) => c.slug === "pop"),
+  "r-and-b-soul": CHANNELS.find((c) => c.slug === "rnb"),
+  afrobeat: CHANNELS.find((c) => c.slug === "afrobeat"),
+  country: CHANNELS.find((c) => c.slug === "country"),
+};
 
-/**
- * When this block is next on air, phrased for a listener. Searches forward
- * across the week, because several blocks only run on a couple of days.
- */
-function airing(block: string, now: Clock | null) {
-  if (!now) return null;
-  if (blockAt(now.day, now.hour)?.label === block) {
-    return { live: true, text: "On air now" };
-  }
+const hoursOf = (ms: number) => `${Math.round(ms / 3_600_000)}h of music`;
 
-  for (let step = 1; step <= 24 * 7; step++) {
-    const total = now.hour + step;
-    const day = (now.day + Math.floor(total / 24)) % 7;
-    const hour = total % 24;
-    const slot = blockAt(day, hour);
-    if (slot?.label !== block) continue;
-    const when = `${String(slot.start).padStart(2, "0")}:00`;
-    return {
-      live: false,
-      text: day === now.day ? `Next on air ${when}` : `Next ${DAYS[day]} ${when}`,
-    };
-  }
-  return { live: false, text: "In rotation" };
-}
-
-export function Channels() {
-  const { toggleLive, status, source } = usePlayer();
-  const [now, setNow] = useState<Clock | null>(null);
-  const liveOn = source.kind === "live" && status === "playing";
-
-  useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      setNow({ day: d.getDay(), hour: d.getHours() });
-    };
-    tick();
-    const id = setInterval(tick, 60_000);
-    return () => clearInterval(id);
-  }, []);
+export function Channels({ initial }: { initial: ChannelSummary[] }) {
+  const { channels } = useChannelSummaries(initial);
+  const { playChannel, isOnChannel, source } = usePlayer();
+  const featured = channels.filter((c) => FEATURED[c.slug]);
+  if (!featured.length) return null;
 
   return (
     <section id="channels" className={styles.section}>
       <div className="wrap">
         <Reveal className={styles.head}>
-          <p className="mono eyebrow">Four channels, one stream</p>
+          <p className="mono eyebrow">{channels.length} live channels</p>
           <h2 className={`display ${styles.title}`}>
             What we <em>play</em>
           </h2>
           <p className={styles.lede}>
-            The station runs a single live signal. Through the day it moves between
-            four rooms — each with its own catalogue, its own writers and its own
-            machines.
+            Every channel is its own station, live around the clock. Tune in and
+            you join mid-song, at the same moment as everyone else.
           </p>
           <Link href="/channels" className={`mono ${styles.more}`}>
-            All four channels, in full &rarr;
+            All {channels.length} channels &rarr;
           </Link>
         </Reveal>
       </div>
 
       <div className="wrap">
         <ul className={styles.grid}>
-          {CHANNELS.map((channel) => {
-            const air = airing(channel.block, now);
+          {featured.map((channel) => {
+            const art = FEATURED[channel.slug]!;
+            const tuned = isOnChannel(channel.slug);
+            const track =
+              tuned && source.kind === "channel" && source.track ? source.track : channel.now?.track;
             return (
               <Reveal as="li" key={channel.slug} className={styles.card}>
                 <div className={styles.art}>
                   <Image
-                    src={channel.cover}
+                    src={art.cover}
                     alt=""
                     fill
                     sizes="(max-width: 760px) 100vw, 25vw"
                     className={styles.img}
                   />
-                  <span className={`mono ${styles.air} ${air?.live ? styles.airLive : ""}`}>
-                    {air?.live ? <span className="pip" aria-hidden="true" /> : null}
-                    {air?.text ?? " "}
+                  <span className={`mono ${styles.air} ${styles.airLive}`}>
+                    <span className="pip" aria-hidden="true" />
+                    {tuned ? "Listening" : "On air"}
                   </span>
                 </div>
 
                 <h3 className={`display ${styles.name}`}>{channel.name}</h3>
-                <p className={styles.strap}>{channel.strapline}</p>
+                <p className={styles.strap}>
+                  {track ? (
+                    <>
+                      <span className={styles.nowTitle}>{track.title}</span>
+                      <span className={`mono ${styles.nowArtist}`}>{track.artist}</span>
+                    </>
+                  ) : (
+                    art.strapline
+                  )}
+                </p>
 
                 <p className={`mono ${styles.stats}`}>
-                  <span>{channel.tracks} tracks</span>
-                  <span>{channel.runtime}</span>
+                  <span>{channel.tracks} songs</span>
+                  <span>{hoursOf(channel.totalMs)}</span>
                 </p>
 
                 <button
                   type="button"
-                  className={`btn btn-ghost ${styles.cardBtn}`}
-                  onClick={toggleLive}
+                  className={`btn ${tuned ? "" : "btn-ghost"} ${styles.cardBtn}`}
+                  onClick={() => playChannel(channel.slug, channel.name, channel.now)}
+                  aria-pressed={tuned}
                 >
-                  <span aria-hidden="true">{liveOn ? "■" : "▶"}</span>
-                  <span>{liveOn ? "Stop" : "Tune in"}</span>
+                  <span aria-hidden="true">{tuned ? "■" : "▶"}</span>
+                  <span>{tuned ? "Stop" : "Tune in"}</span>
+                  <span className="sr-only">{tuned ? ` ${channel.name}` : ` to ${channel.name}`}</span>
                 </button>
               </Reveal>
             );

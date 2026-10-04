@@ -1,52 +1,93 @@
 import type { Metadata } from "next";
-import { ChannelDetail } from "@/components/channel-detail";
-import { CATALOGUE, CHANNELS, OTHER_BLOCKS } from "@/lib/station";
+import Link from "next/link";
+import { ListenButton } from "@/components/listen-button";
+import { LiveChannels } from "@/components/live-channels";
+import { getChannelSummaries } from "@/lib/catalog";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
   title: "Channels",
   description:
-    "Four channels on one signal — Pop, R&B, Afrobeat and Country — plus the blocks that fill the rest of the day. What each room plays, and when it is on air.",
+    "Live channels from the Musicsquare catalogue — Pop, R&B, Afrobeat, Country, Reggaeton, EDM and more, each playing around the clock. Tune in and join mid-song, at the same moment as everyone else.",
 };
 
-export default function ChannelsPage() {
+// Rotations change only when the catalogue is imported; what's on air is
+// refreshed in the browser, so the page itself can be rebuilt once a minute.
+export const revalidate = 60;
+
+const WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+  "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen",
+  "Eighteen", "Nineteen", "Twenty"];
+
+export default async function ChannelsPage() {
+  const summaries = await getChannelSummaries();
+  const songs = summaries.reduce((n, c) => n + c.tracks, 0);
+  const hours = Math.round(summaries.reduce((n, c) => n + c.totalMs, 0) / 3_600_000);
+  const count = WORDS[summaries.length] ?? String(summaries.length);
+
   return (
     <main>
       <header className={`on-ink ${styles.header}`}>
         <div className="wrap">
           <p className="mono eyebrow">Channels</p>
           <h1 className={`display ${styles.title}`}>
-            Four rooms, <em>one signal</em>
+            {count} rooms, <em>all live</em>
           </h1>
           <p className={styles.lede}>
-            The station never runs more than one stream. What changes through the
-            day is which room it is coming from — each with its own catalogue, its
-            own writers and its own machines.
+            Each channel is its own station, playing around the clock from the
+            catalogue. Tune in and you join it mid-song, wherever it has got to —
+            the same moment as everyone else listening.
           </p>
 
           <dl className={styles.summary}>
             <div>
               <dt className="mono">Channels</dt>
-              <dd>{CHANNELS.length}</dd>
+              <dd>{summaries.length}</dd>
             </div>
             <div>
-              <dt className="mono">Songs in the catalogue</dt>
-              <dd>{CATALOGUE.songs}</dd>
+              <dt className="mono">Songs in rotation</dt>
+              <dd>{songs.toLocaleString("en-US")}</dd>
             </div>
             <div>
-              <dt className="mono">Other blocks</dt>
-              <dd>{OTHER_BLOCKS.length}</dd>
+              <dt className="mono">Hours of music</dt>
+              <dd>{hours}</dd>
             </div>
             <div>
-              <dt className="mono">Hours a day</dt>
-              <dd>24</dd>
+              <dt className="mono">On air</dt>
+              <dd>24/7</dd>
             </div>
           </dl>
         </div>
       </header>
 
       <div className={`wrap ${styles.list}`}>
-        <ChannelDetail />
+        {summaries.length ? (
+          <LiveChannels initial={summaries} />
+        ) : (
+          <p className={styles.empty}>
+            The channels are being tuned. In the meantime, the main station is on
+            the air.
+          </p>
+        )}
+
+        {/* The main signal is a separate, programmed stream; say so plainly
+            rather than leave it implied. */}
+        <section className={styles.main}>
+          <p className="mono eyebrow">And the main signal</p>
+          <h2 className={`display ${styles.mainTitle}`}>
+            Musicsquare Radio, <em>programmed</em>
+          </h2>
+          <p className={styles.mainLede}>
+            The station itself runs one stream with a weekly schedule, moving
+            between genres through the day.
+          </p>
+          <div className={styles.mainActions}>
+            <ListenButton />
+            <Link href="/schedule" className={`mono ${styles.toSchedule}`}>
+              See the week &rarr;
+            </Link>
+          </div>
+        </section>
       </div>
     </main>
   );
