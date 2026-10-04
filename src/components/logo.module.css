@@ -1,69 +1,69 @@
-.lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  line-height: 1;
-}
-
-.mark {
-  width: 1.75rem;
-  height: 1.75rem;
+/* The kit's own colours, not the site tokens: the logo is the brand source.
+   Dark is for ink backgrounds, light for paper — the light version's deeper
+   gold and heavier outer brackets keep the mark from washing out on white. */
+.logo {
+  --logo-gold: #d4a24c;
+  --logo-middle: 0.65;
+  --logo-outer: 0.35;
+  display: block;
+  width: auto;
+  aspect-ratio: 855.33 / 137;
   flex: none;
-  color: var(--color-gold);
 }
 
-.words {
-  display: flex;
-  flex-direction: column;
-  gap: 0.24rem;
+.light {
+  --logo-gold: #a97a25;
+  --logo-middle: 0.72;
+  --logo-outer: 0.45;
+}
+
+.gold,
+.name {
+  transition: fill 0.5s var(--ease-out);
+}
+
+.gold {
+  fill: var(--logo-gold);
 }
 
 .name {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.22rem;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
+  fill: currentColor;
 }
 
-.sub {
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.58em;
-  text-transform: uppercase;
-  opacity: 0.7;
-  text-indent: 0.05em;
+.middle {
+  opacity: var(--logo-middle);
 }
 
-.compact .mark {
-  width: 1.35rem;
-  height: 1.35rem;
+.outer {
+  opacity: var(--logo-outer);
 }
 
-.compact .name {
-  font-size: 0.98rem;
+/* Sized off the wordmark, not the mark: the capitals are only 28% of the
+   lockup's height and the strokes are hairline, so anything much smaller
+   than this stops reading as a name. */
+.logo {
+  height: 2.5rem;
 }
 
-.compact .sub {
-  font-size: 0.44rem;
-  letter-spacing: 0.5em;
+.compact {
+  height: 2.1rem;
 }
 
-/* On the narrowest phones the full lockup pushes the header controls off the
-   edge, so it steps down on its own rather than relying on the caller. */
-@media (max-width: 390px) {
-  .lockup {
-    gap: 0.5rem;
+@media (max-width: 620px) {
+  .logo {
+    height: 2.15rem;
   }
-  .mark {
-    width: 1.4rem;
-    height: 1.4rem;
+  .compact {
+    height: 1.9rem;
   }
-  .name {
-    font-size: 1rem;
-  }
-  .sub {
-    font-size: 0.44rem;
-    letter-spacing: 0.46em;
+}
+
+/* Below 430px the header has ~110-200px left beside the listen button and
+   the burger — the wordmark would shrink to 5px capitals. A square box plus
+   preserveAspectRatio="xMinYMid slice" crops the lockup to the mark alone,
+   at full height, without a second set of paths. */
+@media (max-width: 429px) {
+  .collapsible {
+    aspect-ratio: 1;
   }
 }

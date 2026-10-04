@@ -8,7 +8,7 @@ export function SiteFooter() {
     <footer className={`on-ink ${styles.footer}`}>
       <div className={`wrap ${styles.inner}`}>
         <div className={styles.brand}>
-          <Logo />
+          <Logo className={styles.logo} />
           <p className={styles.pitch}>
             A 24-hour station for music made by people and machines together.
             Broadcasting from {STATION.city} since {STATION.founded}.

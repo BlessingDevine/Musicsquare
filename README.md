@@ -183,14 +183,36 @@ the broadcast week.
 Everything editable lives in `src/lib/station.ts` — channels, roster, the
 day's programming, today's drop, socials, nav.
 
-## Icons
+## Logo and icons
 
-`app/icon.svg` is the mark; `app/apple-icon.png` is the same thing at 180×180.
-That PNG is **generated pixel by pixel by a script** rather than rasterised —
-there is no ImageMagick here, `next/og` fails on this setup with "Input buffer
-contains unsupported image format", and drawing the SVG to a canvas silently
-produced a blank square. The generator is short and lives in the commit history;
-regenerate it that way if the mark changes. It is 549 bytes.
+The logo comes from the brand kit (`NEW LOGO/musicsquare-radio-logo-kit` in the
+station's project folder, Oct 2026): a square signal inside three widening gold
+brackets, then the wordmark. `src/components/logo.tsx` inlines the kit's
+`horizontal-dark.svg` paths rather than using an `<img>`, so one component
+covers every context:
+
+- **The wordmark follows `currentColor`**, and `tone="light"` switches the gold
+  and bracket opacities to the kit's light version (`#A97A25`, .72/.45 instead
+  of `#D4A24C`, .65/.35). The header uses dark over the hero and light once it
+  docks white on scroll.
+- **The logo keeps the kit's golds**, which are slightly warmer than the site's
+  `--color-gold` (`#c8a44d`). The logo is the brand source; if the two ever
+  need to match, move the site token, not the logo.
+- **Size it off the wordmark.** Its capitals are only 28% of the lockup height
+  and the strokes are hairline — below ~2rem tall it stops reading as a name.
+- **`collapsible`** (header only): under 430px there is not room beside the
+  listen button and burger, so the box goes square and
+  `preserveAspectRatio="xMinYMid slice"` crops the lockup to the mark alone. The
+  hero spells out the name directly beneath it.
+- The kit's paths sample every rounded corner as a polyline with 13-digit
+  coordinates. They were simplified (35KB → 13KB, under 0.1 unit of deviation)
+  before inlining. If the logo changes, regenerate from the kit rather than
+  hand-editing the path strings.
+
+`app/icon.svg` is the kit's `app-icon-small.svg` — the small-size variant, which
+drops the faint outer bracket so the mark survives at 16px. `app/apple-icon.png`
+is the kit's `apple-touch-icon-180.png`, copied as-is. The kit's `app-icons/`
+folder also holds Android, iOS and PWA sizes if a web manifest is ever added.
 
 Do not reintroduce `app/favicon.ico` — the create-next-app default was shipping
 the Next.js logo as the site's icon, because `favicon.ico` outranks the `icons`

@@ -17,6 +17,13 @@
   gap: 1.5rem;
 }
 
+/* align-self, or the flex column stretches the SVG and the lockup centres
+   itself inside the extra width. */
+.brand .logo {
+  height: clamp(2.5rem, 4vw, 3.25rem);
+  align-self: flex-start;
+}
+
 .pitch {
   margin: 0;
   max-width: 32ch;

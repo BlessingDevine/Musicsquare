@@ -110,7 +110,7 @@ export function SiteNav() {
       <header className={`${styles.bar} ${docked ? styles.docked : ""}`}>
         <div className={styles.inner}>
           <Link href="/" className={styles.brand} aria-label="Musicsquare Radio, home">
-            <Logo compact={docked} />
+            <Logo collapsible compact={docked} tone={docked ? "light" : "dark"} />
           </Link>
 
           <nav className={styles.links} aria-label="Sections">
