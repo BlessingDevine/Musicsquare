@@ -58,9 +58,10 @@ The canonical address is fixed as `https://musicsquareradio.com` in
 `src/app/layout.tsx`; link previews and the card image use it. If the primary
 domain ever changes, change it there.
 
-Vercel shows "DNS Change Recommended" on the bare domain: it would like the A
-record at GoDaddy moved from `216.198.79.1` to `216.150.1.1`. Optional — the
-current record is also Vercel's and keeps working.
+DNS at GoDaddy: one A record, `@` → `216.150.1.1` (Vercel's current address;
+the older `216.198.79.1` was removed in Oct 2026), and `www` as a CNAME to
+Vercel. The MX and TXT records there run the station's Microsoft 365 email —
+leave them alone.
 
 Keep the old Vercel project: `DROP.audio` in `station.ts` still plays from its
 Blob storage.
