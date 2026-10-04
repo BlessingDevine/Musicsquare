@@ -45,22 +45,25 @@ cards. After adding or changing them, redeploy — they are read at build time.
 The first build takes about a minute and gives you a live `.vercel.app` URL.
 Check it before touching DNS.
 
-## 3. Point the domain at it
+## 3. The domain
 
-In the Vercel project: **Settings → Domains**. Add both `musicsquareradio.com`
-and `www.musicsquareradio.com`, then create the DNS records Vercel shows you at
-whoever manages the domain.
+**Done, Oct 2026.** `musicsquareradio.com` is this project's primary domain and
+`www.musicsquareradio.com` redirects to it. The domain is registered at GoDaddy
+and its DNS already pointed at Vercel (the old v0 site was on Vercel too), so
+moving it was done entirely in Vercel: remove it from the old project, add it to
+this one. In the current Vercel UI, domains and environment variables both live
+under **Settings → Environments → Production**.
 
-Leave the old site running until the new one resolves. Shared-link previews
-take their address from Vercel's `VERCEL_PROJECT_PRODUCTION_URL` (see
-`src/app/layout.tsx`), which follows the production domain on its own — but it
-is read at build time, so **redeploy once after the domain is attached**
-(Deployments → latest → Redeploy) or previews keep pointing at `.vercel.app`.
-That still works, it just shows the wrong address under the card.
+The canonical address is fixed as `https://musicsquareradio.com` in
+`src/app/layout.tsx`; link previews and the card image use it. If the primary
+domain ever changes, change it there.
 
-If previews ever show nothing, check that **Settings → Environment Variables →
-Automatically expose System Environment Variables** is on. Without it the site
-falls back to `www.musicsquareradio.com`, which only works once DNS has moved.
+Vercel shows "DNS Change Recommended" on the bare domain: it would like the A
+record at GoDaddy moved from `216.198.79.1` to `216.150.1.1`. Optional — the
+current record is also Vercel's and keeps working.
+
+Keep the old Vercel project: `DROP.audio` in `station.ts` still plays from its
+Blob storage.
 
 ---
 

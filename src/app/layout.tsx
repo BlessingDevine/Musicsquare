@@ -27,14 +27,12 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
-// Where shared-link previews fetch the card image from. Vercel sets
-// VERCEL_PROJECT_PRODUCTION_URL to the project's production domain — the
-// .vercel.app address until musicsquareradio.com is attached, then the real
-// domain, with no code change. Hard-coding the domain broke previews while it
-// still pointed at the old site, which 404s on /opengraph-image.jpg.
-const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  : "https://www.musicsquareradio.com";
+// Where shared-link previews fetch the card image from, and the canonical
+// address. The domain moved to this project in Oct 2026 with the bare domain
+// as primary (www redirects to it), so it is fixed here. Deriving it from
+// Vercel's VERCEL_PROJECT_PRODUCTION_URL, as before the move, left previews
+// pointing at a .vercel.app alias that was later removed — every card 404'd.
+const SITE_URL = "https://musicsquareradio.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
