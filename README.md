@@ -291,9 +291,15 @@ Put songs in the catalogue folder (`SQUARE BUSINESS/IMPRINT/<Imprint - Genre>/
 [ARISTS/]<Artist>/MUSIC/[<Album>/]`), then:
 
 ```bash
-aws login
 node scripts/catalog/ingest.mjs
 ```
+
+Uploads run as the IAM user `musicsquare-uploader` (AWS CLI profile of the
+same name, selected by `AWS_PROFILE` in `.env.local`), made by
+`scripts/aws/setup-uploader.sh`. It can add files under `audio/` and
+`masters/` and list the bucket — no deletes, nothing else in the account. The
+root login is not kept on the Mac; `aws login` is only needed to change the
+AWS setup itself.
 
 The importer is resumable and skips anything already imported (by path, or by
 checksum if a file was moved). It rebuilds every channel's rotation at the end
