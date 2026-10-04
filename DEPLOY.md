@@ -38,9 +38,16 @@ In the Vercel project: **Settings → Domains**. Add both `musicsquareradio.com`
 and `www.musicsquareradio.com`, then create the DNS records Vercel shows you at
 whoever manages the domain.
 
-Leave the old site running until the new one resolves. `metadataBase` in
-`src/app/layout.tsx` is already `https://www.musicsquareradio.com`, so shared
-links and social previews are correct the moment DNS moves.
+Leave the old site running until the new one resolves. Shared-link previews
+take their address from Vercel's `VERCEL_PROJECT_PRODUCTION_URL` (see
+`src/app/layout.tsx`), which follows the production domain on its own — but it
+is read at build time, so **redeploy once after the domain is attached**
+(Deployments → latest → Redeploy) or previews keep pointing at `.vercel.app`.
+That still works, it just shows the wrong address under the card.
+
+If previews ever show nothing, check that **Settings → Environment Variables →
+Automatically expose System Environment Variables** is on. Without it the site
+falls back to `www.musicsquareradio.com`, which only works once DNS has moved.
 
 ---
 

@@ -27,8 +27,17 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+// Where shared-link previews fetch the card image from. Vercel sets
+// VERCEL_PROJECT_PRODUCTION_URL to the project's production domain — the
+// .vercel.app address until musicsquareradio.com is attached, then the real
+// domain, with no code change. Hard-coding the domain broke previews while it
+// still pointed at the old site, which 404s on /opengraph-image.jpg.
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "https://www.musicsquareradio.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.musicsquareradio.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Musicsquare Radio — AI magic with human expertise. Always on air.",
     template: "%s — Musicsquare Radio",
@@ -39,9 +48,14 @@ export const metadata: Metadata = {
     title: "Musicsquare Radio",
     description:
       "AI magic with human expertise. One frequency, always on. Streaming 24/7 from California.",
-    url: "https://www.musicsquareradio.com",
+    url: SITE_URL,
     siteName: "Musicsquare Radio",
     type: "website",
+  },
+  // The image itself is app/opengraph-image.jpg (built by scripts/og-image.mjs);
+  // X falls back to it, but shows a small square unless asked for the large card.
+  twitter: {
+    card: "summary_large_image",
   },
 };
 

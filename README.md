@@ -214,6 +214,22 @@ drops the faint outer bracket so the mark survives at 16px. `app/apple-icon.png`
 is the kit's `apple-touch-icon-180.png`, copied as-is. The kit's `app-icons/`
 folder also holds Android, iOS and PWA sizes if a web manifest is ever added.
 
+### Link preview card
+
+`app/opengraph-image.jpg` is the card shown when a link is shared — the hero
+flattened: wall sleeves drained to black and white, dimmed to 30% and blurred,
+with the kit's tagline lockup (`scripts/og-logo.svg`) on the centre seam. It is
+**built by `node scripts/og-image.mjs` and committed**, not generated at build
+time; rerun it if the logo or `public/wall/` changes. JPEG at ~50KB, because
+WhatsApp drops previews much over 300KB. X uses the same image, and
+`twitter.card` in the layout asks for the large format.
+
+Two sharp traps the script documents, both of which surface as the misleading
+"Input buffer contains unsupported image format" or as a silently wrong image:
+a `create` canvas returns raw pixels unless given an output format, and
+`composite()` always runs last in a pipeline, so grading the mosaic needs a
+second pass.
+
 Do not reintroduce `app/favicon.ico` — the create-next-app default was shipping
 the Next.js logo as the site's icon, because `favicon.ico` outranks the `icons`
 metadata entry.
