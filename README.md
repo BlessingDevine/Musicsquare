@@ -186,9 +186,11 @@ covers every context:
   and bracket opacities to the kit's light version (`#A97A25`, .72/.45 instead
   of `#D4A24C`, .65/.35). The header uses dark over the hero and light once it
   docks white on scroll.
-- **The logo keeps the kit's golds**, which are slightly warmer than the site's
-  `--color-gold` (`#c8a44d`). The logo is the brand source; if the two ever
-  need to match, move the site token, not the logo.
+- **The site gold is the logo's gold.** `--color-gold` was moved to the kit's
+  `#D4A24C` (Oct 2026), with `--color-gold-deep` (`#886221`, text on paper)
+  and `--color-gold-hi` (`#EAD4AE`, hover) derived on the same hue. The logo's
+  dark version reads `var(--color-gold)`, so the two can't drift apart again.
+  Gold on paper is for fills only — it is 2.3:1, too light for text.
 - **Size it off the wordmark.** Its capitals are only 28% of the lockup height
   and the strokes are hairline — below ~2rem tall it stops reading as a name.
 - **`collapsible`** (header only): under 430px there is not room beside the

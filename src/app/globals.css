@@ -12,9 +12,12 @@
   --color-ink-3: #1e1e22;
   --color-paper: #ffffff;
   --color-paper-2: #f0f0ee;
-  --color-gold: #c8a44d;
-  --color-gold-hi: #f3e0a8;
-  --color-gold-deep: #8a6a22;
+  /* The logo's gold (brand kit, Oct 2026), and two shades on the same hue.
+     gold-deep is the darkest it needs to be for text on paper and paper-2
+     (5.5:1 and 4.8:1); gold on paper is for fills only, never text. */
+  --color-gold: #d4a24c;
+  --color-gold-hi: #ead4ae;
+  --color-gold-deep: #886221;
   --color-ash: #6b6b6b;
   --color-ash-dark: #8c8c92;
 

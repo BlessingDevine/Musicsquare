@@ -1,8 +1,9 @@
-/* The kit's own colours, not the site tokens: the logo is the brand source.
-   Dark is for ink backgrounds, light for paper — the light version's deeper
-   gold and heavier outer brackets keep the mark from washing out on white. */
+/* The kit's two versions. Dark is for ink backgrounds and uses the site gold,
+   which was set to the logo's gold (#D4A24C) so the two always match. Light
+   is for paper: the kit's deeper #A97A25 and heavier outer brackets keep the
+   mark from washing out on white. */
 .logo {
-  --logo-gold: #d4a24c;
+  --logo-gold: var(--color-gold);
   --logo-middle: 0.65;
   --logo-outer: 0.35;
   display: block;
