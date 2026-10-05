@@ -134,7 +134,7 @@ export const ROSTER: Artist[] = [
   { slug: "virgo-dunst", name: "Virgo Dunst", lane: "R&B / Pop", portrait: "/roster/virgo-dunst.jpg" },
   { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg" },
   { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg" },
-  { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alternative Pop", portrait: "/roster/neilly-storm.jpg" },
+  { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alt Pop", portrait: "/roster/neilly-storm.jpg" },
   { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg" },
   // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
   // Lanes are their imprints' genres.

@@ -6,6 +6,10 @@
 // crop is chosen to leave the printed title out — the station's covers carry
 // their own typography and it must never show inside a roster card. Files are
 // saved in colour; the site drains them to black and white in CSS.
+//
+// Replacing a photo under the same filename is fine on Vercel (each deploy
+// re-optimises it), but the local dev server keeps its resized copies for
+// hours: delete .next/dev/cache/images to see the new one locally.
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -32,6 +36,9 @@ const PORTRAITS = [
   ["lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5, 0, 1],
   ["lea-babi", `${V}/LEA BABI/IMAGES/Lea 1.png`, 0.5, 0, 1], // already 4:5
   ["lucas-meno", `${V}/LUCAS MENO/IMAGES/02.jpg`, 0.5, 0, 1],
+  ["virgo-dunst", `${V}/VIRGO DUNST/IMAGES/3.jpg`, 0.5, 0, 1],
+  ["j-cruz", `${W}/J CRUZZ/IMAGES/2.jpg`, 0.5, 0, 1],
+  ["riven-cole", `${W}/RIVEN COLE/IMAGES/01.jpg`, 0.5, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
   ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`, 0.5, 0, 1],
 ];
