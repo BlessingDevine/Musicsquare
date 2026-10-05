@@ -57,7 +57,7 @@ export const CHANNELS: Channel[] = [
       "The room with the biggest hooks and the least patience. Writers bring a top line and a title; the arrangement, the drums and most of the counter-melodies are grown from it. If a chorus hasn't landed inside ninety seconds it doesn't stay in rotation.",
     tracks: 26,
     runtime: "1h 40m",
-    cover: "/channels/pop-01.jpg",
+    cover: "/channels/pop-lumi-astra.jpg",
     block: "Pop",
   },
   {
@@ -68,7 +68,7 @@ export const CHANNELS: Channel[] = [
       "Most of what you hear here started as a vocal take in a real room and ended as something no room could produce — strings that were never played, reverb from halls that don't exist. The voice is the only part that is never touched.",
     tracks: 27,
     runtime: "1h 52m",
-    cover: "/channels/rnb-01.jpg",
+    cover: "/channels/rnb-bantan.jpg",
     block: "R&B",
   },
   {

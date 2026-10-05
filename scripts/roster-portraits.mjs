@@ -80,6 +80,21 @@ if (preview > -1) {
     await writeFile(join(root, "public/roster", `${p[0]}.jpg`), out);
     console.log(`public/roster/${p[0]}.jpg  ${Math.round(out.length / 1024)}KB`);
   }
+  // The home page's channel cards ("What we play") are square too. Each is
+  // fronted by an artist from that channel's imprint.
+  for (const [name, file, cx] of [
+    ["pop-lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5],
+    ["rnb-bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.5],
+  ]) {
+    const src = join(IMPRINT, file);
+    const m = await sharp(src).metadata();
+    const side = Math.min(m.width, m.height);
+    const left = Math.max(0, Math.min(Math.round(cx * m.width - side / 2), m.width - side));
+    const out = await sharp(src).extract({ left, top: 0, width: side, height: side })
+      .resize(1200, 1200).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+    await writeFile(join(root, "public/channels", `${name}.jpg`), out);
+    console.log(`public/channels/${name}.jpg  ${Math.round(out.length / 1024)}KB`);
+  }
   // The home page's "drop" shows its artwork square; the new Luv Tonez photo
   // is square already, so it goes in uncropped.
   const drop = await sharp(join(IMPRINT, `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`))
