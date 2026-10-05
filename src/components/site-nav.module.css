@@ -20,6 +20,14 @@
   transition: padding 0.5s var(--ease-out);
 }
 
+/* Scrolling, but still over the dark opening section: stay dark, but solid
+   enough that the page's big titles can't read through the bar. */
+.scrolled {
+  background: rgba(10, 10, 11, 0.86);
+  backdrop-filter: blur(18px) saturate(1.2);
+  border-bottom-color: var(--rule-dark);
+}
+
 .docked {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(18px) saturate(1.4);

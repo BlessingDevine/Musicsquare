@@ -12,22 +12,39 @@ export function SiteNav() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [docked, setDocked] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
+  const barRef = useRef<HTMLElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const burgerRef = useRef<HTMLButtonElement>(null);
   const { status, source, toggleLive } = usePlayer();
   const liveOn = source.kind === "live" && status === "playing";
 
   useEffect(() => {
-    // The home page has a full-height hero to clear; other pages have a much
-    // shorter header, so the bar docks sooner.
-    const onScroll = () =>
-      setDocked(window.scrollY > (isHome ? window.innerHeight * 0.82 : 260));
+    // Three states. At the very top the bar is clear over the page's dark
+    // opening section. The moment the page moves it turns dark and frosted,
+    // so the big titles can't show through it. Once that dark section has
+    // scrolled up behind the bar, it docks white over the light content.
+    // Every page opens with an .on-ink section, so "docked" is measured from
+    // its real bottom edge rather than a guessed scroll distance.
+    const onScroll = () => {
+      const dark = document.querySelector("main > .on-ink:first-child");
+      const barHeight = barRef.current?.offsetHeight ?? 80;
+      const darkBottom = dark
+        ? dark.getBoundingClientRect().bottom
+        : (isHome ? window.innerHeight * 0.82 : 260) - window.scrollY;
+      setDocked(darkBottom <= barHeight);
+      setScrolled(window.scrollY > 4);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isHome]);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [isHome, pathname]);
 
   // Mark the section you're reading, so the nav says where you are.
   useEffect(() => {
@@ -107,7 +124,10 @@ export function SiteNav() {
 
   return (
     <>
-      <header className={`${styles.bar} ${docked ? styles.docked : ""}`}>
+      <header
+        ref={barRef}
+        className={`${styles.bar} ${docked ? styles.docked : scrolled ? styles.scrolled : ""}`}
+      >
         <div className={styles.inner}>
           <Link href="/" className={styles.brand} aria-label="Musicsquare Radio, home">
             <Logo collapsible compact={docked} tone={docked ? "light" : "dark"} />
