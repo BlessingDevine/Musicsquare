@@ -33,8 +33,11 @@
   transform: scaleX(1);
 }
 
+/* Black and white like every photograph on the site; this one had been
+   missed and was showing in colour. */
 .img {
   object-fit: cover;
+  filter: grayscale(1) contrast(1.04);
 }
 
 .body {

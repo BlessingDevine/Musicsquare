@@ -125,7 +125,7 @@ export type Artist = {
 };
 
 export const ROSTER: Artist[] = [
-  { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez-01.jpg" },
+  { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg" },
   { slug: "saka", name: "Saka", lane: "Afrobeat", portrait: "/roster/saka.jpg" },
   { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose-01.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg" },
@@ -133,9 +133,18 @@ export const ROSTER: Artist[] = [
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka-01.jpg" },
   { slug: "virgo-dunst", name: "Virgo Dunst", lane: "R&B / Pop", portrait: "/roster/virgo-dunst.jpg" },
   { slug: "j-cruz", name: "J Cruz", lane: "Reggaeton", portrait: "/roster/j-cruz.jpg" },
-  { slug: "lunah", name: "Lunah", lane: "Dance", portrait: "/roster/lunah-01.jpg" },
+  { slug: "lunah", name: "Lunah", lane: "Dance", portrait: "/roster/lunah.jpg" },
   { slug: "neilly-storm", name: "Neilly Storm", lane: "Hip Hop", portrait: "/roster/neilly-storm.jpg" },
   { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg" },
+  // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
+  // Lanes are their imprints' genres.
+  { slug: "nova-liyah", name: "Nova Liyah", lane: "Pop", portrait: "/roster/nova-liyah.jpg" },
+  { slug: "echo-rae", name: "Echo Rae", lane: "Pop", portrait: "/roster/echo-rae.jpg" },
+  { slug: "lumi-astra", name: "Lumi Astra", lane: "Pop", portrait: "/roster/lumi-astra.jpg" },
+  { slug: "bantan", name: "Bantan", lane: "R&B / Soul", portrait: "/roster/bantan.jpg" },
+  { slug: "sanza-benito", name: "Sanza Benito", lane: "Afrobeat", portrait: "/roster/sanza-benito.jpg" },
+  { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg" },
+  { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg" },
 ];
 
 /** Today's featured record. */
@@ -152,7 +161,7 @@ export const DROP = {
   rotationStart: "2026-08-09",
   rotationLength: 7,
   note: "A late-night question set to a slow drum. Luv Tonez wrote the top line in one sitting; the strings underneath were grown from a four-bar seed and never touched again.",
-  artwork: "/roster/luv-tonez-01.jpg",
+  artwork: "/roster/luv-tonez-square.jpg",
   audio:
     "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/01.%20What%20Is%20The%20Point-yVTu2BJJUXQFz1hU7RESaxGTamdKc9.mp3",
 };
