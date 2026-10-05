@@ -126,15 +126,15 @@ export type Artist = {
 
 export const ROSTER: Artist[] = [
   { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg" },
-  { slug: "saka", name: "Saka", lane: "Afrobeat", portrait: "/roster/saka.jpg" },
+  { slug: "saka", name: "Saka", lane: "Pop / K-Pop", portrait: "/roster/saka.jpg" },
   { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose-01.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg" },
-  { slug: "danni-blaze", name: "Danni Blaze", lane: "Pop", portrait: "/roster/danni-blaze.jpg" },
+  { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka-01.jpg" },
   { slug: "virgo-dunst", name: "Virgo Dunst", lane: "R&B / Pop", portrait: "/roster/virgo-dunst.jpg" },
-  { slug: "j-cruz", name: "J Cruz", lane: "Reggaeton", portrait: "/roster/j-cruz.jpg" },
-  { slug: "lunah", name: "Lunah", lane: "Dance", portrait: "/roster/lunah.jpg" },
-  { slug: "neilly-storm", name: "Neilly Storm", lane: "Hip Hop", portrait: "/roster/neilly-storm.jpg" },
+  { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg" },
+  { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg" },
+  { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alternative Pop", portrait: "/roster/neilly-storm.jpg" },
   { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg" },
   // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
   // Lanes are their imprints' genres.
