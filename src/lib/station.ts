@@ -145,6 +145,7 @@ export const ROSTER: Artist[] = [
   { slug: "sanza-benito", name: "Sanza Benito", lane: "Afrobeat", portrait: "/roster/sanza-benito.jpg" },
   { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg" },
   { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg" },
+  { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg" },
 ];
 
 /** Today's featured record. */

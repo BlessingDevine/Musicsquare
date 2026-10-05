@@ -23,15 +23,15 @@ const W = "WAVELIGHT RECORDS - POP/ARISTS";
 // of the source. Width is always 4:5 of the height.
 const PORTRAITS = [
   ["fizz", `${S}/FIZZ/IMAGES/Fizz 1.jpg`, 0.5, 0, 1],
-  // Cover II ("Closer Than Close"): the title sits on the right; crop left.
-  ["bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.264, 0.14, 0.66],
+  // Robert removed the printed titles from Bantan's and Echo Rae's covers.
+  ["bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.42, 0, 1],
   ["sanza-benito", `${S}/SANZA BENITO/IMAGES/Benito 1.jpg`, 0.5, 0, 1],
   ["pala", `${S}/PALA/IMAGES/Pala 1.png`, 0.5, 0, 1],
   ["nova-liyah", `${W}/NOVA LIYAH/IMAGES/2.png`, 0.5, 0, 1],
-  // Cover 1: "Echo Rae" is printed across the top; start below it.
-  ["echo-rae", `${W}/ECHO RAE/IMAGES/Echo Cover 1.jpg`, 0.412, 0.22, 0.78],
-  // Vol III: the title is along the bottom; stop above it.
-  ["lumi-astra", `${W}/LUMI ASTRA/IMAGES/Lumi III.jpg`, 0.504, 0.06, 0.66],
+  ["echo-rae", `${W}/ECHO RAE/IMAGES/Echo 1.jpg`, 0.45, 0, 1],
+  ["lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5, 0, 1],
+  ["lea-babi", `${V}/LEA BABI/IMAGES/Lea 1.png`, 0.5, 0, 1], // already 4:5
+  ["lucas-meno", `${V}/LUCAS MENO/IMAGES/02.jpg`, 0.5, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
   ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`, 0.5, 0, 1],
 ];

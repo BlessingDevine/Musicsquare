@@ -240,8 +240,8 @@ the old site:
   was given — the section is written so a name and a photo can drop straight in.
 - **Close to 300 artists and over 2,000 songs, still growing.** These live in
   `CATALOGUE` and are what every page quotes. Two numbers are easy to confuse
-  with them and must never be presented as the station's total: `ROSTER` (18 as of Oct 2026) is
-  only the artists with portraits on the site — always framed as "18 of ~300", never as the roster —
+  with them and must never be presented as the station's total: `ROSTER` (19 as of Oct 2026) is
+  only the artists with portraits on the site — always framed as "19 of ~300", never as the roster —
   and `CHANNEL_TRACKS` (108) is the four channel playlists alone.
 - The catalogue spans **sixteen genres in several languages**, which is wider
   than any one week of `WEEK`. That is why `GENRES` is its own list rather than
