@@ -294,7 +294,9 @@ export class ChannelMixer {
     try {
       const next = await this.nextAfter(current);
       if (!next || !this.ctx || this.air !== current) return;
-      const res = await fetch(next.track.src, { mode: "cors" });
+      // no-store: a copy the element cached earlier (a no-cors request) has
+      // no CORS header, and reusing it would fail this read.
+      const res = await fetch(next.track.src, { mode: "cors", cache: "no-store" });
       if (!res.ok || !res.body) throw new Error(`head ${res.status}`);
       const reader = res.body.getReader();
       const chunks: Uint8Array[] = [];

@@ -323,11 +323,17 @@ streaming server.
   or too short) the song fades out over its full 3s and the next starts on
   the clock, pre-downloaded so it starts at once. (Deciding at the change
   itself, as shipped briefly, left the fallback 0ms to fade — a hard cut.)
+- **CloudFront CORS gotcha.** The managed SimpleCORS response headers policy
+  omits `Access-Control-Allow-Origin` when the request carries `Priority`
+  (Chrome and Safari send it on every fetch) or `Cache-Control: no-cache`.
+  curl and node send neither, so every check passed while every browser
+  failed — and silently fell back to the segue. The distribution now uses a
+  custom policy, `musicsquare-audio-cors-always` (any origin, OriginOverride
+  on), from `scripts/aws/cors-policy.sh`. Test CORS with browser headers:
+  `curl -H "Origin: https://musicsquareradio.com" -H "Priority: u=1, i" …`.
 - **Web Audio needs CORS** on the files. Each page probes once
   (`probeAudioCors`) and the mixer only routes through Web Audio when that
-  passed. The Claude desktop app's built-in browser gets no CORS header from
-  CloudFront (curl, node and Chrome do), so it always tests the segue path;
-  the crossfade path was tested by serving audio same-origin.
+  passed.
 - **`?debug`** on any page address shows a panel: CDN CORS yes/no, mixer mode,
   whether the next song's head is ready, and how the last change went. Use it
   to diagnose a phone remotely.

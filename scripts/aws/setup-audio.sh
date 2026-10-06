@@ -6,8 +6,10 @@
 #               MP3s) and masters/ (WAVs, never served).
 #   CloudFront  the only way in. Origin Access Control signs its requests to
 #               S3, and the bucket policy lets it read audio/* and nothing else.
-#               SimpleCORS adds Access-Control-Allow-Origin: * so a Web Audio
-#               visualiser could read the stream later.
+#               CORS: this creates the distribution with the managed
+#               SimpleCORS policy, which drops the CORS header for browser
+#               requests (they send `Priority`). Run scripts/aws/cors-policy.sh
+#               afterwards to replace it — the crossfade depends on it.
 #
 # Prints the CloudFront address for NEXT_PUBLIC_AUDIO_BASE_URL.
 set -euo pipefail
