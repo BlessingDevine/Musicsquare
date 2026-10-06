@@ -43,17 +43,22 @@ const PORTRAITS = [
   ["noah-rust", `${RT}/NOAH RUST/IMAGES/Noah Rust.png`, 0.5, 0, 1],
   ["vegah-riot", `${RT}/VEGAH RIOT/IMAGES/02.png`, 0.5, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
-  ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`, 0.5, 0, 1],
+  // The group shot keeps all three faces in a 4:5 card; today's drop (square)
+  // uses the head-and-shoulders close-up, which only fits all three square.
+  ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez.jpeg`, 0.5, 0, 1,
+    [`${V}/LUV TONEZ/IMAGES/Luv Tonez 1.jpg`, 0.5, 0, 1]],
 ];
 
-async function crop([, file, cx, fy, fh]) {
+// ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square
+// drop artwork.
+async function crop([, file, cx, fy, fh], ratio = 0.8) {
   const src = join(IMPRINT, file);
   const m = await sharp(src).metadata();
   let h = Math.round(fh * m.height);
-  let w = Math.round(0.8 * h);
+  let w = Math.round(ratio * h);
   if (w > m.width) {
     w = m.width;
-    h = Math.round(w / 0.8);
+    h = Math.round(w / ratio);
   }
   const left = Math.max(0, Math.min(Math.round(cx * m.width - w / 2), m.width - w));
   const top = Math.max(0, Math.min(Math.round(fy * m.height), m.height - h));
@@ -81,7 +86,12 @@ if (preview > -1) {
     // 960x1200 is ~3x the largest card; mozjpeg keeps each well under 200KB.
     const out = await (await crop(p)).resize(960, 1200).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
     await writeFile(join(root, "public/roster", `${p[0]}.jpg`), out);
-    console.log(`public/roster/${p[0]}.jpg  ${Math.round(out.length / 1024)}KB`);
+    // Today's drop shows artwork square (desktop and phones); a square crop of
+    // the same photo — or the entry's own square source — shows uncropped.
+    const squareEntry = p[5] ? [p[0], ...p[5]] : p;
+    const sq = await (await crop(squareEntry, 1)).resize(1200, 1200).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+    await writeFile(join(root, "public/roster", `${p[0]}-square.jpg`), sq);
+    console.log(`public/roster/${p[0]}.jpg  ${Math.round(out.length / 1024)}KB  + square ${Math.round(sq.length / 1024)}KB`);
   }
   // The home page's channel cards ("What we play") are square too. Each is
   // fronted by an artist from that channel's imprint.

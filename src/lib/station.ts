@@ -121,33 +121,36 @@ export type Artist = {
   slug: string;
   name: string;
   lane: string;
+  /** 4:5, for the roster card. */
   portrait: string;
+  /** 1:1, for today's drop; falls back to the portrait. */
+  square?: string;
 };
 
 export const ROSTER: Artist[] = [
-  { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg" },
+  { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg", square: "/roster/luv-tonez-square.jpg" },
   { slug: "saka", name: "Saka", lane: "Pop / K-Pop", portrait: "/roster/saka.jpg" },
   { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose-01.jpg" },
-  { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg" },
+  { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg", square: "/roster/riven-cole-square.jpg" },
   { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka-01.jpg" },
-  { slug: "virgo-dunst", name: "Virgo Dunst", lane: "R&B / Pop", portrait: "/roster/virgo-dunst.jpg" },
-  { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg" },
-  { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg" },
+  { slug: "virgo-dunst", name: "Virgo Dunst", lane: "R&B / Pop", portrait: "/roster/virgo-dunst.jpg", square: "/roster/virgo-dunst-square.jpg" },
+  { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg", square: "/roster/j-cruz-square.jpg" },
+  { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg", square: "/roster/lunah-square.jpg" },
   { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alt Pop", portrait: "/roster/neilly-storm.jpg" },
-  { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg" },
+  { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg", square: "/roster/lucas-meno-square.jpg" },
   // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
   // Lanes are their imprints' genres.
-  { slug: "nova-liyah", name: "Nova Liyah", lane: "Pop", portrait: "/roster/nova-liyah.jpg" },
-  { slug: "echo-rae", name: "Echo Rae", lane: "Pop", portrait: "/roster/echo-rae.jpg" },
-  { slug: "lumi-astra", name: "Lumi Astra", lane: "Pop", portrait: "/roster/lumi-astra.jpg" },
-  { slug: "bantan", name: "Bantan", lane: "R&B / Soul", portrait: "/roster/bantan.jpg" },
-  { slug: "sanza-benito", name: "Sanza Benito", lane: "Afrobeat", portrait: "/roster/sanza-benito.jpg" },
-  { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg" },
-  { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg" },
-  { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg" },
-  { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg" },
-  { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg" },
+  { slug: "nova-liyah", name: "Nova Liyah", lane: "Pop", portrait: "/roster/nova-liyah.jpg", square: "/roster/nova-liyah-square.jpg" },
+  { slug: "echo-rae", name: "Echo Rae", lane: "Pop", portrait: "/roster/echo-rae.jpg", square: "/roster/echo-rae-square.jpg" },
+  { slug: "lumi-astra", name: "Lumi Astra", lane: "Pop", portrait: "/roster/lumi-astra.jpg", square: "/roster/lumi-astra-square.jpg" },
+  { slug: "bantan", name: "Bantan", lane: "R&B / Soul", portrait: "/roster/bantan.jpg", square: "/roster/bantan-square.jpg" },
+  { slug: "sanza-benito", name: "Sanza Benito", lane: "Afrobeat", portrait: "/roster/sanza-benito.jpg", square: "/roster/sanza-benito-square.jpg" },
+  { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg", square: "/roster/fizz-square.jpg" },
+  { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg", square: "/roster/pala-square.jpg" },
+  { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg", square: "/roster/lea-babi-square.jpg" },
+  { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg", square: "/roster/noah-rust-square.jpg" },
+  { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg", square: "/roster/vegah-riot-square.jpg" },
 ];
 
 /* ------------------------------------------------------------- the week */

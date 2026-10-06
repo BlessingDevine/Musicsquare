@@ -18,6 +18,7 @@ export type Drop = {
   title: string;
   artist: string;
   lane: string;
+  /** Square where the artist has one (see ROSTER), else the 4:5 portrait. */
   portrait: string;
   album: string | null;
   imprint: string | null;
@@ -137,7 +138,7 @@ export async function getTodaysDrop(now = Date.now()): Promise<Drop | null> {
     title: pick.song.title,
     artist: artist.name,
     lane: artist.lane,
-    portrait: artist.portrait,
+    portrait: artist.square ?? artist.portrait,
     album: pick.song.album,
     imprint: pick.song.imprint,
     durationMs: pick.song.durationMs,
