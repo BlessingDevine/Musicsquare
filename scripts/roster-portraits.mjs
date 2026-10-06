@@ -42,6 +42,7 @@ const PORTRAITS = [
   ["riven-cole", `${W}/RIVEN COLE/IMAGES/01.jpg`, 0.5, 0, 1],
   ["noah-rust", `${RT}/NOAH RUST/IMAGES/Noah Rust.png`, 0.5, 0, 1],
   ["vegah-riot", `${RT}/VEGAH RIOT/IMAGES/02.png`, 0.5, 0, 1],
+  ["saka", `${W}/SAKA/IMAGES/1.jpg`, 0.45, 0.12, 0.85, [`${W}/SAKA/IMAGES/1.jpg`, 0.42, 0.14, 0.64]],
   ["iron-mirage", `${RT}/IRON MIRAGE/IMAGES/Iron Mirage 1.png`, 0.52, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
