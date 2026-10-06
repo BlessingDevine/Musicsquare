@@ -14,6 +14,6 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/channels/[slug]
   if (!channel) return Response.json({ error: "No such channel" }, { status: 404 });
   const body: ChannelRotation = { ...channel.rotation, name: channel.name };
   return Response.json(body, {
-    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" },
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
   });
 }

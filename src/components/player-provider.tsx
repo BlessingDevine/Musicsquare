@@ -39,6 +39,10 @@ type PlayerValue = {
   isOnChannel: (slug: string) => boolean;
 };
 
+/** How far off schedule a song change may be and still start from the top. */
+const HANDOVER_TOLERANCE_MS = 8000;
+const ROTATION_TTL_MS = 5 * 60_000;
+
 const PlayerContext = createContext<PlayerValue | null>(null);
 
 export function usePlayer() {
@@ -99,7 +103,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // The audio element's listeners are attached once, so anything they need
   // to know about the current source goes through refs.
   const sourceRef = useRef<Source>(source);
-  const rotations = useRef(new Map<string, Promise<ChannelRotation | null>>());
+  const rotations = useRef(new Map<string, { at: number; pending: Promise<ChannelRotation | null> }>());
   const onEnded = useRef<() => void>(() => setStatus("idle"));
 
   const changeSource = useCallback((next: Source) => {
@@ -137,17 +141,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // --- live channels ----------------------------------------------------------
 
+  // Rotations are re-fetched after five minutes, so a listener tuned in
+  // across an import picks up the new songs at the next song change instead
+  // of drifting away from what the channel cards show.
   const rotationFor = useCallback((slug: string) => {
-    let pending = rotations.current.get(slug);
-    if (!pending) {
-      pending = fetch(`/api/channels/${slug}`)
-        .then((r) => (r.ok ? (r.json() as Promise<ChannelRotation>) : null))
-        .catch(() => null);
-      rotations.current.set(slug, pending);
-      // Don't keep a failure cached; the next tune-in should try again.
-      pending.then((r) => r ?? rotations.current.delete(slug));
-    }
-    return pending;
+    const cached = rotations.current.get(slug);
+    if (cached && Date.now() - cached.at < ROTATION_TTL_MS) return cached.pending;
+    const pending = fetch(`/api/channels/${slug}`)
+      .then((r) => (r.ok ? (r.json() as Promise<ChannelRotation>) : null))
+      .catch(() => null);
+    rotations.current.set(slug, { at: Date.now(), pending });
+    // Don't keep a failure; the next song change or tune-in tries again.
+    pending.then((r) => r ?? rotations.current.delete(slug));
+    // Until the fresh copy arrives, an older one is better than nothing.
+    return cached ? pending.then((r) => r ?? cached.pending) : pending;
   }, []);
 
   /**
@@ -177,14 +184,29 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   /** Re-reads the clock and plays whatever the channel is on now. */
   const resyncChannel = useCallback(
-    async (slug: string, name: string) => {
+    async (slug: string, name: string, endedCode?: string) => {
       const rotation = await rotationFor(slug);
       const current = sourceRef.current;
       if (current.kind !== "channel" || current.slug !== slug) return; // tuned away meanwhile
-      const air = rotation && onAirAt(rotation, Date.now());
-      if (!air) {
+      const now = Date.now();
+      let air = rotation && onAirAt(rotation, now);
+      if (!rotation || !air) {
         setStatus("error");
         return;
+      }
+      if (endedCode) {
+        // A song has just finished. The clock may still say it's playing:
+        // browsers trim ~40ms of MP3 padding, and the start-up correction
+        // allows the audio to run up to 1.5s ahead. Re-reading the clock
+        // then restarted the same song at its tail, so its ending played
+        // twice. A song that has ended always hands on to the next.
+        if (air.track.code === endedCode) air = onAirAt(rotation, air.endsAt + 1) ?? air;
+        // Only a little off schedule: start the next song from the top
+        // rather than clip its intro to stay to-the-second. Further out
+        // (a stalled connection, a laptop waking up), rejoin the clock.
+        if (Math.abs(now - air.startedAt) < HANDOVER_TOLERANCE_MS) {
+          air = { ...air, startedAt: now, endsAt: now + air.track.durationMs };
+        }
       }
       startChannelTrack(slug, name, air);
     },
@@ -194,7 +216,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     onEnded.current = () => {
       const current = sourceRef.current;
-      if (current.kind === "channel") resyncChannel(current.slug, current.name);
+      if (current.kind === "channel") resyncChannel(current.slug, current.name, current.track?.code);
       else setStatus("idle");
     };
   }, [resyncChannel]);
