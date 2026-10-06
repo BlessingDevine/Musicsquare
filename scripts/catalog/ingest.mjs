@@ -6,21 +6,25 @@
 //   node scripts/catalog/ingest.mjs --channels rebuild channels only
 //
 // Reads .env.local (see .env.local.example). AWS access comes from the
-// `aws login` session, never from a file.
+// musicsquare-uploader CLI profile (AWS_PROFILE), never from a file here.
+// A WAV with no matching MP3 is converted to a 320k MP3 for streaming, which
+// needs ffmpeg (`brew install ffmpeg`).
 //
 // Resumable: a file already imported (matched by source path, or by checksum
 // if it has been moved or renamed) is skipped, so a run can be stopped with
 // Ctrl-C and started again. Cloud-only Drive files are downloaded as they are
 // read; one that hangs is logged and skipped rather than stalling the run.
 
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
-import { scan, slugify } from "./scan.mjs";
+import { DEFAULT_ROOT, scan, slugify } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -50,6 +54,18 @@ const must = ({ data, error }) => {
   if (error) throw new Error(error.message);
   return data;
 };
+
+// Every list read goes through this. PostgREST returns at most 1,000 rows a
+// request; reading songs without paging would see only the first 1,000 of
+// 2,300 and re-upload the rest as "new". `build` makes a fresh query per page.
+async function selectAll(build, page = 1000) {
+  const rows = [];
+  for (let from = 0; ; from += page) {
+    const data = must(await build().range(from, from + page - 1));
+    rows.push(...data);
+    if (data.length < page) return rows;
+  }
+}
 
 // --- imprints and artists ----------------------------------------------------
 
@@ -96,65 +112,60 @@ function withTimeout(promise, ms, what) {
 }
 
 async function importOne(entry, ctx) {
-  const { imprints, artists, done, checksums } = ctx;
+  const { done, checksums } = ctx;
   if (done.has(entry.sourcePath)) return "skipped";
+  // Each path is handled once even with several workers.
+  done.add(entry.sourcePath);
 
   // Reading a cloud-only file makes Google Drive download it.
   const bytes = await withTimeout(readFile(entry.file), READ_TIMEOUT_MS, "reading from Drive");
   const checksum = createHash("sha256").update(bytes).digest("hex");
   if (checksums.has(checksum)) {
+    // Same audio as a song already imported. If that song's old file is gone,
+    // it was moved or renamed (reorganised into an artist folder, say): keep
+    // the song — same code, same place in the rotations — and re-point it.
+    // If the old file is still there, this is a genuine second copy.
+    const prior = ctx.songsById.get(ctx.songByChecksum.get(checksum));
+    if (prior && !existsSync(join(DEFAULT_ROOT, prior.source_path))) {
+      await moveSong(prior, entry, ctx);
+      return "moved";
+    }
     await log({ status: "duplicate", path: entry.sourcePath, of: checksums.get(checksum) });
     return "duplicate";
   }
 
   const mime = entry.format === "wav" ? "audio/wav" : entry.format === "m4a" ? "audio/mp4" : "audio/mpeg";
   const { format, common } = await parseBuffer(bytes, { mimeType: mime }, { duration: true });
-  const imprint = imprints.get(entry.imprint.slug);
 
   // A WAV with a matching MP3 is that song's master: private, never streamed.
   if (entry.format === "wav") {
     const twin = ctx.songsByKey.get(songKey(entry));
-    if (!twin) {
-      await log({ status: "wav-without-mp3", path: entry.sourcePath });
-      return "skipped";
+    if (twin) {
+      await uploadMaster(twin, bytes, checksum);
+      checksums.set(checksum, entry.sourcePath);
+      return "master";
     }
-    const key = `masters/${twin.song_code}.wav`;
-    await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: mime }));
-    must(await db.from("song_files").insert({
-      song_id: twin.song_id, file_type: "master_wav", storage_key: key,
-      checksum, byte_size: bytes.length, is_public: false,
-    }));
+    // A WAV on its own (Vegah Riot's Vol 3 arrived like this): make a 320k
+    // MP3 to stream, and keep the WAV as the private master. The duration
+    // comes from the MP3, because that is the file listeners hear.
+    const mp3 = await toMp3(entry.file);
+    const mp3Format = (await parseBuffer(mp3, { mimeType: "audio/mpeg" }, { duration: true })).format;
+    const song = await createSong(entry, ctx, mp3Format.duration, common.track?.no);
+    try {
+      await uploadStream(song, mp3, "mp3", "audio/mpeg", mp3Format.bitrate);
+      await uploadMaster(song, bytes, checksum);
+    } catch (err) {
+      await db.from("songs").delete().eq("song_id", song.song_id);
+      throw err;
+    }
     checksums.set(checksum, entry.sourcePath);
-    return "master";
+    ctx.songsByKey.set(songKey(entry), song);
+    return "transcoded";
   }
 
-  const song = must(await db.from("songs").insert({
-    title: entry.title,
-    primary_artist_id: entry.artist ? artists.get(entry.artist.slug).artist_id : null,
-    primary_imprint_id: imprint.imprint_id,
-    album_title: entry.album,
-    track_number: common.track?.no ?? null,
-    genre: imprint.primary_genre,
-    subgenre: imprint.secondary_genres.join(", ") || null,
-    duration_ms: format.duration ? Math.round(format.duration * 1000) : null,
-    version_type: entry.version,
-    // Already on air via RadioKing, so released to radio; ALT takes stay drafts.
-    release_status: entry.version === "alt" ? "draft" : "released_radio",
-    source_path: entry.sourcePath,
-  }).select("song_id, song_code").single());
-
-  const key = `audio/${song.song_code}.${entry.format}`;
+  const song = await createSong(entry, ctx, format.duration, common.track?.no);
   try {
-    await s3.send(new PutObjectCommand({
-      Bucket: BUCKET, Key: key, Body: bytes, ContentType: mime,
-      CacheControl: "public, max-age=31536000, immutable",
-    }));
-    must(await db.from("song_files").insert({
-      song_id: song.song_id, file_type: "mp3", storage_key: key, checksum,
-      byte_size: bytes.length,
-      bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : null,
-      is_public: true,
-    }));
+    await uploadStream(song, bytes, entry.format, mime, format.bitrate, checksum);
   } catch (err) {
     // Don't leave a song row with no audio behind; the next run retries it.
     await db.from("songs").delete().eq("song_id", song.song_id);
@@ -164,6 +175,87 @@ async function importOne(entry, ctx) {
   checksums.set(checksum, entry.sourcePath);
   ctx.songsByKey.set(songKey(entry), song);
   return "imported";
+}
+
+async function moveSong(prior, entry, { imprints, artists, songsById }) {
+  const imprint = imprints.get(entry.imprint.slug);
+  const patch = {
+    source_path: entry.sourcePath,
+    title: entry.title,
+    album_title: entry.album,
+    primary_artist_id: entry.artist ? artists.get(entry.artist.slug).artist_id : null,
+    primary_imprint_id: imprint.imprint_id,
+    genre: imprint.primary_genre,
+    subgenre: imprint.secondary_genres.join(", ") || null,
+    version_type: entry.version,
+  };
+  // Only touch the release status if the move changed what kind of take it
+  // is; a status set by hand (archived, say) is otherwise left alone.
+  if (entry.version !== prior.version_type) {
+    patch.release_status = entry.version === "alt" ? "draft" : "released_radio";
+  }
+  must(await db.from("songs").update(patch).eq("song_id", prior.song_id));
+  await log({ status: "moved", path: entry.sourcePath, from: prior.source_path, song: prior.song_code });
+  Object.assign(prior, patch);
+  songsById.set(prior.song_id, prior);
+}
+
+async function createSong(entry, { imprints, artists }, durationSeconds, trackNo) {
+  const imprint = imprints.get(entry.imprint.slug);
+  return must(await db.from("songs").insert({
+    title: entry.title,
+    primary_artist_id: entry.artist ? artists.get(entry.artist.slug).artist_id : null,
+    primary_imprint_id: imprint.imprint_id,
+    album_title: entry.album,
+    track_number: trackNo ?? null,
+    genre: imprint.primary_genre,
+    subgenre: imprint.secondary_genres.join(", ") || null,
+    duration_ms: durationSeconds ? Math.round(durationSeconds * 1000) : null,
+    version_type: entry.version,
+    // Already on air via RadioKing, so released to radio; ALT takes stay drafts.
+    release_status: entry.version === "alt" ? "draft" : "released_radio",
+    source_path: entry.sourcePath,
+  }).select("song_id, song_code").single());
+}
+
+/** The public streaming file. Checksum defaults to the bytes uploaded. */
+async function uploadStream(song, bytes, ext, mime, bitrate, checksum) {
+  const key = `audio/${song.song_code}.${ext}`;
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET, Key: key, Body: bytes, ContentType: mime,
+    CacheControl: "public, max-age=31536000, immutable",
+  }));
+  must(await db.from("song_files").insert({
+    song_id: song.song_id, file_type: "mp3", storage_key: key,
+    checksum: checksum ?? createHash("sha256").update(bytes).digest("hex"),
+    byte_size: bytes.length,
+    bitrate: bitrate ? Math.round(bitrate / 1000) : null,
+    is_public: true,
+  }));
+}
+
+/** The private master. Never served: CloudFront can only read audio/. */
+async function uploadMaster(song, bytes, checksum) {
+  const key = `masters/${song.song_code}.wav`;
+  await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: "audio/wav" }));
+  must(await db.from("song_files").insert({
+    song_id: song.song_id, file_type: "master_wav", storage_key: key,
+    checksum, byte_size: bytes.length, is_public: false,
+  }));
+}
+
+/** WAV -> 320kbps MP3 in memory, via ffmpeg (Homebrew). */
+function toMp3(file) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn("ffmpeg", ["-nostdin", "-loglevel", "error", "-i", file,
+      "-codec:a", "libmp3lame", "-b:a", "320k", "-id3v2_version", "3", "-f", "mp3", "pipe:1"]);
+    const chunks = [];
+    let err = "";
+    ff.stdout.on("data", (c) => chunks.push(c));
+    ff.stderr.on("data", (c) => (err += c));
+    ff.on("error", (e) => reject(new Error(`ffmpeg not available (brew install ffmpeg): ${e.message}`)));
+    ff.on("close", (code) => (code === 0 ? resolve(Buffer.concat(chunks)) : reject(new Error(`ffmpeg: ${err.trim()}`))));
+  });
 }
 
 const songKey = (e) => `${e.artist?.slug ?? e.imprint.slug}|${e.album ?? ""}|${e.title.toLowerCase()}`;
@@ -176,13 +268,14 @@ const songKey = (e) => `${e.artist?.slug ?? e.imprint.slug}|${e.album ?? ""}|${e
 async function buildChannels(imprints) {
   const built = [];
   for (const imprint of imprints.values()) {
-    const songs = must(await db.from("songs")
+    const songs = await selectAll(() => db.from("songs")
       .select("song_id, title, primary_artist_id, source_path")
       .eq("primary_imprint_id", imprint.imprint_id)
       .in("release_status", ["released_radio", "released_app", "released_public"])
       .neq("version_type", "alt")
       .not("duration_ms", "is", null)
-      .order("source_path"));
+      .order("source_path")
+      .order("song_id"));
     const seen = new Set();
     const rotation = songs.filter((s) => {
       const k = `${s.primary_artist_id}|${s.title.toLowerCase()}`;
@@ -233,19 +326,28 @@ const imprints = await upsertImprints(all);
 const artists = await upsertArtists(all, imprints);
 
 if (!CHANNELS_ONLY) {
-  const existing = must(await db.from("songs").select("song_id, song_code, source_path, title, album_title, primary_artist_id, primary_imprint_id"));
-  const files = must(await db.from("song_files").select("checksum, song_id"));
+  const existing = await selectAll(() => db.from("songs")
+    .select("song_id, song_code, source_path, title, album_title, primary_artist_id, primary_imprint_id, version_type")
+    .order("song_id"));
+  const files = await selectAll(() => db.from("song_files")
+    .select("checksum, song_id, file_type").order("song_file_id"));
   const done = new Set(existing.map((s) => s.source_path));
-  const pathById = new Map(existing.map((s) => [s.song_id, s.source_path]));
-  const checksums = new Map(files.filter((f) => f.checksum).map((f) => [f.checksum, pathById.get(f.song_id)]));
+  const songsById = new Map(existing.map((s) => [s.song_id, s]));
+  const checksums = new Map(files.filter((f) => f.checksum)
+    .map((f) => [f.checksum, songsById.get(f.song_id)?.source_path]));
+  // Only a streaming file's checksum identifies a song that can be moved; a
+  // master WAV moves with its MP3 and is just skipped as a copy.
+  const songByChecksum = new Map(files.filter((f) => f.checksum && f.file_type === "mp3")
+    .map((f) => [f.checksum, f.song_id]));
+  const byPath = new Map(existing.map((s) => [s.source_path, s]));
   const songsByKey = new Map();
   for (const e of all) {
-    const s = existing.find((x) => x.source_path === e.sourcePath);
+    const s = byPath.get(e.sourcePath);
     if (s) songsByKey.set(songKey(e), s);
   }
-  const ctx = { imprints, artists, done, checksums, songsByKey };
+  const ctx = { imprints, artists, done, checksums, songsById, songByChecksum, songsByKey };
 
-  const tally = { imported: 0, master: 0, skipped: 0, duplicate: 0, failed: 0 };
+  const tally = { imported: 0, transcoded: 0, moved: 0, master: 0, skipped: 0, duplicate: 0, failed: 0 };
   let next = 0;
   const started = Date.now();
   const worker = async () => {
@@ -254,7 +356,8 @@ if (!CHANNELS_ONLY) {
       try {
         const result = await importOne(entry, ctx);
         tally[result]++;
-        if (result !== "skipped") await log({ status: result, path: entry.sourcePath });
+        // moveSong writes its own, fuller entry (with the old path).
+        if (result !== "skipped" && result !== "moved") await log({ status: result, path: entry.sourcePath });
       } catch (err) {
         tally.failed++;
         await log({ status: "failed", path: entry.sourcePath, error: String(err.message ?? err) });
@@ -268,6 +371,18 @@ if (!CHANNELS_ONLY) {
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   console.log(`\ndone: ${JSON.stringify(tally)}   log: ${logFile}`);
+
+  // Artists left with no songs (every song moved to another artist folder)
+  // are archived, not deleted; one that gains songs again is reactivated.
+  const credited = new Set((await selectAll(() => db.from("songs")
+    .select("primary_artist_id").order("song_id"))).map((r) => r.primary_artist_id));
+  for (const a of await selectAll(() => db.from("artists").select("artist_id, artist_name, status").order("artist_id"))) {
+    const want = credited.has(a.artist_id) ? "active" : "archived";
+    if (a.status !== want && (a.status === "active" || a.status === "archived")) {
+      must(await db.from("artists").update({ status: want }).eq("artist_id", a.artist_id));
+      console.log(`  artist ${a.artist_name}: ${a.status} -> ${want}`);
+    }
+  }
 }
 
 console.log("\nchannels:");
