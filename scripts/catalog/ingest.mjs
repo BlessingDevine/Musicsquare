@@ -117,6 +117,19 @@ async function importOne(entry, ctx) {
   // Each path is handled once even with several workers.
   done.add(entry.sourcePath);
 
+  // An MP3 arriving beside a WAV that was already imported (and converted)
+  // is the same song: link the song to the MP3 rather than import it twice.
+  // The stream stays the converted copy; the WAV stays the master.
+  if (entry.format !== "wav") {
+    const twin = ctx.songsByKey.get(songKey(entry));
+    if (twin?.source_path?.toLowerCase().endsWith(".wav")) {
+      must(await db.from("songs").update({ source_path: entry.sourcePath }).eq("song_id", twin.song_id));
+      await log({ status: "linked", path: entry.sourcePath, from: twin.source_path, song: twin.song_code });
+      twin.source_path = entry.sourcePath;
+      return "linked";
+    }
+  }
+
   // Reading a cloud-only file makes Google Drive download it.
   const bytes = await withTimeout(readFile(entry.file), READ_TIMEOUT_MS, "reading from Drive");
   const checksum = createHash("sha256").update(bytes).digest("hex");
@@ -347,7 +360,7 @@ if (!CHANNELS_ONLY) {
   }
   const ctx = { imprints, artists, done, checksums, songsById, songByChecksum, songsByKey };
 
-  const tally = { imported: 0, transcoded: 0, moved: 0, master: 0, skipped: 0, duplicate: 0, failed: 0 };
+  const tally = { imported: 0, transcoded: 0, moved: 0, linked: 0, master: 0, skipped: 0, duplicate: 0, failed: 0 };
   let next = 0;
   const started = Date.now();
   const worker = async () => {
@@ -357,7 +370,7 @@ if (!CHANNELS_ONLY) {
         const result = await importOne(entry, ctx);
         tally[result]++;
         // moveSong writes its own, fuller entry (with the old path).
-        if (result !== "skipped" && result !== "moved") await log({ status: result, path: entry.sourcePath });
+        if (!["skipped", "moved", "linked"].includes(result)) await log({ status: result, path: entry.sourcePath });
       } catch (err) {
         tally.failed++;
         await log({ status: "failed", path: entry.sourcePath, error: String(err.message ?? err) });

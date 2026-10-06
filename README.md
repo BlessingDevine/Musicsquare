@@ -317,8 +317,22 @@ What the importer decides, all in `scan.mjs` / `ingest.mjs`:
   `rights_status` `unknown`. "(ALT)" takes import as drafts and stay out of
   rotation. Where an artist has two recordings of the same title, only the
   first goes into the rotation; both stay in the catalogue.
-- A WAV with a matching MP3 is filed as that song's private master.
+- A WAV with a matching MP3 is filed as that song's private master. A WAV on
+  its own is converted to a 320k MP3 for streaming (needs `brew install
+  ffmpeg`) and also kept as the master. If an MP3 later appears beside it, the
+  song is linked to that MP3 rather than imported again.
+- **Reorganising is safe.** A file whose audio matches an imported song, where
+  the song's old file no longer exists, is treated as moved: the same song
+  (same code, same place in the rotations) is re-pointed to the new folder,
+  artist and album. If the old file still exists it is a genuine copy and is
+  skipped. An artist left with no songs is archived, never deleted. First used
+  Oct 2026 when DREAMY POP was renamed DREAMY POP V1 (58 songs).
+- Every list read is paged (`selectAll`). PostgREST returns at most 1,000 rows
+  per request; before this, a re-run would have seen only 1,000 of the
+  imported songs and uploaded the rest again.
 - Channels: one per imprint, named for its genres, biggest catalogue first.
+  Adding songs to a channel changes its rotation length, so anyone listening
+  at the moment of an import jumps once to the new position.
 
 ## Still to build
 
