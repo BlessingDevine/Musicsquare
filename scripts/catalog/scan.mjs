@@ -107,7 +107,13 @@ const VERSION_PATTERNS = [
 export function parseTitle(file) {
   // Stray underscores stand in for characters a filename can't hold (a "?"
   // usually); dropping them reads better than guessing.
-  let title = basename(file, extname(file)).replace(/_/g, "").replace(/\s+/g, " ").trim();
+  // Export leftovers seen in the wild: a doubled extension ("Toll Booth.mp.mp3"),
+  // a copy suffix ("Work Left_0"), a zero-padded track number ("01-Almost There").
+  let title = basename(file, extname(file))
+    .replace(/\.mp[34]?$/i, "")
+    .replace(/_\d+$/, "")
+    .replace(/^0\d\s*-\s*/, "")
+    .replace(/_/g, "").replace(/\s+/g, " ").trim();
   if (SLUG_NAME.test(title)) title = unslug(title);
   let version = "original";
   for (const [re, type] of VERSION_PATTERNS) {

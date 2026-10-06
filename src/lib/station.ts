@@ -138,7 +138,7 @@ export const ROSTER: Artist[] = [
   { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg", square: "/roster/j-cruz-square.jpg" },
   { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg", square: "/roster/lunah-square.jpg" },
   { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alt Pop", portrait: "/roster/neilly-storm.jpg" },
-  { slug: "lucas-meno", name: "Lucas Meno", lane: "Latin Pop", portrait: "/roster/lucas-meno.jpg", square: "/roster/lucas-meno-square.jpg" },
+  { slug: "lucas-meno", name: "Lucas Meno", lane: "R&B", portrait: "/roster/lucas-meno.jpg", square: "/roster/lucas-meno-square.jpg" },
   // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
   // Lanes are their imprints' genres.
   { slug: "nova-liyah", name: "Nova Liyah", lane: "Pop", portrait: "/roster/nova-liyah.jpg", square: "/roster/nova-liyah-square.jpg" },
@@ -151,6 +151,7 @@ export const ROSTER: Artist[] = [
   { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg", square: "/roster/lea-babi-square.jpg" },
   { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg", square: "/roster/noah-rust-square.jpg" },
   { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg", square: "/roster/vegah-riot-square.jpg" },
+  { slug: "iron-mirage", name: "Iron Mirage", lane: "Rock", portrait: "/roster/iron-mirage.jpg", square: "/roster/iron-mirage-square.jpg" },
 ];
 
 /* ------------------------------------------------------------- the week */
