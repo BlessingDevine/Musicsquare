@@ -300,18 +300,29 @@ streaming server.
   mix lands). The next song starts 3s before the cue out (`CROSSFADE_MS` in
   `live-channel.ts`; it was 5s for a day, shortened by ear) with an equal-power crossfade. The overlap is part of the
   channel clock — a slot is playing time minus the fade — so everyone mixes
-  at the same moment. `src/lib/channel-mixer.ts` runs two decks: it preloads
-  the next song 3s ahead, starts the mix on the clock, and falls back to the
-  song's own end if a background tab throttles the timer.
-- **How the fade is done depends on CORS.** iOS ignores `audio.volume`, so a
-  smooth fade on iPhone needs Web Audio gain nodes, which need the files to be
-  readable cross-origin. Each page load probes that once (`probeAudioCors`);
-  with CORS the mixer uses Web Audio, without it it fades element volume
-  (smooth on desktop and Android, a clean cut on iOS). A deck that errors in
-  Web Audio mode rebuilds as plain elements and keeps playing. The Claude
-  desktop app's built-in browser gets no CORS header from CloudFront while
-  curl, node and other origins do; check a real iPhone before assuming either
-  way.
+  at the same moment.
+- **One audio element, plus Web Audio for the overlap**
+  (`src/lib/channel-mixer.ts`). Safari — macOS and iOS — only lets an
+  element start from a tap, and iOS plays one element at a time, so a
+  two-element design (shipped briefly) faded the old song into silence on
+  Safari while working in Chrome. Now the tapped element plays every song.
+  12s before a change the mixer fetches and decodes the next song's head
+  (~1.2MB). At the change the head plays through Web Audio, fading in, as the
+  element's song fades out; then the element jumps to the next song, lines
+  itself up with the head (one seek; measured within ~30ms) and takes over.
+- **Without Web Audio** (no CORS, or the head failed) it segues: the song
+  fades out over its last 3s by element volume — iOS ignores volume, so a
+  cut there — and the next starts on the clock. In that mode the next file is
+  pre-downloaded into the browser cache 12s ahead, or the switch leaves
+  seconds of silence while it loads.
+- **Web Audio needs CORS** on the files. Each page probes once
+  (`probeAudioCors`) and the mixer only routes through Web Audio when that
+  passed. The Claude desktop app's built-in browser gets no CORS header from
+  CloudFront (curl, node and Chrome do), so it always tests the segue path;
+  the crossfade path was tested by serving audio same-origin.
+- **`?debug`** on any page address shows a panel: CDN CORS yes/no, mixer mode,
+  whether the next song's head is ready, and how the last change went. Use it
+  to diagnose a phone remotely.
 - **Server side**, `src/lib/catalog.ts` holds rotations in memory for five
   minutes. `/api/channels` returns what every channel is airing (polled by the
   cards, timed to the next song change); `/api/channels/[slug]` returns one

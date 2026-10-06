@@ -4,6 +4,7 @@ import { PlayerProvider } from "@/components/player-provider";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { PlayerBar } from "@/components/player-bar";
+import { MixerDebug } from "@/components/mixer-debug";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -78,6 +79,7 @@ export default function RootLayout({
           {children}
           <SiteFooter />
           <PlayerBar />
+          <MixerDebug />
         </PlayerProvider>
       </body>
     </html>

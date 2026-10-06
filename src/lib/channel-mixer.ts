@@ -1,40 +1,49 @@
 /**
- * Plays a live channel with radio-style crossfades: two decks, and at each
- * song change the next song starts while the current one fades out, over the
- * channel's CROSSFADE_MS.
+ * Plays a live channel with radio-style crossfades.
  *
- * Volume goes through Web Audio gain nodes where possible — iOS ignores
- * HTMLMediaElement.volume, so a plain volume fade would be a hard cut on
- * iPhones. Routing audio through Web Audio needs CORS on the files
- * (CloudFront's SimpleCORS policy). If the browser has no Web Audio, or a
- * file fails to load in CORS mode, the mixer rebuilds its decks as plain
- * elements and carries on with volume fades (a clean cut on iOS) — the
- * music never stops for want of a fade.
+ * One audio element plays every song. Safari (macOS and iOS) only lets an
+ * element start from a user's tap, and iOS plays one element at a time — a
+ * second element starting the next song from a timer was blocked, so the
+ * outgoing song faded into silence. The single element is the one the tap
+ * started, so it may always move on to the next song.
  *
- * Timing comes from the channel clock (onAirAt): the crossfade starts exactly
- * when the clock says the next song begins, so everyone tuned in mixes at
- * the same moment. If a song reaches its end before the timer fires (a
- * throttled background tab), the change happens then instead.
+ * The overlap comes from Web Audio instead. Before each song change the
+ * mixer fetches and decodes the opening of the next song (the "head", about
+ * 1.2MB). At the change it plays the head through Web Audio, fading in, while
+ * the element's song fades out; at the end of the fade the element jumps to
+ * the next song at the same moment and takes over from the head. Web Audio
+ * needs the files readable cross-origin (CloudFront's CORS policy) and is
+ * only used once probeAudioCors has confirmed that.
+ *
+ * Without Web Audio — no CORS, or the head failed to load or decode — the
+ * mixer segues instead: the song fades out over its last CROSSFADE_MS (by
+ * element volume; iOS ignores volume, so there it is a cut) and the next song
+ * starts on time. Never silence.
+ *
+ * Timing comes from the channel clock (onAirAt): the change happens when the
+ * clock says, so everyone tuned in mixes at the same moment. If the element
+ * reaches the end of a song before the timer fires (a throttled background
+ * tab), the change happens then.
  */
 
 import { type OnAir, type Rotation, onAirAt } from "./live-channel";
 
 /** What the mixer needs to know about the song it is playing. */
 export type Playing = Pick<OnAir, "track" | "startedAt" | "endsAt" | "fadeMs">;
-
-type Deck = { el: HTMLAudioElement; gain: GainNode | null };
 export type MixerStatus = "loading" | "playing" | "error";
+export type MixMode = "overlap" | "segue";
 
-/** How long before a song change the next song starts loading. */
-const PRELOAD_MS = 3000;
+/** How long before a song change the next song's head is fetched. */
+const PREFETCH_MS = 12_000;
+/** Bytes of the next song to fetch for the overlap: ~25s at 320kbps + art. */
+const HEAD_BYTES = 1_200_000;
+/** Hand-over from the head to the element, once the element is playing. */
+const HANDOVER_MS = 250;
 
 /**
- * Whether audio files can be read cross-origin (so Web Audio may route them).
- * Checked once per page, before anyone taps: a CORS GET that is aborted as
- * soon as the headers arrive. Some browsers have been seen to get no CORS
- * header from the CDN while curl and others do; in Web Audio mode that
- * would fail the first song, so the mixer only uses Web Audio once this has
- * come back true. Until then (or if false) it fades by element volume.
+ * Whether audio files can be read cross-origin (so Web Audio may use them).
+ * Checked once per page, before anyone taps: a CORS GET aborted as soon as
+ * the headers arrive.
  */
 let corsOk: boolean | null = null;
 export function probeAudioCors(url: string) {
@@ -49,15 +58,27 @@ export function probeAudioCors(url: string) {
       if (corsOk === null) corsOk = false;
     });
 }
+export const audioCorsStatus = () => corsOk;
+
+/** The page's mixer, for the ?debug panel. */
+export const currentMixer = () => ChannelMixer.current;
+
+/** The next song's head, playing through Web Audio: where it started and from what point. */
+type Bridge = { source: AudioBufferSourceNode; gain: GainNode; startedAt: number; offset: number };
 
 export class ChannelMixer {
+  private el: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
-  private decks: [Deck, Deck] | null = null;
-  private active = 0;
-  private webAudio = true;
+  private elGain: GainNode | null = null;
+  private webAudio = false;
   private timers: ReturnType<typeof setTimeout>[] = [];
   private air: Playing | null = null;
   private running = false;
+  private switching = false;
+  private head: { src: string; buffer: AudioBuffer } | null = null;
+  private bridge: Bridge | null = null;
+  /** For the ?debug panel. */
+  lastMix: { mode: MixMode; at: number; reason?: string } | null = null;
 
   constructor(
     private readonly hooks: {
@@ -65,109 +86,126 @@ export class ChannelMixer {
       onStatus: (s: MixerStatus) => void;
       onTrack: (air: Playing) => void;
     },
-  ) {}
-
-  /**
-   * Must run inside a user gesture (a tap or click): creates and resumes the
-   * audio context and unlocks both decks, which iOS requires before either
-   * may play later from a timer.
-   */
-  private prepare(firstSrc: string) {
-    // Decide once, at the first tune-in: Web Audio only with CORS confirmed.
-    if (!this.ctx && !this.decks) this.webAudio = corsOk === true;
-    if (this.webAudio && !this.ctx) {
-      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (Ctx) this.ctx = new Ctx();
-      else this.webAudio = false;
-    }
-    this.ctx?.resume().catch(() => {});
-    if (!this.decks) this.decks = [this.makeDeck(), this.makeDeck()];
-    // Unlock the idle deck by starting and immediately pausing it, silently.
-    const idle = this.decks[1 - this.active];
-    this.setLevel(idle, 0);
-    if (!idle.el.src) idle.el.src = firstSrc;
-    idle.el.play().then(() => idle.el.pause()).catch(() => {});
+  ) {
+    ChannelMixer.current = this;
   }
 
-  private makeDeck(): Deck {
+  static current: ChannelMixer | null = null;
+
+  get contextState() {
+    return this.ctx?.state ?? "none";
+  }
+
+  get mode() {
+    if (!this.el) return "not started";
+    return this.webAudio ? "web-audio (crossfade)" : "volume (segue)";
+  }
+
+  get headReady() {
+    return !!this.head;
+  }
+
+  /** Must run inside the user's tap: builds the element and audio context. */
+  private prepare() {
+    if (this.el) {
+      this.ctx?.resume().catch(() => {});
+      return;
+    }
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    this.webAudio = corsOk === true && !!Ctx;
+
     const el = new Audio();
     el.preload = "auto";
-    let gain: GainNode | null = null;
-    if (this.webAudio && this.ctx) {
+    if (this.webAudio && Ctx) {
       el.crossOrigin = "anonymous";
-      gain = this.ctx.createGain();
-      this.ctx.createMediaElementSource(el).connect(gain).connect(this.ctx.destination);
+      this.ctx = new Ctx();
+      this.elGain = this.ctx.createGain();
+      this.ctx.createMediaElementSource(el).connect(this.elGain).connect(this.ctx.destination);
+      this.ctx.resume().catch(() => {});
     }
-    el.addEventListener("playing", () => this.isActive(el) && this.hooks.onStatus("playing"));
-    el.addEventListener("waiting", () => this.isActive(el) && this.hooks.onStatus("loading"));
-    el.addEventListener("error", () => this.onDeckError(el));
-    // Safety net: the song ran out before the crossfade timer fired.
-    el.addEventListener("ended", () => this.isActive(el) && this.running && this.mixToNext());
-    return { el, gain };
+    el.addEventListener("playing", () => !this.switching && this.hooks.onStatus("playing"));
+    el.addEventListener("waiting", () => !this.switching && !this.bridge && this.hooks.onStatus("loading"));
+    el.addEventListener("error", () => this.onElementError());
+    // Safety net: the song ran out before the change timer fired.
+    el.addEventListener("ended", () => this.running && !this.switching && this.mixNow("ended"));
+    this.el = el;
   }
 
-  private isActive(el: HTMLAudioElement) {
-    return this.decks?.[this.active].el === el;
+  // --- levels ------------------------------------------------------------------
+
+  private setElLevel(level: number) {
+    if (this.elGain && this.ctx) {
+      const g = this.elGain.gain;
+      g.cancelScheduledValues(this.ctx.currentTime);
+      g.setValueAtTime(level, this.ctx.currentTime);
+    } else if (this.el) {
+      this.el.volume = level;
+    }
   }
 
-  private setLevel(deck: Deck, level: number) {
-    if (deck.gain && this.ctx) deck.gain.gain.setValueAtTime(level, this.ctx.currentTime);
-    else deck.el.volume = level;
-  }
-
-  /** Equal-power fade from `from` to `to` over `ms`. */
-  private fade(deck: Deck, from: number, to: number, ms: number) {
+  private static curve(from: number, to: number) {
     const steps = 32;
-    const curve = new Float32Array(steps);
+    const c = new Float32Array(steps);
     for (let i = 0; i < steps; i++) {
       const p = i / (steps - 1);
-      const f = to > from ? Math.sin((p * Math.PI) / 2) : Math.cos((p * Math.PI) / 2);
-      curve[i] = to > from ? from + (to - from) * f : to + (from - to) * f;
+      // Equal power: sin up, cos down.
+      c[i] = to > from
+        ? from + (to - from) * Math.sin((p * Math.PI) / 2)
+        : to + (from - to) * Math.cos((p * Math.PI) / 2);
     }
-    if (deck.gain && this.ctx) {
-      const g = deck.gain.gain;
-      g.cancelScheduledValues(this.ctx.currentTime);
-      g.setValueCurveAtTime(curve, this.ctx.currentTime, Math.max(0.05, ms / 1000));
-    } else {
-      // Plain elements: step the volume (has no effect on iOS — a clean cut there).
-      let i = 0;
-      const id = setInterval(() => {
-        deck.el.volume = Math.min(1, Math.max(0, curve[Math.min(i++, steps - 1)]));
-        if (i >= steps) clearInterval(id);
-      }, ms / steps);
-    }
+    return c;
   }
 
-  private load(deck: Deck, air: Playing) {
+  private rampParam(param: AudioParam, from: number, to: number, ms: number) {
+    const t = this.ctx!.currentTime;
+    param.cancelScheduledValues(t);
+    param.setValueCurveAtTime(ChannelMixer.curve(from, to), t, Math.max(0.05, ms / 1000));
+  }
+
+  private fadeEl(from: number, to: number, ms: number) {
+    if (this.elGain && this.ctx) return this.rampParam(this.elGain.gain, from, to, ms);
+    const el = this.el;
+    if (!el) return;
+    const curve = ChannelMixer.curve(from, to);
+    let i = 0;
+    const id = setInterval(() => {
+      el.volume = Math.min(1, Math.max(0, curve[Math.min(i++, curve.length - 1)]));
+      if (i >= curve.length) clearInterval(id);
+    }, ms / curve.length);
+  }
+
+  // --- playing -------------------------------------------------------------------
+
+  private loadInto(air: Playing) {
+    const el = this.el!;
     const offset = Math.max(0, (Date.now() - air.startedAt) / 1000);
-    deck.el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(1)}` : air.track.src;
-    deck.el.addEventListener(
+    el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(2)}` : air.track.src;
+    el.addEventListener(
       "loadedmetadata",
       () => {
         // Correct for however long loading took.
         const target = (Date.now() - air.startedAt) / 1000;
-        if (Math.abs(deck.el.currentTime - target) > 1.5) deck.el.currentTime = target;
+        if (Math.abs(el.currentTime - target) > 1.5) el.currentTime = target;
       },
       { once: true },
     );
   }
 
-  /** Start playing `air` now, on the active deck. Call from the tap itself. */
+  /** Start playing `air` now. Call from the tap itself. */
   start(air: Playing) {
     this.stopTimers();
+    this.stopBridge();
     this.running = true;
-    this.prepare(air.track.src);
-    const decks = this.decks!;
-    decks[1 - this.active].el.pause();
-    const deck = decks[this.active];
-    this.setLevel(deck, 1);
-    this.load(deck, air);
+    this.switching = false;
+    this.prepare();
+    this.setElLevel(1);
+    this.loadInto(air);
     this.hooks.onStatus("loading");
-    deck.el.play().catch(() => this.hooks.onStatus("error"));
+    this.el!.play().catch(() => this.hooks.onStatus("error"));
     this.nowPlaying(air);
   }
 
-  /** Start from the clock when no song is known yet (no hint, or a retry). */
+  /** Start from the clock when no song is known yet. */
   async startFromClock() {
     const rotation = await this.hooks.getRotation();
     const air = rotation && onAirAt(rotation, Date.now());
@@ -178,7 +216,8 @@ export class ChannelMixer {
   stop() {
     this.running = false;
     this.stopTimers();
-    this.decks?.forEach((d) => d.el.pause());
+    this.stopBridge();
+    this.el?.pause();
   }
 
   private stopTimers() {
@@ -186,84 +225,174 @@ export class ChannelMixer {
     this.timers = [];
   }
 
+  private stopBridge() {
+    if (!this.bridge) return;
+    try {
+      this.bridge.source.stop();
+    } catch {
+      // already stopped
+    }
+    this.bridge.source.disconnect();
+    this.bridge.gain.disconnect();
+    this.bridge = null;
+  }
+
   private nowPlaying(air: Playing) {
     this.air = air;
+    this.head = null;
     this.hooks.onTrack(air);
     const until = air.endsAt - Date.now();
-    this.timers.push(setTimeout(() => this.preloadNext(), Math.max(0, until - PRELOAD_MS)));
-    this.timers.push(setTimeout(() => this.mixToNext(), Math.max(0, until)));
+    this.timers.push(setTimeout(
+      () => (this.webAudio ? this.prefetchHead(air) : this.warmNext(air)),
+      Math.max(0, until - PREFETCH_MS),
+    ));
+    // An overlap starts at the change; a segue starts fading before it, so the
+    // next song still starts on time.
+    this.timers.push(setTimeout(() => this.mixNow("clock"), Math.max(0, until - (this.webAudio ? 0 : air.fadeMs))));
   }
 
-  private nextAir: Playing | null = null;
-
-  private async preloadNext() {
-    const current = this.air;
+  private async nextAfter(current: Playing) {
     const rotation = await this.hooks.getRotation();
-    if (!this.running || !current || this.air !== current || !rotation) return;
-    const next = onAirAt(rotation, current.endsAt + 1);
-    if (!next) return;
-    this.nextAir = next;
-    const deck = this.decks![1 - this.active];
-    this.setLevel(deck, 0);
-    deck.el.src = next.track.cueInMs > 500
-      ? `${next.track.src}#t=${(next.track.cueInMs / 1000).toFixed(2)}`
-      : next.track.src;
-    deck.el.load();
+    return rotation ? onAirAt(rotation, current.endsAt + 1) : null;
   }
 
-  private mixing = false;
+  /**
+   * Segue mode: download the next song into the browser's cache before the
+   * change, so the element starts it at once instead of after seconds of
+   * silence. (The files are cached for a year; a no-cors fetch needs no CORS.)
+   */
+  private async warmNext(current: Playing) {
+    const next = await this.nextAfter(current).catch(() => null);
+    if (!next || this.air !== current) return;
+    fetch(next.track.src, { mode: "no-cors" })
+      .then((r) => r.arrayBuffer())
+      .catch(() => {});
+  }
 
-  private async mixToNext() {
-    const current = this.air;
-    if (!this.running || !current || this.mixing) return;
-    this.mixing = true;
+  /** Fetch and decode the opening of the song after `current`. */
+  private async prefetchHead(current: Playing) {
     try {
-      let next: Playing | null = this.nextAir && this.nextAir.startedAt > current.startedAt ? this.nextAir : null;
-      if (!next) {
-        const rotation = await this.hooks.getRotation();
-        next = rotation && onAirAt(rotation, current.endsAt + 1);
+      const next = await this.nextAfter(current);
+      if (!next || !this.ctx || this.air !== current) return;
+      const res = await fetch(next.track.src, { mode: "cors" });
+      if (!res.ok || !res.body) throw new Error(`head ${res.status}`);
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      while (size < HEAD_BYTES) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        size += value.length;
       }
-      if (!next || !this.running || this.air !== current) return;
-      this.nextAir = null;
-
-      const decks = this.decks!;
-      const out = decks[this.active];
-      const into = decks[1 - this.active];
-      // Already loaded by preloadNext? Otherwise load it now.
-      if (!into.el.src.startsWith(next.track.src)) this.load(into, next);
-      const late = Math.max(0, Date.now() - current.endsAt);
-      const target = next.track.cueInMs / 1000 + late / 1000;
-      if (into.el.readyState >= 1 && Math.abs(into.el.currentTime - target) > 0.75) into.el.currentTime = target;
-
-      this.active = 1 - this.active;
-      this.setLevel(into, 0);
-      into.el.play().catch(() => this.hooks.onStatus("error"));
-      const fadeMs = Math.max(200, current.fadeMs - late);
-      this.fade(into, 0, 1, fadeMs);
-      this.fade(out, 1, 0, fadeMs);
-      this.timers.push(setTimeout(() => out.el.pause(), fadeMs + 100));
-      this.nowPlaying(next);
-    } finally {
-      this.mixing = false;
+      reader.cancel().catch(() => {});
+      const bytes = new Uint8Array(size);
+      let at = 0;
+      for (const c of chunks) {
+        bytes.set(c, at);
+        at += c.length;
+      }
+      const buffer = await this.ctx.decodeAudioData(bytes.buffer);
+      if (this.air === current) this.head = { src: next.track.src, buffer };
+    } catch (err) {
+      this.lastMix = { mode: "segue", at: Date.now(), reason: `head failed: ${(err as Error)?.message ?? err}` };
     }
   }
 
-  /** A file failed to load. In Web Audio mode this may be CORS: fall back. */
-  private onDeckError(el: HTMLAudioElement) {
-    if (!this.isActive(el)) return; // the idle deck's preload can retry later
-    if (this.webAudio && this.ctx) {
-      // Rebuild as plain elements (no CORS needed) and replay where we are.
-      this.webAudio = false;
-      this.decks?.forEach((d) => d.el.pause());
-      this.decks = null;
-      this.ctx.close().catch(() => {});
-      this.ctx = null;
-      if (this.running && this.air) {
-        this.active = 0;
-        this.start(this.air); // prepare() builds the plain decks
-      }
-      return;
-    }
+  private async mixNow(reason: "clock" | "ended") {
+    const current = this.air;
+    if (!this.running || !current || this.switching) return;
+    const next = await this.nextAfter(current);
+    if (!next || !this.running || this.air !== current) return;
+    const head = this.head?.src === next.track.src ? this.head : null;
+
+    if (head && this.ctx && this.elGain && reason === "clock") this.overlap(current, next, head.buffer);
+    else this.segue(current, next, reason === "ended");
+  }
+
+  /** True crossfade: the next song's head over the current song's tail. */
+  private overlap(current: Playing, next: Playing, buffer: AudioBuffer) {
+    const ctx = this.ctx!;
+    const fadeMs = current.fadeMs;
+    // Where the next song should be right now, by the clock.
+    const offset = Math.max(next.track.cueInMs / 1000, (Date.now() - next.startedAt) / 1000);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    source.connect(gain).connect(ctx.destination);
+    this.stopBridge();
+    const from = Math.min(offset, Math.max(0, buffer.duration - 0.05));
+    this.bridge = { source, gain, startedAt: ctx.currentTime, offset: from };
+    // The element is still on the outgoing song: ignore its events (and its
+    // "ended") until switchElement has moved it on.
+    this.switching = true;
+    source.start(0, from);
+    this.rampParam(gain.gain, 0, 1, fadeMs);
+    this.fadeEl(1, 0, fadeMs);
+    this.lastMix = { mode: "overlap", at: Date.now() };
+    // The head is now the sound of the channel: report the new song.
+    this.stopTimers();
+    this.nowPlaying(next);
+    this.timers.push(setTimeout(() => this.switchElement(next, true), fadeMs));
+  }
+
+  /** No overlap: fade the current song out, then start the next on time. */
+  private segue(current: Playing, next: Playing, immediate: boolean) {
+    const wait = immediate ? 0 : Math.max(0, current.endsAt - Date.now());
+    if (!immediate && wait > 0) this.fadeEl(1, 0, wait);
+    this.lastMix = { mode: "segue", at: Date.now(), reason: this.lastMix?.reason };
+    this.stopTimers();
+    this.timers.push(setTimeout(() => {
+      this.nowPlaying(next);
+      this.switchElement(next, false);
+    }, wait));
+  }
+
+  /** Point the element at `next`, at the clock's position, and hand over. */
+  private switchElement(next: Playing, fromBridge: boolean) {
+    const el = this.el;
+    if (!el || !this.running) return;
+    this.switching = true;
+    el.pause();
+    this.setElLevel(0);
+    this.loadInto(next);
+    el.addEventListener(
+      "playing",
+      () => {
+        this.switching = false;
+        this.hooks.onStatus("playing");
+        const bridge = this.bridge;
+        const ctx = this.ctx;
+        if (fromBridge && bridge && ctx) {
+          const handover = () => {
+            this.rampParam(bridge.gain.gain, 1, 0, HANDOVER_MS);
+            this.fadeEl(0, 1, HANDOVER_MS);
+            setTimeout(() => this.bridge === bridge && this.stopBridge(), HANDOVER_MS + 50);
+          };
+          // Loading took a moment, so the element is a little behind the
+          // head. Line it up before swapping, or the swap smears (an echo of
+          // a few hundred ms). One seek; the data is already buffered.
+          const headPos = bridge.offset + (ctx.currentTime - bridge.startedAt);
+          if (Math.abs(headPos - el.currentTime) > 0.06) {
+            el.addEventListener("seeked", handover, { once: true });
+            el.currentTime = headPos + 0.05;
+          } else {
+            handover();
+          }
+        } else {
+          this.fadeEl(0, 1, 200);
+        }
+      },
+      { once: true },
+    );
+    el.play().catch(() => {
+      this.switching = false;
+      this.hooks.onStatus("error");
+    });
+  }
+
+  private onElementError() {
+    this.switching = false;
     this.hooks.onStatus("error");
   }
 }
