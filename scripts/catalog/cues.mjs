@@ -13,6 +13,10 @@
 //   cue out = end of the last window within 20dB of the body — after it the
 //             song never gets loud again, so a fade-out or silent tail is
 //             where the crossfade lands, not the song's body.
+//             And no later than MIX_MS after the song's own fade-out begins
+//             (the last moment it is within 6dB of the body, on a 2s average):
+//             otherwise a long natural fade plays out first and the mix is
+//             heard as that fade plus the crossfade, far longer than MIX_MS.
 // Guards keep a mis-read song playable: at most 8s trimmed from the start,
 // 20s from the end, and at least 30s of song left between the two.
 
@@ -28,6 +32,9 @@ const OUT_DB = 20;
 const MAX_IN_MS = 8000;
 const MAX_TAIL_MS = 20000;
 const MIN_BODY_MS = 30000;
+const FADE_DB = 6;
+// Keep in step with CROSSFADE_MS in src/lib/live-channel.ts.
+const MIX_MS = 3000;
 
 function decode(file) {
   return new Promise((resolve, reject) => {
@@ -61,9 +68,17 @@ export async function analyse(file) {
   let first = levels.findIndex((l) => l >= body - IN_DB);
   let last = levels.length - 1;
   while (last > 0 && levels[last] < body - OUT_DB) last--;
+  // Power average over ~2s, so one quiet beat doesn't read as the fade.
+  const smooth = levels.map((_, i) => {
+    const w = levels.slice(Math.max(0, i - 4), i + 4);
+    return 10 * Math.log10(w.reduce((sum, l) => sum + 10 ** (l / 10), 0) / w.length);
+  });
+  let full = Math.min(last, smooth.length - 1);
+  while (full > 0 && smooth[full] < body - FADE_DB) full--;
 
   let cueInMs = Math.min(Math.max(0, first) * winMs, MAX_IN_MS);
-  let cueOutMs = Math.max(Math.min((last + 1) * winMs, durationMs), durationMs - MAX_TAIL_MS);
+  const outMs = Math.min((last + 1) * winMs, (full + 1) * winMs + MIX_MS, durationMs);
+  let cueOutMs = Math.max(outMs, durationMs - MAX_TAIL_MS);
   if (cueOutMs - cueInMs < MIN_BODY_MS) {
     cueInMs = 0;
     cueOutMs = durationMs;
@@ -102,10 +117,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     while (next < songs.length) {
       const s = songs[next++];
       try {
-        // The local file where it exists; otherwise the streaming copy.
+        // The streaming copy — exactly what listeners hear, and it never
+        // makes Google Drive download a cloud-only file. Else the local file.
         const local = join(DEFAULT_ROOT, s.source_path ?? "");
         const stream = s.song_files.find((f) => f.file_type === "mp3");
-        const src = s.source_path && existsSync(local) ? local : stream && `${audioBase}/${stream.storage_key}`;
+        const src = stream ? `${audioBase}/${stream.storage_key}` : s.source_path && existsSync(local) && local;
         if (!src) throw new Error("no audio");
         const { cueInMs, cueOutMs } = await analyse(src);
         // Clamp to the stored duration, which the channel clock uses.
