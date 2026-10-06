@@ -277,7 +277,12 @@ streaming server.
 - **The player** (`player-provider.tsx`) starts the song that is on air
   *inside the tap*, using the summary the page already has — iOS Safari blocks
   `play()` after an `await`. The full rotation loads in the background and is
-  used when that song ends. The audio element deliberately has no
+  used when that song ends. A song that ends always hands on to the next
+  one, never back to itself: browsers trim ~40ms of MP3 padding, so `ended`
+  fires just before the clock reaches the end, and re-reading the clock there
+  used to restart the same song at its tail. The next song starts from the
+  top if within 8s of schedule and rejoins the clock beyond that. The audio
+  element deliberately has no
   `crossOrigin`: plain playback doesn't need CORS, and requesting it made every
   song fail on a CloudFront edge that hadn't received the CORS policy yet.
 - **Server side**, `src/lib/catalog.ts` holds rotations in memory for five
