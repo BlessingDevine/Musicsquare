@@ -7,18 +7,20 @@
  * outgoing song faded into silence. The single element is the one the tap
  * started, so it may always move on to the next song.
  *
- * The overlap comes from Web Audio instead. Before each song change the
- * mixer fetches and decodes the opening of the next song (the "head", about
- * 1.2MB). At the change it plays the head through Web Audio, fading in, while
- * the element's song fades out; at the end of the fade the element jumps to
- * the next song at the same moment and takes over from the head. Web Audio
- * needs the files readable cross-origin (CloudFront's CORS policy) and is
- * only used once probeAudioCors has confirmed that.
+ * The element is never routed through Web Audio. Routing it
+ * (createMediaElementSource) worked in Chrome, but in Safari its output
+ * dropped out when it switched to the next file — the crossfade played,
+ * then the music cut. The element is faded by plain volume; iOS ignores
+ * volume but honours `muted`, which is enough to hide it while it lines up.
  *
- * Without Web Audio — no CORS, or the head failed to load or decode — the
- * mixer segues instead: the song fades out over its last CROSSFADE_MS (by
- * element volume; iOS ignores volume, so there it is a cut) and the next song
- * starts on time. Never silence.
+ * The overlap comes from Web Audio playing a separate copy of the next
+ * song's opening (the "head", ~1.2MB, fetched and decoded 12s ahead). At the
+ * change the head fades in while the element's song fades out; then the
+ * element, muted, jumps to the next song, lines itself up with the head, is
+ * unmuted, and the head fades away. Fetching the head needs CORS on the
+ * files (probeAudioCors), so without it, or if a head fails, the mixer
+ * segues: the song fades out over its last CROSSFADE_MS and the next starts
+ * on the clock, already downloaded so it starts at once. Never silence.
  *
  * Timing comes from the channel clock (onAirAt): the change happens when the
  * clock says, so everyone tuned in mixes at the same moment. If the element
@@ -33,15 +35,28 @@ export type Playing = Pick<OnAir, "track" | "startedAt" | "endsAt" | "fadeMs">;
 export type MixerStatus = "loading" | "playing" | "error";
 export type MixMode = "overlap" | "segue";
 
-/** How long before a song change the next song's head is fetched. */
+/** How long before a song change the next song is fetched. */
 const PREFETCH_MS = 12_000;
-/** Bytes of the next song to fetch for the overlap: ~25s at 320kbps + art. */
+/** Bytes of the next song's opening to fetch: ~25s at 320kbps, plus artwork. */
 const HEAD_BYTES = 1_200_000;
-/** Hand-over from the head to the element, once the element is playing. */
+/** Hand-over from the head to the element, desktop; iOS can't fade the element. */
 const HANDOVER_MS = 250;
+const HANDOVER_IOS_MS = 120;
+/** iOS: how long after unmuting before the head is faded away. */
+const IOS_UNMUTE_SETTLE_MS = 300;
+/** -60dB: inaudible, but keeps the browser's audio output running. */
+const SILENT = 0.001;
+/** Let the element settle after starting or seeking before measuring it. */
+const SETTLE_MS = 150;
+/** Alignment: median of this many gap readings, this far apart. */
+const ALIGN_SAMPLES = 8;
+const ALIGN_INTERVAL_MS = 50;
+const ALIGN_TOLERANCE_S = 0.04;
+/** If the element hasn't lined up by then, hand over anyway. */
+const HANDOVER_TIMEOUT_MS = 2500;
 
 /**
- * Whether audio files can be read cross-origin (so Web Audio may use them).
+ * Whether audio files can be read cross-origin, which fetching heads needs.
  * Checked once per page, before anyone taps: a CORS GET aborted as soon as
  * the headers arrive.
  */
@@ -63,14 +78,16 @@ export const audioCorsStatus = () => corsOk;
 /** The page's mixer, for the ?debug panel. */
 export const currentMixer = () => ChannelMixer.current;
 
-/** The next song's head, playing through Web Audio: where it started and from what point. */
+/** The next song's head, playing through Web Audio: started when, from where. */
 type Bridge = { source: AudioBufferSourceNode; gain: GainNode; startedAt: number; offset: number };
 
 export class ChannelMixer {
+  static current: ChannelMixer | null = null;
+
   private el: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
-  private elGain: GainNode | null = null;
-  private webAudio = false;
+  /** iOS: element volume is read-only. */
+  private volumeWorks = true;
   private timers: ReturnType<typeof setTimeout>[] = [];
   private air: Playing | null = null;
   private running = false;
@@ -90,15 +107,14 @@ export class ChannelMixer {
     ChannelMixer.current = this;
   }
 
-  static current: ChannelMixer | null = null;
+  get mode() {
+    if (!this.el) return "not started";
+    const kind = this.ctx ? "crossfade (Web Audio heads)" : "segue (no CORS)";
+    return this.volumeWorks ? kind : `${kind}, iOS volume`;
+  }
 
   get contextState() {
     return this.ctx?.state ?? "none";
-  }
-
-  get mode() {
-    if (!this.el) return "not started";
-    return this.webAudio ? "web-audio (crossfade)" : "volume (segue)";
   }
 
   get headReady() {
@@ -111,37 +127,35 @@ export class ChannelMixer {
       this.ctx?.resume().catch(() => {});
       return;
     }
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    this.webAudio = corsOk === true && !!Ctx;
-
     const el = new Audio();
     el.preload = "auto";
-    if (this.webAudio && Ctx) {
-      el.crossOrigin = "anonymous";
+    el.volume = 0.5;
+    this.volumeWorks = Math.abs(el.volume - 0.5) < 0.01;
+    el.volume = 1;
+
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (corsOk === true && Ctx) {
       this.ctx = new Ctx();
-      this.elGain = this.ctx.createGain();
-      this.ctx.createMediaElementSource(el).connect(this.elGain).connect(this.ctx.destination);
       this.ctx.resume().catch(() => {});
+      // iOS unlocks Web Audio on the first sound started inside a tap.
+      const blip = this.ctx.createBufferSource();
+      blip.buffer = this.ctx.createBuffer(1, 1, 22050);
+      blip.connect(this.ctx.destination);
+      blip.start(0);
     }
+
     el.addEventListener("playing", () => !this.switching && this.hooks.onStatus("playing"));
     el.addEventListener("waiting", () => !this.switching && !this.bridge && this.hooks.onStatus("loading"));
-    el.addEventListener("error", () => this.onElementError());
+    el.addEventListener("error", () => {
+      this.switching = false;
+      this.hooks.onStatus("error");
+    });
     // Safety net: the song ran out before the change timer fired.
     el.addEventListener("ended", () => this.running && !this.switching && this.mixNow("ended"));
     this.el = el;
   }
 
   // --- levels ------------------------------------------------------------------
-
-  private setElLevel(level: number) {
-    if (this.elGain && this.ctx) {
-      const g = this.elGain.gain;
-      g.cancelScheduledValues(this.ctx.currentTime);
-      g.setValueAtTime(level, this.ctx.currentTime);
-    } else if (this.el) {
-      this.el.volume = level;
-    }
-  }
 
   private static curve(from: number, to: number) {
     const steps = 32;
@@ -159,18 +173,28 @@ export class ChannelMixer {
   private rampParam(param: AudioParam, from: number, to: number, ms: number) {
     const t = this.ctx!.currentTime;
     param.cancelScheduledValues(t);
-    param.setValueCurveAtTime(ChannelMixer.curve(from, to), t, Math.max(0.05, ms / 1000));
+    param.setValueCurveAtTime(ChannelMixer.curve(from, to), t, Math.max(0.03, ms / 1000));
   }
 
+  private fadeTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Element volume fade. A no-op on iOS, which ignores volume. */
   private fadeEl(from: number, to: number, ms: number) {
-    if (this.elGain && this.ctx) return this.rampParam(this.elGain.gain, from, to, ms);
     const el = this.el;
     if (!el) return;
+    if (this.fadeTimer) clearInterval(this.fadeTimer);
+    if (ms <= 0) {
+      el.volume = to;
+      return;
+    }
     const curve = ChannelMixer.curve(from, to);
     let i = 0;
-    const id = setInterval(() => {
+    this.fadeTimer = setInterval(() => {
       el.volume = Math.min(1, Math.max(0, curve[Math.min(i++, curve.length - 1)]));
-      if (i >= curve.length) clearInterval(id);
+      if (i >= curve.length && this.fadeTimer) {
+        clearInterval(this.fadeTimer);
+        this.fadeTimer = null;
+      }
     }, ms / curve.length);
   }
 
@@ -198,10 +222,12 @@ export class ChannelMixer {
     this.running = true;
     this.switching = false;
     this.prepare();
-    this.setElLevel(1);
+    const el = this.el!;
+    el.muted = false;
+    this.fadeEl(1, 1, 0);
     this.loadInto(air);
     this.hooks.onStatus("loading");
-    this.el!.play().catch(() => this.hooks.onStatus("error"));
+    el.play().catch(() => this.hooks.onStatus("error"));
     this.nowPlaying(air);
   }
 
@@ -243,12 +269,12 @@ export class ChannelMixer {
     this.hooks.onTrack(air);
     const until = air.endsAt - Date.now();
     this.timers.push(setTimeout(
-      () => (this.webAudio ? this.prefetchHead(air) : this.warmNext(air)),
+      () => (this.ctx ? this.prefetchHead(air) : this.warmNext(air)),
       Math.max(0, until - PREFETCH_MS),
     ));
-    // An overlap starts at the change; a segue starts fading before it, so the
-    // next song still starts on time.
-    this.timers.push(setTimeout(() => this.mixNow("clock"), Math.max(0, until - (this.webAudio ? 0 : air.fadeMs))));
+    // Decide how to change songs one fade-length before the change: a segue
+    // needs that long to fade out; an overlap then waits for the change.
+    this.timers.push(setTimeout(() => this.mixNow("clock"), Math.max(0, until - air.fadeMs)));
   }
 
   private async nextAfter(current: Playing) {
@@ -256,17 +282,11 @@ export class ChannelMixer {
     return rotation ? onAirAt(rotation, current.endsAt + 1) : null;
   }
 
-  /**
-   * Segue mode: download the next song into the browser's cache before the
-   * change, so the element starts it at once instead of after seconds of
-   * silence. (The files are cached for a year; a no-cors fetch needs no CORS.)
-   */
+  /** Segue mode: download the next song into the browser cache ahead of time. */
   private async warmNext(current: Playing) {
     const next = await this.nextAfter(current).catch(() => null);
     if (!next || this.air !== current) return;
-    fetch(next.track.src, { mode: "no-cors" })
-      .then((r) => r.arrayBuffer())
-      .catch(() => {});
+    fetch(next.track.src, { mode: "no-cors" }).then((r) => r.arrayBuffer()).catch(() => {});
   }
 
   /** Fetch and decode the opening of the song after `current`. */
@@ -304,31 +324,46 @@ export class ChannelMixer {
     if (!this.running || !current || this.switching) return;
     const next = await this.nextAfter(current);
     if (!next || !this.running || this.air !== current) return;
-    const head = this.head?.src === next.track.src ? this.head : null;
 
-    if (head && this.ctx && this.elGain && reason === "clock") this.overlap(current, next, head.buffer);
-    else this.segue(current, next, reason === "ended");
+    if (reason === "ended") return this.segue(next, 0);
+
+    // The head must cover from where the next song starts, through the fade,
+    // with a few seconds to spare for the element to load and line up.
+    const head = this.head?.src === next.track.src ? this.head : null;
+    const startsAt = Math.max(next.track.cueInMs / 1000, (current.endsAt - next.startedAt) / 1000);
+    const enough = head && head.buffer.duration >= startsAt + current.fadeMs / 1000 + 3;
+    const wait = Math.max(0, current.endsAt - Date.now());
+
+    if (head && enough && this.ctx) {
+      this.stopTimers();
+      this.timers.push(setTimeout(() => this.overlap(current, next, head.buffer), wait));
+    } else {
+      if (head && !enough) this.lastMix = { mode: "segue", at: Date.now(), reason: "head too short" };
+      this.segue(next, wait);
+    }
   }
 
   /** True crossfade: the next song's head over the current song's tail. */
   private overlap(current: Playing, next: Playing, buffer: AudioBuffer) {
+    if (!this.running || this.air !== current) return;
     const ctx = this.ctx!;
     const fadeMs = current.fadeMs;
     // Where the next song should be right now, by the clock.
     const offset = Math.max(next.track.cueInMs / 1000, (Date.now() - next.startedAt) / 1000);
+    const from = Math.min(offset, Math.max(0, buffer.duration - 0.05));
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     const gain = ctx.createGain();
     source.connect(gain).connect(ctx.destination);
     this.stopBridge();
-    const from = Math.min(offset, Math.max(0, buffer.duration - 0.05));
     this.bridge = { source, gain, startedAt: ctx.currentTime, offset: from };
     // The element is still on the outgoing song: ignore its events (and its
     // "ended") until switchElement has moved it on.
     this.switching = true;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
     source.start(0, from);
     this.rampParam(gain.gain, 0, 1, fadeMs);
-    this.fadeEl(1, 0, fadeMs);
+    this.fadeEl(1, SILENT, fadeMs);
     this.lastMix = { mode: "overlap", at: Date.now() };
     // The head is now the sound of the channel: report the new song.
     this.stopTimers();
@@ -336,10 +371,9 @@ export class ChannelMixer {
     this.timers.push(setTimeout(() => this.switchElement(next, true), fadeMs));
   }
 
-  /** No overlap: fade the current song out, then start the next on time. */
-  private segue(current: Playing, next: Playing, immediate: boolean) {
-    const wait = immediate ? 0 : Math.max(0, current.endsAt - Date.now());
-    if (!immediate && wait > 0) this.fadeEl(1, 0, wait);
+  /** No overlap: fade the current song out over `wait`, then start the next. */
+  private segue(next: Playing, wait: number) {
+    if (wait > 0) this.fadeEl(1, SILENT, wait);
     this.lastMix = { mode: "segue", at: Date.now(), reason: this.lastMix?.reason };
     this.stopTimers();
     this.timers.push(setTimeout(() => {
@@ -354,45 +388,88 @@ export class ChannelMixer {
     if (!el || !this.running) return;
     this.switching = true;
     el.pause();
-    this.setElLevel(0);
+    // Silent until it is in place. Desktop: a near-zero volume — muting, or
+    // volume exactly 0, lets Chrome park its audio output, and restarting it
+    // stalls the element ~150ms right at the hand-over. iOS ignores volume,
+    // so there it has to be muted.
+    this.fadeEl(SILENT, SILENT, 0);
+    if (!this.volumeWorks) el.muted = true;
     this.loadInto(next);
+
+    let done = false;
+    const handover = () => {
+      if (done) return;
+      done = true;
+      this.switching = false;
+      this.hooks.onStatus("playing");
+      const bridge = this.bridge;
+      if (!fromBridge || !bridge || !this.ctx) {
+        el.muted = false;
+        this.fadeEl(0, 1, 200);
+        return;
+      }
+      const fadeOutHead = (ms: number) => {
+        this.rampParam(bridge.gain.gain, 1, 0, ms);
+        setTimeout(() => this.bridge === bridge && this.stopBridge(), ms + 60);
+      };
+      if (this.volumeWorks) {
+        this.fadeEl(SILENT, 1, HANDOVER_MS);
+        fadeOutHead(HANDOVER_MS);
+      } else {
+        // iOS: unmute (full volume — it can't be faded), let any unmute
+        // hiccup pass while the head still plays in step, then drop the head.
+        el.muted = false;
+        setTimeout(() => fadeOutHead(HANDOVER_IOS_MS), IOS_UNMUTE_SETTLE_MS);
+      }
+    };
+
+    // With a head playing, the element stays silent until it runs in step
+    // with it. Browsers report currentTime coarsely while an element is near
+    // silent (steps of ~150ms in Chrome), so one reading can't be trusted:
+    // take the median of several over ~0.4s, correct once if needed, then
+    // hand over. The head is at full volume meanwhile, so waiting is free.
+    const measureGap = () =>
+      new Promise<number>((resolve) => {
+        const gaps: number[] = [];
+        const id = setInterval(() => {
+          const bridge = this.bridge;
+          const ctx = this.ctx;
+          if (!bridge || !ctx) {
+            clearInterval(id);
+            return resolve(0);
+          }
+          gaps.push(bridge.offset + (ctx.currentTime - bridge.startedAt) - el.currentTime);
+          if (gaps.length >= ALIGN_SAMPLES) {
+            clearInterval(id);
+            gaps.sort((a, b) => a - b);
+            resolve(gaps[gaps.length >> 1]);
+          }
+        }, ALIGN_INTERVAL_MS);
+      });
+    const align = async (attempt: number) => {
+      if (done) return;
+      const gap = await measureGap();
+      if (Math.abs(gap) <= ALIGN_TOLERANCE_S || attempt >= 2 || !this.bridge) return handover();
+      el.addEventListener("seeked", () => setTimeout(() => align(attempt + 1), SETTLE_MS), { once: true });
+      el.currentTime = el.currentTime + gap;
+    };
+
     el.addEventListener(
       "playing",
       () => {
-        this.switching = false;
-        this.hooks.onStatus("playing");
-        const bridge = this.bridge;
-        const ctx = this.ctx;
-        if (fromBridge && bridge && ctx) {
-          const handover = () => {
-            this.rampParam(bridge.gain.gain, 1, 0, HANDOVER_MS);
-            this.fadeEl(0, 1, HANDOVER_MS);
-            setTimeout(() => this.bridge === bridge && this.stopBridge(), HANDOVER_MS + 50);
-          };
-          // Loading took a moment, so the element is a little behind the
-          // head. Line it up before swapping, or the swap smears (an echo of
-          // a few hundred ms). One seek; the data is already buffered.
-          const headPos = bridge.offset + (ctx.currentTime - bridge.startedAt);
-          if (Math.abs(headPos - el.currentTime) > 0.06) {
-            el.addEventListener("seeked", handover, { once: true });
-            el.currentTime = headPos + 0.05;
-          } else {
-            handover();
-          }
+        if (fromBridge && this.bridge && this.ctx) {
+          setTimeout(() => void align(0), SETTLE_MS);
+          setTimeout(handover, HANDOVER_TIMEOUT_MS); // if alignment never settles
         } else {
-          this.fadeEl(0, 1, 200);
+          handover();
         }
       },
       { once: true },
     );
     el.play().catch(() => {
       this.switching = false;
+      el.muted = false;
       this.hooks.onStatus("error");
     });
-  }
-
-  private onElementError() {
-    this.switching = false;
-    this.hooks.onStatus("error");
   }
 }

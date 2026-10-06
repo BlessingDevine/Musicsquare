@@ -304,17 +304,25 @@ streaming server.
 - **One audio element, plus Web Audio for the overlap**
   (`src/lib/channel-mixer.ts`). Safari — macOS and iOS — only lets an
   element start from a tap, and iOS plays one element at a time, so a
-  two-element design (shipped briefly) faded the old song into silence on
-  Safari while working in Chrome. Now the tapped element plays every song.
-  12s before a change the mixer fetches and decodes the next song's head
-  (~1.2MB). At the change the head plays through Web Audio, fading in, as the
-  element's song fades out; then the element jumps to the next song, lines
-  itself up with the head (one seek; measured within ~30ms) and takes over.
-- **Without Web Audio** (no CORS, or the head failed) it segues: the song
-  fades out over its last 3s by element volume — iOS ignores volume, so a
-  cut there — and the next starts on the clock. In that mode the next file is
-  pre-downloaded into the browser cache 12s ahead, or the switch leaves
-  seconds of silence while it loads.
+  two-element design faded the old song into silence on Safari. The tapped
+  element plays every song, and it is never routed through Web Audio:
+  routing it (createMediaElementSource) worked in Chrome but in Safari its
+  output dropped out when it switched files — the crossfade played, then the
+  music cut. It is faded by plain volume (iOS ignores volume but honours
+  `muted`).
+- **The overlap** is a separate copy of the next song's opening (the head,
+  ~1.2MB, fetched and decoded 12s ahead) played through Web Audio: it fades
+  in while the element fades out; then the element, silent, jumps to the next
+  song, lines up with the head — median of eight readings, because browsers
+  report `currentTime` in ~150ms steps while an element is near silent — and
+  takes over. Desktop holds the element at volume 0.001, never 0 or muted:
+  Chrome parks its audio output at zero and restarting it stalls the
+  hand-over. Measured alignment after the correction: within ~10ms.
+- **The decision is made one fade-length before the change.** With a head
+  ready, the overlap starts on the clock; without one (no CORS, head failed
+  or too short) the song fades out over its full 3s and the next starts on
+  the clock, pre-downloaded so it starts at once. (Deciding at the change
+  itself, as shipped briefly, left the fallback 0ms to fade — a hard cut.)
 - **Web Audio needs CORS** on the files. Each page probes once
   (`probeAudioCors`) and the mixer only routes through Web Audio when that
   passed. The Claude desktop app's built-in browser gets no CORS header from
