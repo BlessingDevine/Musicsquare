@@ -23,6 +23,7 @@ const V = "VELVET NOIR RECORDS - R&B:SOUL/ARISTS";
 const S = "SUNFLAG AFRICA - AFROBEAT/ARISTS";
 const W = "WAVELIGHT RECORDS - POP/ARISTS";
 const RT = "RIOT TEMPLE - ROCK/ARISTS";
+const RW = "REDWOOD RECORDS - COUNTRY/ARISTS";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
@@ -43,6 +44,9 @@ const PORTRAITS = [
   ["noah-rust", `${RT}/NOAH RUST/IMAGES/Noah Rust.png`, 0.5, 0, 1],
   ["vegah-riot", `${RT}/VEGAH RIOT/IMAGES/02.png`, 0.5, 0, 1],
   ["saka", `${W}/SAKA/IMAGES/1.jpg`, 0.45, 0.12, 0.85, [`${W}/SAKA/IMAGES/1.jpg`, 0.42, 0.14, 0.64]],
+  ["sadie-rose", `${RW}/SADIE ROSE/IMAGES/Sadie 1.jpg`, 0.42, 0, 1],
+  // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
+  ["ash-revenant", `${RT}/ASH REVENANT/IMAGES/1.png`, 0.47, 0, 1, [`${RT}/ASH REVENANT/IMAGES/1.png`, 0.52, 0.03, 0.94]],
   ["iron-mirage", `${RT}/IRON MIRAGE/IMAGES/Iron Mirage 1.png`, 0.52, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)

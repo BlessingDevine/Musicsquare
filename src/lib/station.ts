@@ -130,7 +130,7 @@ export type Artist = {
 export const ROSTER: Artist[] = [
   { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg", square: "/roster/luv-tonez-square.jpg" },
   { slug: "saka", name: "Saka", lane: "Pop / K-Pop", portrait: "/roster/saka.jpg", square: "/roster/saka-square.jpg" },
-  { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose-01.jpg" },
+  { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose.jpg", square: "/roster/sadie-rose-square.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg", square: "/roster/riven-cole-square.jpg" },
   { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka-01.jpg" },
@@ -151,6 +151,7 @@ export const ROSTER: Artist[] = [
   { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg", square: "/roster/lea-babi-square.jpg" },
   { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg", square: "/roster/noah-rust-square.jpg" },
   { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg", square: "/roster/vegah-riot-square.jpg" },
+  { slug: "ash-revenant", name: "Ash Revenant", lane: "Rock", portrait: "/roster/ash-revenant.jpg", square: "/roster/ash-revenant-square.jpg" },
   { slug: "iron-mirage", name: "Iron Mirage", lane: "Rock", portrait: "/roster/iron-mirage.jpg", square: "/roster/iron-mirage-square.jpg" },
 ];
 
