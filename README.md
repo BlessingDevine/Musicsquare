@@ -295,13 +295,11 @@ streaming server.
   song fail on a CloudFront edge that hadn't received the CORS policy yet.
 - **Crossfades, like radio.** Each song plays from its cue in to its cue out
   (`songs.cue_in_ms` / `cue_out_ms`, measured from the audio by
-  `scripts/catalog/cues.mjs`: leading silence skipped, and the cue out set
-  where the song stops being loud, so a fade-out or silent tail is where the
-  mix lands — and no later than 3s after the song first drops 6dB for good:
-  mixing only after a slow fade made a 3s crossfade sound like 5s or more.
-  A drop lasting longer than a fade is a quiet outro and is kept in full; the
-  mix then starts where the outro itself fades. Change `MIX_MS` there
-  with `CROSSFADE_MS`, then re-run `node scripts/catalog/cues.mjs --all`).
+  `scripts/catalog/cues.mjs`: leading silence skipped, and the cue out at
+  the song's real end — natural fade and outro included, only the silence
+  after it skipped. Robert's call: the mix is the last 3s of the song,
+  whatever the song does there. After changing the thresholds, re-run
+  `node scripts/catalog/cues.mjs --all`).
   The next song starts 3s before the cue out (`CROSSFADE_MS` in
   `live-channel.ts`; it was 5s for a day, shortened by ear) with an equal-power crossfade. The overlap is part of the
   channel clock — a slot is playing time minus the fade — so everyone mixes
