@@ -15,8 +15,11 @@
 //             where the crossfade lands, not the song's body.
 //             And no later than MIX_MS after the song's own fade-out begins
 //             (the last moment it is within 6dB of the body, on a 2s average):
-//             otherwise a long natural fade plays out first and the mix is
-//             heard as that fade plus the crossfade, far longer than MIX_MS.
+//             otherwise the fade plays out first and the mix is heard as that
+//             fade plus the crossfade, far longer than MIX_MS. A drop longer
+//             than MAX_FADE_MS isn't a fade but a quiet outro, which is kept:
+//             then the mix starts where the outro itself fades (6dB below
+//             the outro's own level).
 // Guards keep a mis-read song playable: at most 8s trimmed from the start,
 // 20s from the end, and at least 30s of song left between the two.
 
@@ -33,6 +36,7 @@ const MAX_IN_MS = 8000;
 const MAX_TAIL_MS = 20000;
 const MIN_BODY_MS = 30000;
 const FADE_DB = 6;
+const MAX_FADE_MS = 5000;
 // Keep in step with CROSSFADE_MS in src/lib/live-channel.ts.
 const MIX_MS = 3000;
 
@@ -73,11 +77,19 @@ export async function analyse(file) {
     const w = levels.slice(Math.max(0, i - 4), i + 4);
     return 10 * Math.log10(w.reduce((sum, l) => sum + 10 ** (l / 10), 0) / w.length);
   });
-  let full = Math.min(last, smooth.length - 1);
-  while (full > 0 && smooth[full] < body - FADE_DB) full--;
+  const lastLoud = (from, level) => {
+    let i = Math.min(from, smooth.length - 1);
+    while (i > 0 && smooth[i] < level - FADE_DB) i--;
+    return i;
+  };
+  let fadeFrom = lastLoud(last, body);
+  if ((last - fadeFrom) * winMs > MIX_MS + MAX_FADE_MS) {
+    const outro = smooth.slice(fadeFrom + 1, last + 1).sort((a, b) => a - b);
+    fadeFrom = lastLoud(last, outro[outro.length >> 1]);
+  }
 
   let cueInMs = Math.min(Math.max(0, first) * winMs, MAX_IN_MS);
-  const outMs = Math.min((last + 1) * winMs, (full + 1) * winMs + MIX_MS, durationMs);
+  const outMs = Math.min((last + 1) * winMs, (fadeFrom + 1) * winMs + MIX_MS, durationMs);
   let cueOutMs = Math.max(outMs, durationMs - MAX_TAIL_MS);
   if (cueOutMs - cueInMs < MIN_BODY_MS) {
     cueInMs = 0;
