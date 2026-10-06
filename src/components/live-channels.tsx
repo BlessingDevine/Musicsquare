@@ -77,10 +77,13 @@ export function ChannelCard({
   // While tuned in, show the player's own track: it is the one actually heard.
   const playing =
     tuned && source.kind === "channel" && source.track
-      ? { track: source.track, endsAt: source.endsAt }
+      ? { track: source.track, startedAt: source.startedAt, endsAt: source.endsAt }
       : channel.now;
   const air = playing && now !== null && now < playing.endsAt ? playing : null;
-  const progress = air ? 1 - (air.endsAt - (now ?? 0)) / air.track.durationMs : 0;
+  // Position in the file, from when its start would have played. (The song
+  // hands over at endsAt, a little before its file ends, for the crossfade.)
+  const elapsed = air ? Math.max(0, (now ?? 0) - air.startedAt) : 0;
+  const progress = air ? elapsed / air.track.durationMs : 0;
 
   return (
     <article className={`${styles.card} ${tuned ? styles.tuned : ""}`}>
@@ -97,7 +100,7 @@ export function ChannelCard({
           {tuned ? (status === "loading" ? "Tuning in" : "You're listening") : "On air"}
           {air && (
             <span className={styles.time}>
-              {mmss(air.track.durationMs - (air.endsAt - (now ?? 0)))} / {mmss(air.track.durationMs)}
+              {mmss(elapsed)} / {mmss(air.track.durationMs)}
             </span>
           )}
         </p>

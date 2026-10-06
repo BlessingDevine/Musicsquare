@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { summarise } from "./channel-summary";
-import type { ChannelTrack, Rotation } from "./live-channel";
+import { type ChannelTrack, type Rotation, rotationMs } from "./live-channel";
 
 /**
  * Reads the live channels from Supabase with the publishable key, so Row
@@ -52,6 +52,8 @@ type TrackRow = {
   duration_ms: number;
   storage_key: string;
   sort_order: number;
+  cue_in_ms: number | null;
+  cue_out_ms: number | null;
 };
 
 async function load(): Promise<Channel[]> {
@@ -70,7 +72,7 @@ async function load(): Promise<Channel[]> {
   for (let from = 0; ; from += PAGE) {
     const { data, error: e } = await db
       .from("channel_tracks")
-      .select("station_slug, song_code, title, artist_name, album_title, duration_ms, storage_key, sort_order")
+      .select("station_slug, song_code, title, artist_name, album_title, duration_ms, storage_key, sort_order, cue_in_ms, cue_out_ms")
       .order("station_slug")
       .order("sort_order")
       .range(from, from + PAGE - 1)
@@ -89,6 +91,9 @@ async function load(): Promise<Channel[]> {
       artist: r.artist_name ?? "Musicsquare Radio",
       album: r.album_title,
       durationMs: r.duration_ms,
+      // Unmeasured songs play whole; a cue out can never pass the end.
+      cueInMs: r.cue_in_ms ?? 0,
+      cueOutMs: Math.min(r.cue_out_ms ?? r.duration_ms, r.duration_ms),
       src: `${audioBase}/${r.storage_key}`,
     });
     bySlug.set(r.station_slug, list);
@@ -103,7 +108,7 @@ async function load(): Promise<Channel[]> {
         imprint: s.imprints?.imprint_name ?? null,
         description: s.description,
         rotation: { slug: s.slug, epoch: Date.parse(s.epoch), tracks },
-        totalMs: tracks.reduce((sum, t) => sum + t.durationMs, 0),
+        totalMs: rotationMs({ slug: s.slug, epoch: 0, tracks }),
       };
     })
     .filter((c) => c.rotation.tracks.length > 0);

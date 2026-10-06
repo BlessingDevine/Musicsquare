@@ -11,7 +11,7 @@ export type ChannelSummary = {
    * The song on air, with its audio URL, so "Tune in" can start playback
    * inside the tap itself — iOS Safari refuses play() after an await.
    */
-  now: { track: ChannelTrack; startedAt: number; endsAt: number } | null;
+  now: { track: ChannelTrack; startedAt: number; endsAt: number; fadeMs: number } | null;
   next: ChannelTrack | null;
 };
 
@@ -25,7 +25,7 @@ export function summarise(channels: Channel[], at: number): ChannelSummary[] {
       imprint: c.imprint,
       tracks: c.rotation.tracks.length,
       totalMs: c.totalMs,
-      now: air && { track: air.track, startedAt: air.startedAt, endsAt: air.endsAt },
+      now: air && { track: air.track, startedAt: air.startedAt, endsAt: air.endsAt, fadeMs: air.fadeMs },
       next: air?.next ?? null,
     };
   });

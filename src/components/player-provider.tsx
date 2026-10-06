@@ -10,17 +10,18 @@ import {
   useState,
 } from "react";
 import { STREAM_URL } from "@/lib/station";
-import { type ChannelTrack, onAirAt } from "@/lib/live-channel";
+import { ChannelMixer, type Playing, probeAudioCors } from "@/lib/channel-mixer";
+import type { ChannelTrack } from "@/lib/live-channel";
 import type { Live, Track } from "@/app/api/live/route";
 import type { ChannelRotation } from "@/app/api/channels/[slug]/route";
 
 type Source =
   | { kind: "live" }
   | { kind: "track"; url: string; title: string; artist: string }
-  | { kind: "channel"; slug: string; name: string; track: ChannelTrack | null; endsAt: number };
+  | { kind: "channel"; slug: string; name: string; track: ChannelTrack | null; startedAt: number; endsAt: number };
 
 /** The song a channel is airing, as the channels page already knows it. */
-export type ChannelHint = { track: ChannelTrack; startedAt: number; endsAt: number } | null;
+export type ChannelHint = Playing | null;
 
 type PlayerValue = {
   status: "idle" | "loading" | "playing" | "error";
@@ -39,8 +40,6 @@ type PlayerValue = {
   isOnChannel: (slug: string) => boolean;
 };
 
-/** How far off schedule a song change may be and still start from the top. */
-const HANDOVER_TOLERANCE_MS = 8000;
 const ROTATION_TTL_MS = 5 * 60_000;
 
 const PlayerContext = createContext<PlayerValue | null>(null);
@@ -93,6 +92,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Find out early whether the CDN allows cross-origin reads, which decides
+  // how smooth the channel crossfades can be (see probeAudioCors).
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_AUDIO_BASE_URL?.replace(/\/$/, "");
+    if (base) probeAudioCors(`${base}/audio/SONG-000001.mp3`);
+  }, []);
+
   // Session timer, shown in the hero as a broadcast counter.
   useEffect(() => {
     if (status !== "playing") return;
@@ -104,7 +110,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // to know about the current source goes through refs.
   const sourceRef = useRef<Source>(source);
   const rotations = useRef(new Map<string, { at: number; pending: Promise<ChannelRotation | null> }>());
-  const onEnded = useRef<() => void>(() => setStatus("idle"));
+  const mixerRef = useRef<ChannelMixer | null>(null);
 
   const changeSource = useCallback((next: Source) => {
     sourceRef.current = next;
@@ -120,12 +126,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       // Only a Web Audio visualiser would need it — add it back with one.
       el.addEventListener("playing", () => setStatus("playing"));
       el.addEventListener("waiting", () => setStatus("loading"));
-      el.addEventListener("pause", () => {
-        // A channel moving to its next song pauses on the way; don't flash idle.
-        if (!el.ended) setStatus("idle");
-      });
-      el.addEventListener("error", () => setStatus("error"));
-      el.addEventListener("ended", () => onEnded.current());
+      // This element plays the main stream and single tracks; channels have
+      // their own decks. Pausing it to tune in to a channel must not report
+      // "idle" over the channel's own status.
+      el.addEventListener("pause", () => sourceRef.current.kind !== "channel" && setStatus("idle"));
+      el.addEventListener("error", () => sourceRef.current.kind !== "channel" && setStatus("error"));
+      el.addEventListener("ended", () => sourceRef.current.kind !== "channel" && setStatus("idle"));
       audioRef.current = el;
       if (process.env.NODE_ENV === "development") {
         (window as unknown as { __audio?: HTMLAudioElement }).__audio = el;
@@ -136,6 +142,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const stop = useCallback(() => {
     audioRef.current?.pause();
+    mixerRef.current?.stop();
     setStatus("idle");
   }, []);
 
@@ -157,69 +164,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return cached ? pending.then((r) => r ?? cached.pending) : pending;
   }, []);
 
-  /**
-   * Plays one song of a channel from wherever the channel has got to. The
-   * #t fragment starts it at the right point; once the file's metadata is in,
-   * the position is corrected for however long loading took.
-   */
-  const startChannelTrack = useCallback(
-    (slug: string, name: string, air: { track: ChannelTrack; startedAt: number; endsAt: number }) => {
-      const el = ensureAudio();
-      changeSource({ kind: "channel", slug, name, track: air.track, endsAt: air.endsAt });
-      setStatus("loading");
-      const offset = Math.max(0, (Date.now() - air.startedAt) / 1000);
-      el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(1)}` : air.track.src;
-      el.addEventListener(
-        "loadedmetadata",
-        () => {
-          const target = (Date.now() - air.startedAt) / 1000;
-          if (Math.abs(el.currentTime - target) > 1.5) el.currentTime = target;
+  /** Channels play through a two-deck mixer that crossfades between songs. */
+  const ensureMixer = useCallback(() => {
+    if (!mixerRef.current) {
+      mixerRef.current = new ChannelMixer({
+        getRotation: () => {
+          const current = sourceRef.current;
+          return current.kind === "channel" ? rotationFor(current.slug) : Promise.resolve(null);
         },
-        { once: true },
-      );
-      el.play().catch(() => setStatus("error"));
-    },
-    [ensureAudio, changeSource],
-  );
-
-  /** Re-reads the clock and plays whatever the channel is on now. */
-  const resyncChannel = useCallback(
-    async (slug: string, name: string, endedCode?: string) => {
-      const rotation = await rotationFor(slug);
-      const current = sourceRef.current;
-      if (current.kind !== "channel" || current.slug !== slug) return; // tuned away meanwhile
-      const now = Date.now();
-      let air = rotation && onAirAt(rotation, now);
-      if (!rotation || !air) {
-        setStatus("error");
-        return;
+        onStatus: (s) => sourceRef.current.kind === "channel" && setStatus(s),
+        onTrack: (air) => {
+          const current = sourceRef.current;
+          if (current.kind !== "channel") return;
+          changeSource({ ...current, track: air.track, startedAt: air.startedAt, endsAt: air.endsAt });
+        },
+      });
+      if (process.env.NODE_ENV === "development") {
+        (window as unknown as { __mixer?: ChannelMixer }).__mixer = mixerRef.current;
       }
-      if (endedCode) {
-        // A song has just finished. The clock may still say it's playing:
-        // browsers trim ~40ms of MP3 padding, and the start-up correction
-        // allows the audio to run up to 1.5s ahead. Re-reading the clock
-        // then restarted the same song at its tail, so its ending played
-        // twice. A song that has ended always hands on to the next.
-        if (air.track.code === endedCode) air = onAirAt(rotation, air.endsAt + 1) ?? air;
-        // Only a little off schedule: start the next song from the top
-        // rather than clip its intro to stay to-the-second. Further out
-        // (a stalled connection, a laptop waking up), rejoin the clock.
-        if (Math.abs(now - air.startedAt) < HANDOVER_TOLERANCE_MS) {
-          air = { ...air, startedAt: now, endsAt: now + air.track.durationMs };
-        }
-      }
-      startChannelTrack(slug, name, air);
-    },
-    [rotationFor, startChannelTrack],
-  );
-
-  useEffect(() => {
-    onEnded.current = () => {
-      const current = sourceRef.current;
-      if (current.kind === "channel") resyncChannel(current.slug, current.name, current.track?.code);
-      else setStatus("idle");
-    };
-  }, [resyncChannel]);
+    }
+    return mixerRef.current;
+  }, [rotationFor, changeSource]);
 
   const playChannel = useCallback<PlayerValue["playChannel"]>(
     (slug, name, hint) => {
@@ -227,19 +192,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         stop();
         return;
       }
-      // Fetch the rotation now: it's needed when this song ends.
+      changeSource({
+        kind: "channel", slug, name,
+        track: hint?.track ?? null, startedAt: hint?.startedAt ?? 0, endsAt: hint?.endsAt ?? 0,
+      });
+      audioRef.current?.pause();
+      // Fetch the rotation now: the mixer needs it before this song ends.
       rotationFor(slug);
+      const mixer = ensureMixer();
+      setStatus("loading");
       if (hint && Date.now() < hint.endsAt - 1000) {
         // Start inside the tap — iOS Safari blocks play() after an await.
-        startChannelTrack(slug, name, hint);
+        mixer.start(hint);
       } else {
-        ensureAudio();
-        changeSource({ kind: "channel", slug, name, track: null, endsAt: 0 });
-        setStatus("loading");
-        resyncChannel(slug, name);
+        mixer.startFromClock();
       }
     },
-    [source, status, stop, rotationFor, startChannelTrack, ensureAudio, changeSource, resyncChannel],
+    [source, status, stop, rotationFor, ensureMixer, changeSource],
   );
 
   const isOnChannel = useCallback(
@@ -250,6 +219,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // --- the main stream and single tracks ------------------------------------------
 
   const toggleLive = useCallback(() => {
+    mixerRef.current?.stop();
     const el = ensureAudio();
     if (source.kind === "live" && status === "playing") {
       stop();
@@ -264,6 +234,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const playTrack = useCallback<PlayerValue["playTrack"]>(
     (track) => {
+      mixerRef.current?.stop();
       const el = ensureAudio();
       if (source.kind === "track" && source.url === track.url && status === "playing") {
         stop();
@@ -286,7 +257,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [source, status],
   );
 
-  useEffect(() => () => audioRef.current?.pause(), []);
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    mixerRef.current?.stop();
+  }, []);
 
   const value = useMemo(
     () => ({

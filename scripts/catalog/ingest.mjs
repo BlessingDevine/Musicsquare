@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
+import { analyse } from "./cues.mjs";
 import { DEFAULT_ROOT, scan, slugify } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -215,7 +216,13 @@ async function moveSong(prior, entry, { imprints, artists, songsById }) {
 
 async function createSong(entry, { imprints, artists }, durationSeconds, trackNo) {
   const imprint = imprints.get(entry.imprint.slug);
+  // Cue points for the channel crossfades (see cues.mjs). A failure here just
+  // means the song plays whole; scripts/catalog/cues.mjs can fill it later.
+  const durationMs = durationSeconds ? Math.round(durationSeconds * 1000) : null;
+  const cues = await analyse(entry.file).catch(() => null);
   return must(await db.from("songs").insert({
+    cue_in_ms: cues?.cueInMs ?? null,
+    cue_out_ms: cues && durationMs ? Math.min(cues.cueOutMs, durationMs) : null,
     title: entry.title,
     primary_artist_id: entry.artist ? artists.get(entry.artist.slug).artist_id : null,
     primary_imprint_id: imprint.imprint_id,

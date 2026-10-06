@@ -293,6 +293,25 @@ streaming server.
   element deliberately has no
   `crossOrigin`: plain playback doesn't need CORS, and requesting it made every
   song fail on a CloudFront edge that hadn't received the CORS policy yet.
+- **Crossfades, like radio.** Each song plays from its cue in to its cue out
+  (`songs.cue_in_ms` / `cue_out_ms`, measured from the audio by
+  `scripts/catalog/cues.mjs`: leading silence skipped, and the cue out set
+  where the song stops being loud, so a fade-out or silent tail is where the
+  mix lands). The next song starts 3s before the cue out (`CROSSFADE_MS` in
+  `live-channel.ts`; it was 5s for a day, shortened by ear) with an equal-power crossfade. The overlap is part of the
+  channel clock — a slot is playing time minus the fade — so everyone mixes
+  at the same moment. `src/lib/channel-mixer.ts` runs two decks: it preloads
+  the next song 3s ahead, starts the mix on the clock, and falls back to the
+  song's own end if a background tab throttles the timer.
+- **How the fade is done depends on CORS.** iOS ignores `audio.volume`, so a
+  smooth fade on iPhone needs Web Audio gain nodes, which need the files to be
+  readable cross-origin. Each page load probes that once (`probeAudioCors`);
+  with CORS the mixer uses Web Audio, without it it fades element volume
+  (smooth on desktop and Android, a clean cut on iOS). A deck that errors in
+  Web Audio mode rebuilds as plain elements and keeps playing. The Claude
+  desktop app's built-in browser gets no CORS header from CloudFront while
+  curl, node and other origins do; check a real iPhone before assuming either
+  way.
 - **Server side**, `src/lib/catalog.ts` holds rotations in memory for five
   minutes. `/api/channels` returns what every channel is airing (polled by the
   cards, timed to the next song change); `/api/channels/[slug]` returns one
@@ -343,6 +362,9 @@ What the importer decides, all in `scan.mjs` / `ingest.mjs`:
 - Every list read is paged (`selectAll`). PostgREST returns at most 1,000 rows
   per request; before this, a re-run would have seen only 1,000 of the
   imported songs and uploaded the rest again.
+- Cue points for the crossfades are measured for each new song as it is
+  imported. To re-measure (after changing the thresholds in `cues.mjs`), run
+  `node scripts/catalog/cues.mjs --all`.
 - Channels: one per imprint, named for its genres, biggest catalogue first.
   Adding songs to a channel changes its rotation length, so anyone listening
   at the moment of an import jumps once to the new position.
