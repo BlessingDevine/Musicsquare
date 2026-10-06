@@ -146,6 +146,8 @@ export const ROSTER: Artist[] = [
   { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg" },
   { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg" },
   { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg" },
+  { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg" },
+  { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg" },
 ];
 
 /** Today's featured record. */

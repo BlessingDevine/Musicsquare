@@ -22,6 +22,7 @@ const IMPRINT = join(homedir(), "Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS/I
 const V = "VELVET NOIR RECORDS - R&B:SOUL/ARISTS";
 const S = "SUNFLAG AFRICA - AFROBEAT/ARISTS";
 const W = "WAVELIGHT RECORDS - POP/ARISTS";
+const RT = "RIOT TEMPLE - ROCK/ARISTS";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
@@ -39,6 +40,8 @@ const PORTRAITS = [
   ["virgo-dunst", `${V}/VIRGO DUNST/IMAGES/3.jpg`, 0.5, 0, 1],
   ["j-cruz", `${W}/J CRUZZ/IMAGES/2.jpg`, 0.5, 0, 1],
   ["riven-cole", `${W}/RIVEN COLE/IMAGES/01.jpg`, 0.5, 0, 1],
+  ["noah-rust", `${RT}/NOAH RUST/IMAGES/Noah Rust.png`, 0.5, 0, 1],
+  ["vegah-riot", `${RT}/VEGAH RIOT/IMAGES/02.png`, 0.5, 0, 1],
   ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
   ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`, 0.5, 0, 1],
 ];
