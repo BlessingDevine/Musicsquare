@@ -15,6 +15,8 @@ import { ROSTER } from "./station";
  */
 
 export type Drop = {
+  /** The artist's ROSTER slug. */
+  slug: string;
   title: string;
   artist: string;
   lane: string;
@@ -135,6 +137,7 @@ export async function getTodaysDrop(now = Date.now()): Promise<Drop | null> {
   if (!pick) return null;
   const artist = ROSTER.find((a) => a.slug === pick.slug)!;
   return {
+    slug: artist.slug,
     title: pick.song.title,
     artist: artist.name,
     lane: artist.lane,

@@ -1,9 +1,24 @@
 import Image from "next/image";
+import { pacificDay } from "@/lib/drop";
+import { seededShuffle } from "@/lib/seeded";
 import { CATALOGUE, ROSTER } from "@/lib/station";
 import { Reveal } from "./reveal";
 import styles from "./roster.module.css";
 
-export function Roster() {
+/**
+ * The roster in a new order every day, changing with Today's drop at
+ * midnight Pacific, so no artist is always at the far end of the rail.
+ * Everyone sees the same order on a given day. Today's drop artist leads.
+ */
+function todaysOrder(featured?: string) {
+  const order = seededShuffle(ROSTER, `roster:${pacificDay(Date.now()).day}`);
+  const lead = order.findIndex((a) => a.slug === featured);
+  if (lead > 0) order.unshift(...order.splice(lead, 1));
+  return order;
+}
+
+export function Roster({ featured }: { featured?: string }) {
+  const roster = todaysOrder(featured);
   return (
     <section id="roster" className={`on-ink ${styles.section}`}>
       <div className="wrap">
@@ -18,7 +33,7 @@ export function Roster() {
       </div>
 
       <ul className={styles.rail}>
-        {ROSTER.map((artist) => (
+        {roster.map((artist) => (
           <li key={artist.slug} className={styles.card}>
             <div className={styles.frame}>
               <Image

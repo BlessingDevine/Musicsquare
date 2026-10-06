@@ -9,7 +9,7 @@ import { getTodaysDrop } from "@/lib/drop";
 
 // The channel cards refresh themselves in the browser; the page is rebuilt
 // once a minute so the first paint is never far behind, and today's drop
-// changes within a minute of midnight Pacific.
+// and the roster order change within a minute of midnight Pacific.
 export const revalidate = 60;
 
 export default async function Home() {
@@ -20,7 +20,7 @@ export default async function Home() {
       <OnNow />
       <Channels initial={channels} />
       <Drop drop={drop} />
-      <Roster />
+      <Roster featured={drop?.slug} />
       <Schedule />
     </main>
   );
