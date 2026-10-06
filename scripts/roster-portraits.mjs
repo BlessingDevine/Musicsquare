@@ -98,10 +98,4 @@ if (preview > -1) {
     await writeFile(join(root, "public/channels", `${name}.jpg`), out);
     console.log(`public/channels/${name}.jpg  ${Math.round(out.length / 1024)}KB`);
   }
-  // The home page's "drop" shows its artwork square; the new Luv Tonez photo
-  // is square already, so it goes in uncropped.
-  const drop = await sharp(join(IMPRINT, `${V}/LUV TONEZ/IMAGES/Luv Tonez 2.jpg`))
-    .resize(1200, 1200).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
-  await writeFile(join(root, "public/roster/luv-tonez-square.jpg"), drop);
-  console.log(`public/roster/luv-tonez-square.jpg  ${Math.round(drop.length / 1024)}KB`);
 }

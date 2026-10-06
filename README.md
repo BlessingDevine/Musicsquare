@@ -172,7 +172,15 @@ the broadcast week.
 ## Content
 
 Everything editable lives in `src/lib/station.ts` — channels, roster, the
-day's programming, today's drop, socials, nav.
+day's programming, socials, nav.
+
+**Today's drop** (`src/lib/drop.ts`) is not edited by hand. Every day at
+midnight Pacific it moves to the next roster artist, in a fixed shuffled order,
+so each artist recurs exactly every N days (N = roster artists with released
+music, 16 in Oct 2026) and gets a different song each time round. Originals
+only. The artwork is the artist's roster portrait; the note is built from the
+song's album and imprint, never invented. An artist joins the rotation once
+they are on `ROSTER` and have music in the catalogue.
 
 ## Logo and icons
 

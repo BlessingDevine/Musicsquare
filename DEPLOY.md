@@ -63,8 +63,8 @@ the older `216.198.79.1` was removed in Oct 2026), and `www` as a CNAME to
 Vercel. The MX and TXT records there run the station's Microsoft 365 email —
 leave them alone.
 
-Keep the old Vercel project: `DROP.audio` in `station.ts` still plays from its
-Blob storage.
+The old v0 Vercel project is no longer used by this site (the drop used to
+play from its Blob storage; it now comes from the catalogue).
 
 ---
 
@@ -100,7 +100,6 @@ git push -u origin new-schedule
 | The four channels | `CHANNELS` |
 | Genres on the About page | `GENRES` |
 | Catalogue headline figures | `CATALOGUE` |
-| Today's featured record | `DROP` |
 | Navigation | `NAV` |
 | Social links | `SOCIALS` |
 | Donate button target | `SUPPORT_URL` |
@@ -133,10 +132,9 @@ not require a git revert. Fix the code afterwards, at your own pace.
 RadioKing, so hosting only ever serves the page — roughly 220KB. Traffic spikes
 cost you nothing on Vercel's free tier.
 
-**The "Play the drop" audio is borrowed.** `DROP.audio` in `station.ts` points at
-a file on the *old* project's Vercel Blob storage. It works today, but deleting
-that old Vercel project will silence it. Re-upload that MP3 alongside this site
-when convenient and update the constant.
+**Today's drop picks itself.** It rotates daily from the catalogue
+(`src/lib/drop.ts`) — nothing to update. An artist joins the rotation once
+they are on `ROSTER` and have released music in the catalogue.
 
 ---
 

@@ -150,25 +150,6 @@ export const ROSTER: Artist[] = [
   { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg" },
 ];
 
-/** Today's featured record. */
-export const DROP = {
-  title: "What Is The Point",
-  artist: "Luv Tonez",
-  lane: "R&B / Soul",
-  duration: "3:45",
-  /**
-   * The day this record entered the seven-day rotation. The label counts
-   * forward from here rather than being written down, so it can't freeze on
-   * "day 3" the way a hardcoded string does.
-   */
-  rotationStart: "2026-08-09",
-  rotationLength: 7,
-  note: "A late-night question set to a slow drum. Luv Tonez wrote the top line in one sitting; the strings underneath were grown from a four-bar seed and never touched again.",
-  artwork: "/roster/luv-tonez-square.jpg",
-  audio:
-    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/01.%20What%20Is%20The%20Point-yVTu2BJJUXQFz1hU7RESaxGTamdKc9.mp3",
-};
-
 /* ------------------------------------------------------------- the week */
 
 /**

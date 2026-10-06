@@ -15,6 +15,8 @@
  * the player.
  */
 
+import { seededShuffle } from "./seeded";
+
 export type ChannelTrack = {
   code: string;
   title: string;
@@ -39,31 +41,9 @@ export type OnAir = {
   endsAt: number;
 };
 
-// mulberry32: tiny, fast, and the same in every JavaScript engine.
-function random(seed: number) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function hash(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
 /** The rotation's order for one pass. Same inputs, same order, everywhere. */
 function passOrder(rotation: Rotation, pass: number) {
-  const order = rotation.tracks.slice();
-  const rand = random(hash(`${rotation.slug}:${pass}`));
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-  return order;
+  return seededShuffle(rotation.tracks, `${rotation.slug}:${pass}`);
 }
 
 export function onAirAt(rotation: Rotation, now: number): OnAir | null {

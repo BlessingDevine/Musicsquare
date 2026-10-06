@@ -37,6 +37,9 @@
    missed and was showing in colour. */
 .img {
   object-fit: cover;
+  /* Roster portraits are 4:5 in a square (4:3 on phones) frame: anchor near
+     the top, where the faces are. */
+  object-position: 50% 22%;
   filter: grayscale(1) contrast(1.04);
 }
 
