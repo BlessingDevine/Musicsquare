@@ -1,6 +1,7 @@
 // Builds the roster portraits in public/roster/ from the artists' IMAGES
 // folders in the catalogue. Run with `node scripts/roster-portraits.mjs`;
-// add `--preview <file.jpg>` to write a black-and-white contact sheet instead.
+// add `--only <slug>` to rebuild one artist (and leave the rest untouched), or
+// `--preview <file.jpg>` to write a black-and-white contact sheet instead.
 //
 // Every card on the site is 4:5. Where an artist only has album covers, the
 // crop is chosen to leave the printed title out — the station's covers carry
@@ -29,6 +30,8 @@ const RW = "REDWOOD RECORDS - COUNTRY/ARISTS";
 // of the source. Width is always 4:5 of the height.
 const PORTRAITS = [
   ["fizz", `${S}/FIZZ/IMAGES/Fizz 1.jpg`, 0.5, 0, 1],
+  // New look (Oct 2026, the "Holy Moly" era): the close-up, not the full-length shot.
+  ["neka", `${S}/NEKA/IMAGES/Neka 1.png`, 0.5, 0, 1],
   // Robert removed the printed titles from Bantan's and Echo Rae's covers.
   ["bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.42, 0, 1],
   ["sanza-benito", `${S}/SANZA BENITO/IMAGES/Benito 1.jpg`, 0.5, 0, 1],
@@ -71,6 +74,10 @@ async function crop([, file, cx, fy, fh], ratio = 0.8) {
   return sharp(src).extract({ left, top, width: w, height: h });
 }
 
+const onlyAt = process.argv.indexOf("--only");
+const ONLY = onlyAt > -1 ? process.argv[onlyAt + 1] : null;
+if (ONLY && !PORTRAITS.some((p) => p[0] === ONLY)) throw new Error(`no roster entry "${ONLY}"`);
+
 const preview = process.argv.indexOf("--preview");
 if (preview > -1) {
   const TW = 200, TH = 250;
@@ -88,7 +95,7 @@ if (preview > -1) {
     .composite(comps).jpeg({ quality: 80 }).toFile(process.argv[preview + 1]);
 } else {
   await mkdir(join(root, "public/roster"), { recursive: true });
-  for (const p of PORTRAITS) {
+  for (const p of PORTRAITS.filter((p) => !ONLY || p[0] === ONLY)) {
     // 960x1200 is ~3x the largest card; mozjpeg keeps each well under 200KB.
     const out = await (await crop(p)).resize(960, 1200).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
     await writeFile(join(root, "public/roster", `${p[0]}.jpg`), out);
@@ -101,7 +108,7 @@ if (preview > -1) {
   }
   // The home page's channel cards ("What we play") are square too. Each is
   // fronted by an artist from that channel's imprint.
-  for (const [name, file, cx] of [
+  for (const [name, file, cx] of ONLY ? [] : [
     ["pop-lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5],
     ["rnb-bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.5],
   ]) {
