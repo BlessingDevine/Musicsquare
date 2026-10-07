@@ -34,8 +34,8 @@ const LINKS = JSON.parse(readFileSync(join(here, "media-links.json"), "utf8"));
 const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md"]);
 const VIDEOS = new Set([".mp4", ".mov", ".m4v"]);
 
-const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
-const NOISE = /\b(official|music|lyrics?|video|visuali[sz]er|canvas|loop|final|hd|4k|1080p?)\b|\(.*?\)|\[.*?\]/gi;
+const norm = (s) => s.replace(/\bft\.?(?=\s)/gi, "feat").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const NOISE = /\b(official|music|lyrics?|video|visuali[sz]er|canvas|loop|final|vertical|hd|4k|1080p?)\b|\(.*?\)|\[.*?\]/gi;
 const stemKey = (file) => norm(basename(file, extname(file)).replace(NOISE, " "));
 const toPosix = (p) => p.split(sep).join("/");
 
@@ -128,11 +128,10 @@ for (const owner of byArtist.keys()) {
   const vidDir = join(DEFAULT_ROOT, owner, "VIDEOS");
   if (existsSync(vidDir)) {
     for (const f of readdirSync(vidDir).filter((f) => VIDEOS.has(extname(f).toLowerCase()) && !f.startsWith("."))) {
-      // Vertical cuts ("Pressure Ft. Lea Babi Vertical.mp4") are Canvas sources for canvas.mjs, not videos to watch.
-      if (/\bvertical\b/i.test(f)) continue;
       const rel = toPosix(join(owner, "VIDEOS", f));
       const song = find(rel, stemKey(f));
-      const kind = /lyric/i.test(f) ? "lyric_video" : /canvas|loop/i.test(f) ? "canvas" : "music_video";
+      // "... Vertical.mp4" is a clip for the Clips feed (and the source Robert's Canvas loops are cut from).
+      const kind = /lyric/i.test(f) ? "lyric_video" : /\bvertical\b/i.test(f) ? "clip" : /canvas|loop/i.test(f) ? "canvas" : "music_video";
       if (song) videos.push({ song, kind, path: join(vidDir, f), source: rel });
       else unmatched.push(rel);
     }
@@ -185,7 +184,8 @@ for (const v of videos) {
   console.log(`  converting ${basename(v.path)} (${stream.width}×${stream.height} ${stream.codec_name}) …`);
   execFileSync("ffmpeg", [
     "-y", "-v", "error", "-i", v.path,
-    "-vf", "scale=-2:'min(1080,ih)'", "-c:v", "libx264", "-preset", "slow", "-crf", "22",
+    // 1080p: 1080 tall for wide videos, 1080 wide for vertical ones.
+    "-vf", stream.height > stream.width ? "scale='min(1080,iw)':-2" : "scale=-2:'min(1080,ih)'", "-c:v", "libx264", "-preset", "slow", "-crf", "22",
     "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out,
   ]);
   execFileSync("ffmpeg", ["-y", "-v", "error", "-ss", String(Math.min(5, durationMs / 2000)), "-i", v.path, "-frames:v", "1", "-vf", "scale=-2:720", poster]);
