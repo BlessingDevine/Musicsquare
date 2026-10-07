@@ -436,3 +436,13 @@ Where a folder name isn't the album's real title (`LEA BABI/MUSIC/ALBUM 1` is
 folder (relative to `IMPRINT/`) to the title. The importer uses it for new
 songs; `node scripts/catalog/titles.mjs` applies it to songs already imported.
 Folders are never renamed for this.
+
+## Lyrics and videos
+
+`node scripts/catalog/media.mjs` matches files in each artist's `DOCUMENTS/`
+(lyrics: .rtf .docx .txt .md) and `VIDEOS/` (.mp4 .mov) to their songs by title,
+splitting lyric sheets that hold many songs (`SONG 7: "DÉJÀ VU"`, `1. Title`,
+`Title 1: Title`); `--upload` loads lyrics into `song_lyrics` and converts each
+video to 1080p H.264 with a poster frame on the CDN (`song_videos`). Files whose
+names don't match a song go in `media-links.json`. Migration:
+`supabase/migrations/20261007030000_lyrics_videos.sql`.
