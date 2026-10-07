@@ -25,7 +25,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
 import { analyse } from "./cues.mjs";
-import { DEFAULT_ROOT, scan, slugify } from "./scan.mjs";
+import { DEFAULT_ROOT, parseImprint, scan, slugify } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -304,7 +304,8 @@ async function buildChannels(imprints) {
     if (!rotation.length) continue;
 
     const genres = [imprint.primary_genre, ...imprint.secondary_genres];
-    const name = genres.join(" / ");
+    // A label can name its channel outright (genre-names.json); otherwise the genres do.
+    const name = parseImprint(imprint.imprint_name).channel ?? genres.join(" / ");
     const slug = slugify(genres.join(" "));
 
     const playlist = must(await db.from("playlists").upsert({

@@ -92,11 +92,19 @@ export function slugify(s) {
 
 // "VELVET NOIR RECORDS - R&B:SOUL" -> Velvet Noir Records, [R&B, Soul].
 // macOS stores the "/" Finder shows as ":" on disk.
+// Where a label's folder lists its styles but the genre has a broader name
+// (SEMBORA - ZOUK, KOMPA & KIZOMBA is Afro-Caribbean), keyed by label slug.
+const GENRE_NAMES = JSON.parse(readFileSync(new URL("./genre-names.json", import.meta.url), "utf8"));
+
 export function parseImprint(folder) {
   const m = folder.match(/^(.*?)\s*-\s*(.+)$/);
   const name = displayName(m ? m[1] : folder);
-  const genres = m ? m[2].split(/[:/]/).map((g) => displayName(g.trim())) : [];
-  return { name, slug: slugify(name), genres };
+  const slug = slugify(name);
+  const named = GENRE_NAMES[slug];
+  const genres = named
+    ? [named.genre, ...(named.subgenres ?? [])]
+    : m ? m[2].split(/[:/]/).map((g) => displayName(g.trim())) : [];
+  return { name, slug, genres, channel: named?.channel ?? null };
 }
 
 // "(ALT)" takes are kept in the catalogue but out of rotation.

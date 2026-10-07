@@ -456,3 +456,18 @@ Song covers: a single's own artwork goes in the artist's `IMAGES/` named after
 the song plus "Cover" (or listed in `scripts/catalog/media-links.json`); the
 same `covers.mjs --upload` stores it in `song_art`, and `song_covers` prefers it
 over the album cover (`supabase/migrations/20261007040000_song_art.sql`).
+
+## Curated playlists
+
+Robert keeps one file per playlist in `SQUARE BUSINESS/PLAYLISTS/` (next to
+`IMPRINT/`): `Late Night Drive.rtf` with one song per line ("Artist - Title", or
+a unique title), an optional first line `About: …`, and an optional same-name
+cover image. `node scripts/catalog/playlists.mjs [--upload]` loads them into
+`playlists` (owner_type `curator`) and `playlist_songs`; a removed file archives
+its playlist. Migration: `supabase/migrations/20261008000000_curated_playlists.sql`.
+
+## Genre names
+
+`scripts/catalog/genre-names.json` names a label's genre (and channel) where the
+folder lists its styles instead — `SEMBORA - ZOUK, KOMPA & KIZOMBA` is
+Afro-Caribbean.
