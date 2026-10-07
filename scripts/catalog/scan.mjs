@@ -16,6 +16,7 @@
 // disk and reports the rest as cloud-only.
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
@@ -136,6 +137,14 @@ async function* walk(dir) {
   }
 }
 
+// Album names from the covers, where the folder name isn't the real title
+// ("LEA BABI/MUSIC/ALBUM 1" → "Sexual Fantasies"). Keyed by the album folder
+// relative to IMPRINT/; folders are never renamed for this. Edit the JSON and
+// run `node scripts/catalog/titles.mjs` to apply it to songs already imported.
+export const ALBUM_TITLES = JSON.parse(
+  readFileSync(new URL("./album-titles.json", import.meta.url), "utf8"),
+);
+
 /** Parse one path into catalogue fields, or null if it is outside the layout. */
 export function parsePath(root, file) {
   const parts = relative(root, file).split(sep);
@@ -154,7 +163,7 @@ export function parsePath(root, file) {
   }
 
   const between = parts.slice(music + 1, -1);
-  const album = between.length ? displayName(between.join(" · ")) : null;
+  const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? displayName(between.join(" · ")) : null);
   const { title, version } = parseTitle(parts.at(-1));
 
   return {

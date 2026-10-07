@@ -426,3 +426,11 @@ script uploads them to `imprint_art` (keyed by imprint slug, so a label with no
 music yet keeps its artwork ready) — `supabase/migrations/20261007020000_imprint_art.sql`.
 GoSquare uses the cover for label pages, Browse tiles and radio channels, and
 the logo for the Imprints row.
+
+## Album titles
+
+Where a folder name isn't the album's real title (`LEA BABI/MUSIC/ALBUM 1` is
+"Sexual Fantasies" on its cover), `scripts/catalog/album-titles.json` maps the
+folder (relative to `IMPRINT/`) to the title. The importer uses it for new
+songs; `node scripts/catalog/titles.mjs` applies it to songs already imported.
+Folders are never renamed for this.
