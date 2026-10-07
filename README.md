@@ -409,7 +409,12 @@ a cover; `--upload` uploads new or changed ones. The cover is the image named
 (`TRAPSOUL III/Trapsoul III.jpg`). Failing that, the script guesses: the
 folder's square image, never a YouTube one (`YT` in the name), preferring
 "cover" in the name, `.jpg` over `.png`, and `Cover 2` over `Cover 2b`.
-Guesses are listed in the report; naming a file `cover` overrides one. Covers are
+Guesses are listed in the report; naming a file `cover` overrides one.
+If the album folder has no image at all, the artist's (or collection's)
+`IMAGES` folder is checked, accepting only cover-like names — the album's own
+name, `Cover 2`, or the artist/collection name plus a number (`Apex II`,
+`Lumi III`) — square and never YouTube art. Bare numbers (`01.jpg`) never count,
+because those folders hold numbered artist photos. Covers are
 cropped square, resized to 1000px JPEG and stored content-addressed at
 `audio/covers/<hash>.jpg` (the only prefix CloudFront serves), recorded in
 `album_covers` and read through the `song_covers` view
