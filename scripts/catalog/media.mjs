@@ -6,7 +6,7 @@
 //   node scripts/catalog/media.mjs --upload   load lyrics, convert + upload videos
 //
 // Matching, per artist (the folder holding MUSIC/):
-//   - A file named after the song: "Deja Vu.rtf", "Deja Vu Lyrics.docx",
+//   - A file named after the song: "Deja Vu.rtf", "Deja Vu Lyrics.docx", "Song - Album.rtf",
 //     "Deja Vu (Official Video).mp4" — capitals, accents and words like
 //     lyrics / video / official / visualizer are ignored.
 //   - A lyrics document holding several songs, each under a header like
@@ -103,7 +103,10 @@ for (const owner of byArtist.keys()) {
   const titles = byArtist.get(owner);
   const find = (rel, key) => {
     const linked = LINKS[rel];
-    return linked ? titles.get(norm(linked)) : titles.get(key);
+    if (linked) return titles.get(norm(linked));
+    // "Silence On Speakerphone- SOS.rtf": also try the part before a dash.
+    const before = basename(rel, extname(rel)).split(/\s*[-–]\s+|\s+[-–]\s*/)[0];
+    return titles.get(key) ?? titles.get(stemKey(before + ".x"));
   };
   const docsDir = join(DEFAULT_ROOT, owner, "DOCUMENTS");
   if (existsSync(docsDir)) {
