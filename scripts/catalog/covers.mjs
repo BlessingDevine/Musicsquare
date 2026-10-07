@@ -24,6 +24,9 @@
 //      count. Matches are listed in the report as "from IMAGES".
 // Loose songs in an artist's MUSIC folder share a cover placed there.
 //
+// Labels: each imprint folder (IMPRINT/<Label - Genre>/) may hold Cover.* and
+// Logo.* — the label's artwork, uploaded to imprint_art by label slug.
+//
 // Each cover is cropped to a square, resized to 1000×1000 and saved as JPEG
 // under audio/covers/ (the only prefix CloudFront serves and the uploader may
 // write). Keys are content-addressed, so a replaced cover gets a new URL and
@@ -37,7 +40,7 @@ import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import { DEFAULT_ROOT } from "./scan.mjs";
+import { DEFAULT_ROOT, parseImprint } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -181,6 +184,19 @@ function withTimeout(promise, ms, what) {
   ]);
 }
 
+/** Cover.* and Logo.* at the top of each imprint folder. */
+async function labelArt(root) {
+  const out = [];
+  for (const e of await readdir(root, { withFileTypes: true })) {
+    if (!e.isDirectory() || e.name.startsWith(".")) continue;
+    const files = (await readdir(join(root, e.name))).filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
+    const pick = (word) => files.find((f) => norm(f.slice(0, -extname(f).length)) === word) ?? null;
+    out.push({ dir: join(root, e.name), folder: e.name, slug: parseImprint(e.name).slug, cover: pick("cover"), logo: pick("logo") });
+  }
+  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+const labels = await labelArt(DEFAULT_ROOT);
 const all = await albums(DEFAULT_ROOT);
 const ready = all.filter((a) => a.covers.length === 1);
 const missing = all.filter((a) => a.covers.length === 0);
@@ -200,6 +216,10 @@ if (fromImg.length) {
 if (unclear.length) {
   console.log("\nTwo possible covers (rename or remove one; skipped until then):");
   for (const a of unclear) console.log(`  ${a.folderPath}  →  ${a.covers.join(", ")}`);
+}
+console.log(`\nLabels: ${labels.filter((l) => l.cover).length} of ${labels.length} with a cover, ${labels.filter((l) => l.logo).length} with a logo`);
+for (const l of labels.filter((l) => !l.cover || !l.logo)) {
+  console.log(`  ${l.folder}: ${[!l.cover && "no Cover", !l.logo && "no Logo"].filter(Boolean).join(", ")}`);
 }
 if (!UPLOAD) {
   console.log("\nMissing a cover:");
@@ -266,3 +286,49 @@ for (const a of ready) {
 }
 
 console.log(`\n${uploaded} uploaded · ${unchanged} unchanged · ${failed} failed · ${missing.length} albums still need a cover`);
+
+// --- label artwork -------------------------------------------------------------
+
+const { data: artRows, error: artError } = await db.from("imprint_art").select("slug, cover_checksum, logo_checksum");
+if (artError) throw new Error(`imprint_art: ${artError.message} (has the migration been run?)`);
+const art = new Map(artRows.map((r) => [r.slug, r]));
+let labelsUploaded = 0;
+
+/** Upload one label image (square 1000px JPEG); returns { key, checksum }. */
+async function uploadSquare(file) {
+  const original = await withTimeout(readFile(file), READ_TIMEOUT_MS, basename(file));
+  const checksum = createHash("sha256").update(original).digest("hex");
+  const jpeg = await sharp(original).rotate().resize(SIZE, SIZE, { fit: "cover" }).jpeg({ quality: 88, mozjpeg: true }).toBuffer();
+  const key = `audio/imprints/${checksum.slice(0, 20)}.jpg`;
+  await s3.send(new PutObjectCommand({
+    Bucket: process.env.AUDIO_BUCKET, Key: key, Body: jpeg, ContentType: "image/jpeg",
+    CacheControl: "public, max-age=31536000, immutable",
+  }));
+  return { key, checksum };
+}
+
+for (const l of labels) {
+  if (!l.cover && !l.logo) continue;
+  const prior = art.get(l.slug) ?? {};
+  const row = { slug: l.slug, updated_at: new Date().toISOString() };
+  let changed = false;
+  try {
+    for (const [kind, file] of [["cover", l.cover], ["logo", l.logo]]) {
+      if (!file) continue;
+      const sum = createHash("sha256").update(await readFile(join(l.dir, file))).digest("hex");
+      if (prior[`${kind}_checksum`] === sum) continue;
+      const { key, checksum } = await uploadSquare(join(l.dir, file));
+      row[`${kind}_key`] = key;
+      row[`${kind}_checksum`] = checksum;
+      changed = true;
+    }
+    if (!changed) continue;
+    const { error: e } = await db.from("imprint_art").upsert(row);
+    if (e) throw new Error(e.message);
+    labelsUploaded++;
+    console.log(`  ✓ label ${l.slug}  ←  ${[row.cover_key && l.cover, row.logo_key && l.logo].filter(Boolean).join(" + ")}`);
+  } catch (err) {
+    console.log(`  ✗ label ${l.slug}: ${err.message}`);
+  }
+}
+console.log(`${labelsUploaded} labels updated`);
