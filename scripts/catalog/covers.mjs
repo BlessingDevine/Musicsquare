@@ -5,11 +5,16 @@
 //   node scripts/catalog/covers.mjs            report only: which albums have a cover
 //   node scripts/catalog/covers.mjs --upload   upload new or changed covers
 //
-// Robert's rule for which image is the cover: a file named "cover"
-// (cover.jpg / .png / .webp), or one named exactly like its album folder
-// (TRAPSOUL III/Trapsoul III.jpg), ignoring capitals, spaces and accents. Every
-// other image in the folders — artist photos, YouTube art, designs — is left
-// alone. Loose songs in an artist's MUSIC folder share a cover placed there.
+// Which image is the cover, in order:
+//   1. Robert's rule: a file named "cover" (cover.jpg / .png / .webp), or one
+//      named exactly like its album folder (TRAPSOUL III/Trapsoul III.jpg),
+//      ignoring capitals, spaces and accents. Always wins.
+//   2. Otherwise a best guess from the folder's other images: never a YouTube
+//      image (" YT" in the name — those are wide thumbnails), only square
+//      images, preferring "cover" in the name, then .jpg over .png, then the
+//      plain version over a variant ("Cover 2" before "Cover 2b"). Guesses are
+//      listed in the report; naming a file "cover" overrides one.
+// Loose songs in an artist's MUSIC folder share a cover placed there.
 //
 // Each cover is cropped to a square, resized to 1000×1000 and saved as JPEG
 // under audio/covers/ (the only prefix CloudFront serves and the uploader may
@@ -38,7 +43,34 @@ const READ_TIMEOUT_MS = 2 * 60_000; // cloud-only Drive files download on read
 const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const toPosix = (p) => p.split(sep).join("/");
 
-/** Every folder that directly holds audio, with the cover candidates in it. */
+const isYouTube = (f) => /(^|[^a-z])yt([^a-z]|$)/i.test(f.slice(0, -extname(f).length));
+
+/** Best guess when no file follows the naming rule (see the top of the file). */
+async function guess(dir, images) {
+  const square = [];
+  for (const f of images.filter((f) => !isYouTube(f))) {
+    try {
+      const { width, height } = await withTimeout(sharp(join(dir, f)).metadata(), READ_TIMEOUT_MS, f);
+      if (width && width === height) square.push(f);
+    } catch {
+      // unreadable image: not a candidate
+    }
+  }
+  const rank = (f) => [
+    /cover/i.test(f) ? 0 : 1,
+    /\.jpe?g$/i.test(f) ? 0 : 1,
+    f.slice(0, -extname(f).length).length, // "Cover 2" before "Cover 2b"
+    f.toLowerCase(),
+  ];
+  square.sort((a, b) => {
+    const [x, y] = [rank(a), rank(b)];
+    for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+    return 0;
+  });
+  return square[0] ?? null;
+}
+
+/** Every folder that directly holds audio, with its cover (named, or guessed). */
 async function albums(root) {
   const out = [];
   async function walk(dir) {
@@ -46,12 +78,17 @@ async function albums(root) {
     const files = entries.filter((e) => e.isFile()).map((e) => e.name);
     if (files.some((f) => AUDIO.has(extname(f).toLowerCase()))) {
       const folder = basename(dir);
-      const covers = files.filter((f) => {
-        if (!IMAGE.has(extname(f).toLowerCase()) || f.startsWith("._")) return false;
+      const images = files.filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
+      const covers = images.filter((f) => {
         const stem = norm(f.slice(0, -extname(f).length));
         return stem === "cover" || stem === norm(folder);
       });
-      out.push({ dir, folderPath: toPosix(relative(root, dir)), covers });
+      let guessed = false;
+      if (!covers.length && images.length) {
+        const g = await guess(dir, images);
+        if (g) (covers.push(g), (guessed = true));
+      }
+      out.push({ dir, folderPath: toPosix(relative(root, dir)), covers, guessed });
     }
     for (const e of entries) if (e.isDirectory() && !e.name.startsWith(".")) await walk(join(dir, e.name));
   }
@@ -72,7 +109,12 @@ const ready = all.filter((a) => a.covers.length === 1);
 const missing = all.filter((a) => a.covers.length === 0);
 const unclear = all.filter((a) => a.covers.length > 1);
 
-console.log(`${all.length} albums · ${ready.length} with a cover · ${missing.length} missing · ${unclear.length} with two possible covers`);
+const guessedCount = ready.filter((a) => a.guessed).length;
+console.log(`${all.length} albums · ${ready.length} with a cover (${guessedCount} guessed) · ${missing.length} missing · ${unclear.length} with two possible covers`);
+if (guessedCount) {
+  console.log("\nGuessed (name one \"cover\" to choose differently):");
+  for (const a of ready.filter((a) => a.guessed)) console.log(`  ${a.folderPath}  →  ${a.covers[0]}`);
+}
 if (unclear.length) {
   console.log("\nTwo possible covers (rename or remove one; skipped until then):");
   for (const a of unclear) console.log(`  ${a.folderPath}  →  ${a.covers.join(", ")}`);

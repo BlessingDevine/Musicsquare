@@ -406,7 +406,10 @@ The old site remains at `../musicsquareradio3` as a reference.
 `node scripts/catalog/covers.mjs` reports which album folders in `IMPRINT/` have
 a cover; `--upload` uploads new or changed ones. The cover is the image named
 `cover` (`cover.jpg` / `.png` / `.webp`) or named exactly like its album folder
-(`TRAPSOUL III/Trapsoul III.jpg`); every other image is ignored. Covers are
+(`TRAPSOUL III/Trapsoul III.jpg`). Failing that, the script guesses: the
+folder's square image, never a YouTube one (`YT` in the name), preferring
+"cover" in the name, `.jpg` over `.png`, and `Cover 2` over `Cover 2b`.
+Guesses are listed in the report; naming a file `cover` overrides one. Covers are
 cropped square, resized to 1000px JPEG and stored content-addressed at
 `audio/covers/<hash>.jpg` (the only prefix CloudFront serves), recorded in
 `album_covers` and read through the `song_covers` view
