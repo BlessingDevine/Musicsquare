@@ -25,7 +25,7 @@ import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
-import { DEFAULT_ROOT } from "./scan.mjs";
+import { DEFAULT_ROOT, ownerOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -52,9 +52,8 @@ for (let from = 0; ; from += 1000) {
 }
 const byArtist = new Map();
 for (const s of songs) {
-  const i = s.source_path.indexOf("/MUSIC/");
-  if (i < 0) continue;
-  const owner = s.source_path.slice(0, i);
+  const owner = ownerOf(s.source_path);
+  if (!owner) continue;
   if (!byArtist.has(owner)) byArtist.set(owner, new Map());
   byArtist.get(owner).set(norm(s.title), s);
 }

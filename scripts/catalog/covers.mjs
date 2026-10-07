@@ -50,7 +50,7 @@ import { fileURLToPath } from "node:url";
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import { DEFAULT_ROOT, parseImprint } from "./scan.mjs";
+import { DEFAULT_ROOT, ownerOf, parseImprint } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -112,13 +112,13 @@ function splitNumber(name) {
 
 /** The IMAGES folder that belongs with an album, and the artist/collection name. */
 function imagesFor(dir) {
-  const parts = dir.split(sep);
-  const m = parts.lastIndexOf("MUSIC");
-  if (m < 0) return null;
-  const owner = join(...parts.slice(0, m));
+  const rel = toPosix(relative(DEFAULT_ROOT, dir));
+  const owner = ownerOf(`${rel}/x`);
+  if (!owner) return null;
   // MUSIC/<collection>/<album>: the collection names the covers (Kizomba II).
-  const collection = parts.length - m >= 3 ? parts[m + 1] : parts[m - 1];
-  return { imagesDir: join(sep, owner, "IMAGES"), collection };
+  const inside = rel.slice(owner.length + 1).split("/").filter((p) => p.toUpperCase() !== "MUSIC");
+  const collection = inside.length >= 2 ? inside[0] : basename(owner);
+  return { imagesDir: join(DEFAULT_ROOT, owner, "IMAGES"), collection, loose: inside.length === 0 };
 }
 
 /** Rule 3: a cover-like image for this album in the IMAGES folder, if any. */
@@ -132,7 +132,8 @@ async function fromImages(dir) {
     return null; // no IMAGES folder
   }
   const folder = basename(dir);
-  const album = folder === "MUSIC" ? { base: "", n: 1 } : splitNumber(folder);
+  // Loose songs (straight in MUSIC/, or in the artist folder itself) count as album 1.
+  const album = folder === "MUSIC" || where.loose ? { base: "", n: 1 } : splitNumber(folder);
   const names = [album.base, norm(where.collection)].filter((c) => c.length >= 3 && !["vol", "album", "music"].includes(c));
   const matches = [];
   for (const f of files) {
@@ -170,6 +171,11 @@ async function albums(root) {
         const stem = norm(f.slice(0, -extname(f).length));
         return stem === "cover" || stem === norm(folder);
       });
+      // cover.jpg + cover.png side by side are the same cover in two formats: use the JPEG.
+      if (covers.length > 1 && new Set(covers.map((f) => norm(f.slice(0, -extname(f).length)))).size === 1) {
+        covers.sort((x, y) => Number(!/\.jpe?g$/i.test(x)) - Number(!/\.jpe?g$/i.test(y)));
+        covers.splice(1);
+      }
       let guessed = false;
       let coverDir = dir;
       if (!covers.length && images.length) {
@@ -394,9 +400,8 @@ for (let from = 0; ; from += 1000) {
 }
 const titlesByOwner = new Map();
 for (const r of songRows) {
-  const i = r.source_path.indexOf("/MUSIC/");
-  if (i < 0) continue;
-  const owner = r.source_path.slice(0, i);
+  const owner = ownerOf(r.source_path);
+  if (!owner) continue;
   if (!titlesByOwner.has(owner)) titlesByOwner.set(owner, new Map());
   titlesByOwner.get(owner).set(norm(r.title), r);
 }

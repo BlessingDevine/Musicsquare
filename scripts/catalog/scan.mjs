@@ -146,9 +146,30 @@ export const ALBUM_TITLES = JSON.parse(
 );
 
 /** Parse one path into catalogue fields, or null if it is outside the layout. */
+/**
+ * The artist (or imprint) folder that owns a file — the folder holding its
+ * MUSIC/, IMAGES/, DOCUMENTS/ and VIDEOS/ — relative to IMPRINT/, or null.
+ * Two layouts: <…>/<Artist>/MUSIC/[<Album>/]file, and (Sembora) no MUSIC
+ * folder at all: <Imprint>/ARTISTS/<Artist>/[<Album>/]file.
+ */
+export function ownerOf(sourcePath) {
+  const parts = sourcePath.split("/");
+  const music = parts.findIndex((p) => p.toUpperCase() === "MUSIC");
+  if (music >= 1) return parts.slice(0, music).join("/");
+  if (parts.length >= 4 && ARTISTS_DIR.test(parts[1])) return parts.slice(0, 3).join("/");
+  return null;
+}
+
 export function parsePath(root, file) {
   const parts = relative(root, file).split(sep);
-  const music = parts.findIndex((p) => p.toUpperCase() === "MUSIC");
+  let music = parts.findIndex((p) => p.toUpperCase() === "MUSIC");
+  // Sembora's layout has no MUSIC folder: <Imprint>/ARTISTS/<Artist>/<Album>/file.
+  // Treat it as if MUSIC sat right under the artist folder.
+  let offset = 1;
+  if (music < 1 && parts.length >= 4 && ARTISTS_DIR.test(parts[1])) {
+    music = 3;
+    offset = 0;
+  }
   if (music < 1) return null;
 
   const imprint = parseImprint(parts[0]);
@@ -162,7 +183,7 @@ export function parsePath(root, file) {
     return null;
   }
 
-  const between = parts.slice(music + 1, -1);
+  const between = parts.slice(music + offset, -1);
   const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? displayName(between.join(" · ")) : null);
   const { title, version } = parseTitle(parts.at(-1));
 

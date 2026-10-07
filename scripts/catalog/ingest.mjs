@@ -322,16 +322,32 @@ async function buildChannels(imprints) {
     built.push({ name, slug, imprint, playlist, size: rotation.length });
   }
 
-  // Biggest catalogue first: the channels page leads with Pop, R&B, Afrobeat.
+  // Biggest catalogue first: the channels page leads with Pop, R&B, Afrobeats.
   built.sort((a, b) => b.size - a.size);
+  // One channel per imprint for good. When a label's genre is renamed (Afrobeat
+  // → Afrobeats) its existing channel is renamed in place — same slug, same
+  // epoch — rather than a second channel being created beside it.
+  const existing = await selectAll(() => db.from("radio_stations").select("station_id, slug, related_imprint_id").order("slug"));
+  const kept = new Set();
   for (const [order, { name, slug, imprint, playlist, size }] of built.entries()) {
-    // epoch is left alone on re-runs so live channels don't jump.
-    must(await db.from("radio_stations").upsert({
-      station_name: name, slug, station_type: "imprint",
+    const prior = existing.find((st) => st.related_imprint_id === imprint.imprint_id) ?? existing.find((st) => st.slug === slug);
+    const row = {
+      station_name: name, station_type: "imprint",
       related_imprint_id: imprint.imprint_id, playlist_id: playlist.playlist_id,
       description: `${imprint.imprint_name}, live.`, sort_order: order, status: "active",
-    }, { onConflict: "slug" }));
-    console.log(`  channel ${name.padEnd(28)} ${size} songs`);
+    };
+    // epoch is left alone on re-runs so live channels don't jump.
+    if (prior) must(await db.from("radio_stations").update(row).eq("station_id", prior.station_id));
+    else must(await db.from("radio_stations").insert({ ...row, slug }));
+    kept.add(prior?.station_id ?? slug);
+    console.log(`  channel ${name.padEnd(28)} ${size} songs${prior && prior.slug !== slug ? `  (renamed; keeps /${prior.slug})` : ""}`);
+  }
+  // A channel whose label no longer has a rotation goes quiet rather than playing stale songs.
+  for (const st of existing) {
+    if (!kept.has(st.station_id)) {
+      must(await db.from("radio_stations").update({ status: "archived" }).eq("station_id", st.station_id));
+      console.log(`  channel /${st.slug} archived (no songs)`);
+    }
   }
 }
 
