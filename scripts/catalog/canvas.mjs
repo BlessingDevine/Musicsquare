@@ -5,6 +5,7 @@
 //   node scripts/catalog/canvas.mjs            report: which covers have a Canvas
 //   node scripts/catalog/canvas.mjs --todo     JSON list of covers still without one (with CDN cover URL)
 //   node scripts/catalog/canvas.mjs --upload   finish and upload the clips in ~/Sites/canvas/raw/
+//   node scripts/catalog/canvas.mjs --upload --redo <checksum20>   replace a cover's Canvas with a new raw clip
 //
 // Clips are named after the cover's checksum (first 20 characters, the same
 // as its key under audio/covers/): ~/Sites/canvas/raw/<checksum20>.mp4. A
@@ -29,6 +30,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const UPLOAD = process.argv.includes("--upload");
 const TODO = process.argv.includes("--todo");
+const REDO = process.argv.includes("--redo") ? process.argv[process.argv.indexOf("--redo") + 1] : null;
 const RAW = process.env.CANVAS_DIR ?? join(homedir(), "Sites/canvas/raw");
 const CDN = process.env.NEXT_PUBLIC_AUDIO_BASE_URL;
 
@@ -51,7 +53,7 @@ const singles = (await all("song_art", "song_id, storage_key, checksum, canvas_k
   .map((r) => ({ table: "song_art", match: { song_id: r.song_id }, name: `song: ${r.songs?.title ?? r.song_id}`, ...r }));
 const covers = [...albums, ...singles];
 const id = (c) => c.checksum.slice(0, 20);
-const has = (c) => c.canvas_key && c.canvas_checksum === c.checksum;
+const has = (c) => c.canvas_key && c.canvas_checksum === c.checksum && id(c) !== REDO;
 
 if (TODO) {
   console.log(JSON.stringify(covers.filter((c) => !has(c)).map((c) => ({ id: id(c), name: c.name, cover: `${CDN}/${c.storage_key}` })), null, 1));
