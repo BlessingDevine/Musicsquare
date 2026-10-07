@@ -400,3 +400,15 @@ What the importer decides, all in `scan.mjs` / `ingest.mjs`:
 ## Still to build
 
 The old site remains at `../musicsquareradio3` as a reference.
+
+## Album covers
+
+`node scripts/catalog/covers.mjs` reports which album folders in `IMPRINT/` have
+a cover; `--upload` uploads new or changed ones. The cover is the image named
+`cover` (`cover.jpg` / `.png` / `.webp`) or named exactly like its album folder
+(`TRAPSOUL III/Trapsoul III.jpg`); every other image is ignored. Covers are
+cropped square, resized to 1000px JPEG and stored content-addressed at
+`audio/covers/<hash>.jpg` (the only prefix CloudFront serves), recorded in
+`album_covers` and read through the `song_covers` view
+(`supabase/migrations/20261007010000_album_covers.sql`). GoSquare shows them
+straight away; unchanged covers are skipped on re-runs.
