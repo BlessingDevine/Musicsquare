@@ -153,6 +153,13 @@ export const ALBUM_TITLES = JSON.parse(
   readFileSync(new URL("./album-titles.json", import.meta.url), "utf8"),
 );
 
+// Song names where the file name is a placeholder ("Relaxing Piano 01" ×3 →
+// Serenity Soundz's real names), keyed by the file's path relative to IMPRINT/.
+// Files are never renamed for this; titles.mjs applies it to imported songs.
+export const SONG_TITLES = JSON.parse(
+  readFileSync(new URL("./song-titles.json", import.meta.url), "utf8"),
+);
+
 /** Parse one path into catalogue fields, or null if it is outside the layout. */
 /**
  * The artist (or imprint) folder that owns a file — the folder holding its
@@ -193,7 +200,9 @@ export function parsePath(root, file) {
 
   const between = parts.slice(music + offset, -1);
   const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? displayName(between.join(" · ")) : null);
-  const { title, version } = parseTitle(parts.at(-1));
+  const parsed = parseTitle(parts.at(-1));
+  const title = SONG_TITLES[parts.join("/")] ?? parsed.title;
+  const { version } = parsed;
 
   return {
     sourcePath: parts.join("/"),

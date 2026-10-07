@@ -435,7 +435,10 @@ Where a folder name isn't the album's real title (`LEA BABI/MUSIC/ALBUM 1` is
 "Sexual Fantasies" on its cover), `scripts/catalog/album-titles.json` maps the
 folder (relative to `IMPRINT/`) to the title. The importer uses it for new
 songs; `node scripts/catalog/titles.mjs` applies it to songs already imported.
-Folders are never renamed for this.
+Folders are never renamed for this. Song names work the same way:
+`scripts/catalog/song-titles.json` maps a file (relative to `IMPRINT/`) to its
+real title — Serenity Soundz's 220 "Relaxing/Soothing Piano NN" placeholders
+have names there — and `titles.mjs` applies both lists.
 
 ## Lyrics and videos
 
