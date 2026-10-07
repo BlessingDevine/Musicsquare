@@ -128,6 +128,8 @@ for (const owner of byArtist.keys()) {
   const vidDir = join(DEFAULT_ROOT, owner, "VIDEOS");
   if (existsSync(vidDir)) {
     for (const f of readdirSync(vidDir).filter((f) => VIDEOS.has(extname(f).toLowerCase()) && !f.startsWith("."))) {
+      // Vertical cuts ("Pressure Ft. Lea Babi Vertical.mp4") are Canvas sources for canvas.mjs, not videos to watch.
+      if (/\bvertical\b/i.test(f)) continue;
       const rel = toPosix(join(owner, "VIDEOS", f));
       const song = find(rel, stemKey(f));
       const kind = /lyric/i.test(f) ? "lyric_video" : /canvas|loop/i.test(f) ? "canvas" : "music_video";

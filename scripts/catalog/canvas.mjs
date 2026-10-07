@@ -10,6 +10,8 @@
 // Clips are named after the cover's checksum (first 20 characters, the same
 // as its key under audio/covers/): ~/Sites/canvas/raw/<checksum20>.mp4. A
 // replaced cover has a new checksum, so its old Canvas simply stops matching.
+// A clip that already loops seamlessly (cut from Robert's own vertical video)
+// is named <checksum20>.loop.mp4 and is used as is, not played back and forth.
 //
 // Each raw clip is played forward then backward (a seamless loop) and encoded
 // as H.264 720×1280 for phones. A tall clip (made from a vertical version of
@@ -60,7 +62,7 @@ if (TODO) {
   process.exit(0);
 }
 
-const raws = existsSync(RAW) ? new Set(readdirSync(RAW).filter((f) => f.endsWith(".mp4")).map((f) => basename(f, ".mp4"))) : new Set();
+const raws = existsSync(RAW) ? new Set(readdirSync(RAW).filter((f) => f.endsWith(".mp4")).map((f) => basename(f, ".mp4").replace(/\.loop$/, ""))) : new Set();
 const done = covers.filter(has);
 const ready = covers.filter((c) => !has(c) && raws.has(id(c)));
 console.log(`${covers.length} covers · ${done.length} with a Canvas · ${ready.length} clips ready to upload · ${covers.length - done.length - ready.length} still to make`);
@@ -79,14 +81,15 @@ const work = join(tmpdir(), "gosquare-canvas");
 mkdirSync(work, { recursive: true });
 
 for (const c of ready) {
-  const src = join(RAW, `${id(c)}.mp4`);
+  const looped = existsSync(join(RAW, `${id(c)}.loop.mp4`));
+  const src = join(RAW, looped ? `${id(c)}.loop.mp4` : `${id(c)}.mp4`);
   const out = join(work, `${id(c)}.mp4`);
   const poster = join(work, `${id(c)}.jpg`);
   const [w, h] = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", src], { encoding: "utf8" })
     .trim().split(",").map(Number);
-  const loop = "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1";
+  const loop = looped ? "[0:v]null" : "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1";
   const frame = h / w > 1.5
-    ? `${loop},scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p`
+    ? `${loop},scale=720:1280:force_original_aspect_ratio=increase:flags=lanczos,crop=720:1280,format=yuv420p`
     : `${loop},split[x][y];` +
       "[x]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=30:2,eq=brightness=-0.2[bg];" +
       "[y]scale=720:-2[fg];[bg][fg]overlay=0:(H-h)/2-80,fps=30,format=yuv420p";
