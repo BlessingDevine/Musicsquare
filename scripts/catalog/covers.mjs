@@ -29,6 +29,11 @@
 //      count. Matches are listed in the report as "from IMAGES".
 // Loose songs in an artist's MUSIC folder share a cover placed there.
 //
+// Songs: a single's own cover lives in the artist's IMAGES folder, named after
+// the song plus "Cover" ("Pressure Feat. Lea Babi Cover.png"), or listed in
+// media-links.json (path → song title). It replaces the album cover for that
+// song only (table song_art, migration 20261007040000_song_art.sql).
+//
 // Labels: each imprint folder (IMPRINT/<Label - Genre>/) may hold Cover.* and
 // Logo.* — the label's artwork, uploaded to imprint_art by label slug.
 //
@@ -376,3 +381,60 @@ for (const l of labels) {
   }
 }
 console.log(`${labelsUploaded} labels updated`);
+
+// --- song covers ---------------------------------------------------------------
+
+const LINKS = JSON.parse(await readFile(join(here, "media-links.json"), "utf8"));
+const songRows = [];
+for (let from = 0; ; from += 1000) {
+  const { data, error: e } = await db.from("songs").select("song_id, title, source_path").order("song_code").range(from, from + 999);
+  if (e) throw new Error(e.message);
+  songRows.push(...data);
+  if (data.length < 1000) break;
+}
+const titlesByOwner = new Map();
+for (const r of songRows) {
+  const i = r.source_path.indexOf("/MUSIC/");
+  if (i < 0) continue;
+  const owner = r.source_path.slice(0, i);
+  if (!titlesByOwner.has(owner)) titlesByOwner.set(owner, new Map());
+  titlesByOwner.get(owner).set(norm(r.title), r);
+}
+const { data: artRowsS, error: sae } = await db.from("song_art").select("song_id, checksum");
+if (sae) throw new Error(`song_art: ${sae.message} (has the migration been run?)`);
+const songArtSums = new Map(artRowsS.map((r) => [r.song_id, r.checksum]));
+let songCovers = 0;
+for (const [owner, titles] of titlesByOwner) {
+  const dir = join(DEFAULT_ROOT, owner, "IMAGES");
+  let files;
+  try {
+    files = (await readdir(dir)).filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
+  } catch {
+    continue;
+  }
+  for (const f of files) {
+    const rel = toPosix(join(owner, "IMAGES", f));
+    const stem = f.slice(0, -extname(f).length);
+    let song = LINKS[rel] ? titles.get(norm(LINKS[rel])) : null;
+    if (!song && /\bcover\b/i.test(stem)) {
+      const rest = norm(stem.replace(/\bcover\b/gi, " "));
+      if (rest.length >= 3 && !/^\d+$/.test(rest)) song = titles.get(rest) ?? null;
+    }
+    if (!song) continue;
+    try {
+      const original = await withTimeout(readFile(join(dir, f)), READ_TIMEOUT_MS, f);
+      const checksum = createHash("sha256").update(original).digest("hex");
+      if (songArtSums.get(song.song_id) === checksum) continue;
+      const jpeg = await sharp(original).rotate().resize(SIZE, SIZE, { fit: "cover", position: "attention" }).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
+      const key = `audio/covers/${checksum.slice(0, 20)}.jpg`;
+      await putImage(key, jpeg);
+      const { error: e } = await db.from("song_art").upsert({ song_id: song.song_id, storage_key: key, source_file: rel, checksum, updated_at: new Date().toISOString() });
+      if (e) throw new Error(e.message);
+      songCovers++;
+      console.log(`  ✓ song ${song.title}  ←  IMAGES/${f}`);
+    } catch (err) {
+      console.log(`  ✗ song ${song.title}: ${err.message}`);
+    }
+  }
+}
+console.log(`${songCovers} song covers updated`);

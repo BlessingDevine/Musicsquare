@@ -451,3 +451,8 @@ Replaced a song's audio under the same file name? The importer skips known
 paths, so run `node scripts/catalog/replace.mjs "<path under IMPRINT/>"`: it
 uploads the new MP3 under a new key (the old one is cached as immutable),
 re-points the song, and re-measures its length and crossfade cues.
+
+Song covers: a single's own artwork goes in the artist's `IMAGES/` named after
+the song plus "Cover" (or listed in `scripts/catalog/media-links.json`); the
+same `covers.mjs --upload` stores it in `song_art`, and `song_covers` prefers it
+over the album cover (`supabase/migrations/20261007040000_song_art.sql`).
