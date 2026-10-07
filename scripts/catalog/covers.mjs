@@ -4,6 +4,11 @@
 //
 //   node scripts/catalog/covers.mjs            report only: which albums have a cover
 //   node scripts/catalog/covers.mjs --upload   upload new or changed covers
+//   node scripts/catalog/covers.mjs --thumbs   make any missing smaller sizes
+//
+// Every image is stored at three sizes: <key>.jpg (1000px) for big views,
+// <key>-600.jpg for cards and <key>-300.jpg for lists, where the 1000px file
+// would cost phones ten times the data. GoSquare picks the size by name.
 //
 // Which image is the cover, in order:
 //   1. Robert's rule: a file named "cover" (cover.jpg / .png / .webp), or one
@@ -37,7 +42,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { DEFAULT_ROOT, parseImprint } from "./scan.mjs";
@@ -46,6 +51,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 
 const UPLOAD = process.argv.includes("--upload");
+const THUMBS = process.argv.includes("--thumbs");
+const SIZES = [300, 600];
+const sizedKey = (key, px) => key.replace(/\.jpg$/, `-${px}.jpg`);
 const AUDIO = new Set([".mp3", ".wav", ".m4a"]);
 const IMAGE = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const SIZE = 1000;
@@ -221,7 +229,7 @@ console.log(`\nLabels: ${labels.filter((l) => l.cover).length} of ${labels.lengt
 for (const l of labels.filter((l) => !l.cover || !l.logo)) {
   console.log(`  ${l.folder}: ${[!l.cover && "no Cover", !l.logo && "no Logo"].filter(Boolean).join(", ")}`);
 }
-if (!UPLOAD) {
+if (!UPLOAD && !THUMBS) {
   console.log("\nMissing a cover:");
   for (const a of missing) console.log(`  ${a.folderPath}`);
   console.log("\nReport only. Run with --upload to upload the covers found.");
@@ -235,6 +243,51 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
   auth: { persistSession: false },
 });
 const s3 = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
+
+const put = (Key, Body) =>
+  s3.send(new PutObjectCommand({
+    Bucket: process.env.AUDIO_BUCKET, Key, Body, ContentType: "image/jpeg",
+    CacheControl: "public, max-age=31536000, immutable",
+  }));
+const makeSize = (jpeg, px) => sharp(jpeg).resize(px, px).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+
+/** Store an image at full size and at each smaller size. */
+async function putImage(key, jpeg) {
+  await put(key, jpeg);
+  for (const px of SIZES) await put(sizedKey(key, px), await makeSize(jpeg, px));
+}
+
+if (THUMBS) {
+  // Backfill: a thumbnail for every image uploaded before thumbnails existed.
+  const keys = new Set();
+  const { data: c, error: ce } = await db.from("album_covers").select("storage_key");
+  if (ce) throw new Error(ce.message);
+  c.forEach((r) => keys.add(r.storage_key));
+  const { data: l, error: le } = await db.from("imprint_art").select("cover_key, logo_key");
+  if (le) throw new Error(le.message);
+  l.forEach((r) => [r.cover_key, r.logo_key].filter(Boolean).forEach((k) => keys.add(k)));
+  let made = 0, had = 0;
+  for (const key of keys) {
+    let original = null;
+    for (const px of SIZES) {
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: sizedKey(key, px) }));
+        had++;
+        continue;
+      } catch {
+        // missing: make it
+      }
+      if (!original) {
+        const obj = await s3.send(new GetObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: key }));
+        original = Buffer.from(await obj.Body.transformToByteArray());
+      }
+      await put(sizedKey(key, px), await makeSize(original, px));
+      made++;
+    }
+  }
+  console.log(`smaller sizes: ${made} made, ${had} already there, for ${keys.size} images`);
+  process.exit(0);
+}
 
 const { data: existing, error } = await db.from("album_covers").select("folder_path, checksum");
 if (error) throw new Error(`album_covers: ${error.message} (has the migration been run?)`);
@@ -259,13 +312,7 @@ for (const a of ready) {
       .jpeg({ quality: 86, mozjpeg: true })
       .toBuffer();
     const key = `audio/covers/${checksum.slice(0, 20)}.jpg`;
-    await s3.send(new PutObjectCommand({
-      Bucket: process.env.AUDIO_BUCKET,
-      Key: key,
-      Body: jpeg,
-      ContentType: "image/jpeg",
-      CacheControl: "public, max-age=31536000, immutable",
-    }));
+    await putImage(key, jpeg);
     const { error: e } = await db.from("album_covers").upsert({
       folder_path: a.folderPath,
       storage_key: key,
@@ -300,10 +347,7 @@ async function uploadSquare(file) {
   const checksum = createHash("sha256").update(original).digest("hex");
   const jpeg = await sharp(original).rotate().resize(SIZE, SIZE, { fit: "cover" }).jpeg({ quality: 88, mozjpeg: true }).toBuffer();
   const key = `audio/imprints/${checksum.slice(0, 20)}.jpg`;
-  await s3.send(new PutObjectCommand({
-    Bucket: process.env.AUDIO_BUCKET, Key: key, Body: jpeg, ContentType: "image/jpeg",
-    CacheControl: "public, max-age=31536000, immutable",
-  }));
+  await putImage(key, jpeg);
   return { key, checksum };
 }
 

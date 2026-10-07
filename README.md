@@ -420,6 +420,8 @@ cropped square, resized to 1000px JPEG and stored content-addressed at
 `album_covers` and read through the `song_covers` view
 (`supabase/migrations/20261007010000_album_covers.sql`). GoSquare shows them
 straight away; unchanged covers are skipped on re-runs.
+Each image is also stored at 300px and 600px (`<key>-300.jpg`, `-600.jpg`) so
+lists don't download the 1000px file; `--thumbs` backfills any missing sizes.
 
 Label artwork: each imprint folder may hold `Cover.*` and `Logo.*`; the same
 script uploads them to `imprint_art` (keyed by imprint slug, so a label with no
