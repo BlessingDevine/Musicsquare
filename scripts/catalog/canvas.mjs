@@ -10,9 +10,10 @@
 // as its key under audio/covers/): ~/Sites/canvas/raw/<checksum20>.mp4. A
 // replaced cover has a new checksum, so its old Canvas simply stops matching.
 //
-// Each raw clip is played forward then backward (a seamless loop), set on a
-// 9:16 frame over a blurred copy of itself so the title on the cover stays
-// whole, encoded as H.264 720×1280 for phones, and uploaded to
+// Each raw clip is played forward then backward (a seamless loop) and encoded
+// as H.264 720×1280 for phones. A tall clip (made from a vertical version of
+// the cover) fills the screen; a square one is set on the 9:16 frame over a
+// blurred copy of itself so the title on the cover stays whole. Uploaded to
 // audio/canvas/<sha>.mp4 with a poster image. Nothing in Robert's folders changes.
 
 import { execFileSync } from "node:child_process";
@@ -79,10 +80,15 @@ for (const c of ready) {
   const src = join(RAW, `${id(c)}.mp4`);
   const out = join(work, `${id(c)}.mp4`);
   const poster = join(work, `${id(c)}.jpg`);
-  execFileSync("ffmpeg", ["-y", "-v", "error", "-i", src, "-filter_complex",
-    "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1,split[x][y];" +
-    "[x]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=30:2,eq=brightness=-0.2[bg];" +
-    "[y]scale=720:-2[fg];[bg][fg]overlay=0:(H-h)/2-80,fps=30,format=yuv420p",
+  const [w, h] = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", src], { encoding: "utf8" })
+    .trim().split(",").map(Number);
+  const loop = "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1";
+  const frame = h / w > 1.5
+    ? `${loop},scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p`
+    : `${loop},split[x][y];` +
+      "[x]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=30:2,eq=brightness=-0.2[bg];" +
+      "[y]scale=720:-2[fg];[bg][fg]overlay=0:(H-h)/2-80,fps=30,format=yuv420p";
+  execFileSync("ffmpeg", ["-y", "-v", "error", "-i", src, "-filter_complex", frame,
     "-c:v", "libx264", "-profile:v", "main", "-crf", "24", "-preset", "slow", "-movflags", "+faststart", "-an", out]);
   execFileSync("ffmpeg", ["-y", "-v", "error", "-i", out, "-frames:v", "1", "-q:v", "4", poster]);
   const video = readFileSync(out);
