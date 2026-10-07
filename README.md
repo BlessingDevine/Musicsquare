@@ -446,3 +446,8 @@ splitting lyric sheets that hold many songs (`SONG 7: "DÉJÀ VU"`, `1. Title`,
 video to 1080p H.264 with a poster frame on the CDN (`song_videos`). Files whose
 names don't match a song go in `media-links.json`. Migration:
 `supabase/migrations/20261007030000_lyrics_videos.sql`.
+
+Replaced a song's audio under the same file name? The importer skips known
+paths, so run `node scripts/catalog/replace.mjs "<path under IMPRINT/>"`: it
+uploads the new MP3 under a new key (the old one is cached as immutable),
+re-points the song, and re-measures its length and crossfade cues.
