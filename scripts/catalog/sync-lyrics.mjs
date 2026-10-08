@@ -31,7 +31,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { DEFAULT_ROOT } from "./scan.mjs";
+import { DEFAULT_ROOT, abs } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -163,7 +163,7 @@ function time(lines, heard, durationS) {
 const report = [];
 let uploaded = 0;
 for (const [i, s] of songs.entries()) {
-  const file = join(DEFAULT_ROOT, s.path);
+  const file = abs(s.path);
   process.stdout.write(`[${i + 1}/${songs.length}] ${s.artist} — ${s.title} … `);
   if (!existsSync(file)) { console.log("audio file not found"); report.push({ s, error: "audio file not found" }); continue; }
   const lines = sungLines(s.lyrics, s.title, s.artist);

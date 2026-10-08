@@ -44,13 +44,14 @@
 // be run as often as you like. Nothing in the folders is changed.
 
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import { DEFAULT_ROOT, ownerOf, parseImprint } from "./scan.mjs";
+import { DEFAULT_ROOT, LABELS_ROOT, assetDir, ownerOf, parseImprint, relOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -112,13 +113,13 @@ function splitNumber(name) {
 
 /** The IMAGES folder that belongs with an album, and the artist/collection name. */
 function imagesFor(dir) {
-  const rel = toPosix(relative(DEFAULT_ROOT, dir));
+  const rel = relOf(dir);
   const owner = ownerOf(`${rel}/x`);
   if (!owner) return null;
   // MUSIC/<collection>/<album>: the collection names the covers (Kizomba II).
-  const inside = rel.slice(owner.length + 1).split("/").filter((p) => p.toUpperCase() !== "MUSIC");
+  const inside = rel.slice(owner.length + 1).split("/").filter((p) => !["MUSIC", "SONGS"].includes(p.toUpperCase()));
   const collection = inside.length >= 2 ? inside[0] : basename(owner);
-  return { imagesDir: join(DEFAULT_ROOT, owner, "IMAGES"), collection, loose: inside.length === 0 };
+  return { imagesDir: assetDir(owner, "images"), collection, loose: inside.length === 0 };
 }
 
 /** Rule 3: a cover-like image for this album in the IMAGES folder, if any. */
@@ -133,7 +134,7 @@ async function fromImages(dir) {
   }
   const folder = basename(dir);
   // Loose songs (straight in MUSIC/, or in the artist folder itself) count as album 1.
-  const album = folder === "MUSIC" || where.loose ? { base: "", n: 1 } : splitNumber(folder);
+  const album = folder === "MUSIC" || folder === "Songs" || where.loose ? { base: "", n: 1 } : splitNumber(folder);
   const names = [album.base, norm(where.collection)].filter((c) => c.length >= 3 && !["vol", "album", "music"].includes(c));
   const matches = [];
   for (const f of files) {
@@ -187,7 +188,7 @@ async function albums(root) {
         const hit = await fromImages(dir);
         if (hit) (covers.push(hit.file), (coverDir = hit.dir), (fromImagesFolder = true));
       }
-      out.push({ dir, coverDir, folderPath: toPosix(relative(root, dir)), covers, guessed, fromImagesFolder });
+      out.push({ dir, coverDir, folderPath: relOf(dir), covers, guessed, fromImagesFolder });
     }
     for (const e of entries) if (e.isDirectory() && !e.name.startsWith(".")) await walk(join(dir, e.name));
   }
@@ -203,20 +204,30 @@ function withTimeout(promise, ms, what) {
   ]);
 }
 
-/** Cover.* and Logo.* at the top of each imprint folder. */
-async function labelArt(root) {
+/** Cover.* and Logo.* at the top of each IMPRINT folder, or in each LABELS label's Artwork/. */
+async function labelArt(root, sub = "") {
   const out = [];
   for (const e of await readdir(root, { withFileTypes: true })) {
     if (!e.isDirectory() || e.name.startsWith(".")) continue;
-    const files = (await readdir(join(root, e.name))).filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
+    let files;
+    try {
+      files = (await readdir(join(root, e.name, sub))).filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
+    } catch {
+      continue; // no Artwork folder yet
+    }
     const pick = (word) => files.find((f) => norm(f.slice(0, -extname(f).length)) === word) ?? null;
-    out.push({ dir: join(root, e.name), folder: e.name, slug: parseImprint(e.name).slug, cover: pick("cover"), logo: pick("logo") });
+    out.push({ dir: join(root, e.name, sub), folder: e.name, slug: parseImprint(e.name).slug, cover: pick("cover"), logo: pick("logo") });
   }
-  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+  return out;
 }
 
-const labels = await labelArt(DEFAULT_ROOT);
-const all = await albums(DEFAULT_ROOT);
+// LABELS is the master: where both trees have art for a label, LABELS wins.
+const hasLabels = existsSync(LABELS_ROOT);
+const labelMap = new Map();
+for (const l of await labelArt(DEFAULT_ROOT)) labelMap.set(l.slug, l);
+for (const l of hasLabels ? await labelArt(LABELS_ROOT, "Artwork") : []) if (l.cover || l.logo || !labelMap.has(l.slug)) labelMap.set(l.slug, l);
+const labels = [...labelMap.values()].sort((a, b) => a.slug.localeCompare(b.slug));
+const all = [...(await albums(DEFAULT_ROOT)), ...(hasLabels ? await albums(LABELS_ROOT) : [])];
 const ready = all.filter((a) => a.covers.length === 1);
 const missing = all.filter((a) => a.covers.length === 0);
 const unclear = all.filter((a) => a.covers.length > 1);
@@ -410,7 +421,8 @@ if (sae) throw new Error(`song_art: ${sae.message} (has the migration been run?)
 const songArtSums = new Map(artRowsS.map((r) => [r.song_id, r.checksum]));
 let songCovers = 0;
 for (const [owner, titles] of titlesByOwner) {
-  const dir = join(DEFAULT_ROOT, owner, "IMAGES");
+  const dir = assetDir(owner, "images");
+  const imagesName = basename(dir);
   let files;
   try {
     files = (await readdir(dir)).filter((f) => IMAGE.has(extname(f).toLowerCase()) && !f.startsWith("._"));
@@ -418,7 +430,7 @@ for (const [owner, titles] of titlesByOwner) {
     continue;
   }
   for (const f of files) {
-    const rel = toPosix(join(owner, "IMAGES", f));
+    const rel = toPosix(join(owner, imagesName, f));
     const stem = f.slice(0, -extname(f).length);
     let song = LINKS[rel] ? titles.get(norm(LINKS[rel])) : null;
     if (!song && /\bcover\b/i.test(stem)) {

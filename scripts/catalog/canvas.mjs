@@ -75,7 +75,7 @@ for (let from = 0; ; from += 1000) {
 
 if (process.argv.includes("--sources")) {
   const { ownerOf } = await import("./scan.mjs");
-  const { DEFAULT_ROOT } = await import("./scan.mjs");
+  const { abs, assetDir, relOf } = await import("./scan.mjs");
   const norm = (x) => x.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\bft\.?(?=\s)/g, "feat").replace(/[^a-z0-9]/g, "");
   const byOwner = new Map();
   for (const x of songs) {
@@ -89,14 +89,16 @@ if (process.argv.includes("--sources")) {
   for (const [owner, list] of byOwner) {
     const artist = owner.split("/").at(-1);
     const files = [];
-    for (const sub of ["IMAGES", "VIDEOS", ...new Set(list.map((x) => dirname(x.source_path).slice(owner.length + 1)))]) {
-      const dir = join(DEFAULT_ROOT, owner, sub);
+    const imagesSub = basename(assetDir(owner, "images"));
+    const videosSub = basename(assetDir(owner, "videos"));
+    for (const sub of [imagesSub, videosSub, ...new Set(list.map((x) => dirname(x.source_path).slice(owner.length + 1)))]) {
+      const dir = join(abs(owner), sub);
       if (!existsSync(dir)) continue;
       for (const f of readdirSync(dir)) {
         if (/^\./.test(f)) continue;
         const image = /\.(jpe?g|png|webp)$/i.test(f) && /\b(vertical|canvas)\b/i.test(f);
         const footage = /\.(mp4|mov|m4v)$/i.test(f) && /\bvertical\b/i.test(f) && !/\bclip\b/i.test(f);
-        if (image || footage) files.push({ f, path: join(dir, f), footage, albumFolder: sub === "IMAGES" || sub === "VIDEOS" ? null : `${owner}/${sub}` });
+        if (image || footage) files.push({ f, path: join(dir, f), footage, albumFolder: sub === imagesSub || sub === videosSub ? null : `${owner}/${sub}` });
       }
     }
     // A song's Canvas may also sit on its own cover (song_art), like Pressure's.
@@ -126,7 +128,7 @@ if (process.argv.includes("--sources")) {
       else if (new Set(starts.map((x) => x.title)).size > 1)
         target = `✗ could be several songs: ${[...new Set(starts.map((x) => x.title))].join(", ")} — use the full song title`;
       else target = "✗ matches no album or song of this artist";
-      lines.push(`${path.slice(DEFAULT_ROOT.length + 1)}\n    ${target}`);
+      lines.push(`${relOf(path)}\n    ${target}`);
     }
   }
   console.log(lines.join("\n") || "No Canvas images or footage found.");

@@ -25,7 +25,7 @@ import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
-import { DEFAULT_ROOT, ownerOf } from "./scan.mjs";
+import { assetDir, ownerOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -107,10 +107,10 @@ for (const owner of byArtist.keys()) {
     const before = basename(rel, extname(rel)).split(/\s*[-–]\s+|\s+[-–]\s*/)[0];
     return titles.get(key) ?? titles.get(stemKey(before + ".x"));
   };
-  const docsDir = join(DEFAULT_ROOT, owner, "DOCUMENTS");
+  const docsDir = assetDir(owner, "docs");
   if (existsSync(docsDir)) {
     for (const f of readdirSync(docsDir).filter((f) => DOCS.has(extname(f).toLowerCase()) && !f.startsWith("."))) {
-      const rel = toPosix(join(owner, "DOCUMENTS", f));
+      const rel = toPosix(join(owner, basename(docsDir), f));
       let parts;
       try {
         parts = songsInDoc(join(docsDir, f));
@@ -125,10 +125,10 @@ for (const owner of byArtist.keys()) {
       }
     }
   }
-  const vidDir = join(DEFAULT_ROOT, owner, "VIDEOS");
+  const vidDir = assetDir(owner, "videos");
   if (existsSync(vidDir)) {
     for (const f of readdirSync(vidDir).filter((f) => VIDEOS.has(extname(f).toLowerCase()) && !f.startsWith("."))) {
-      const rel = toPosix(join(owner, "VIDEOS", f));
+      const rel = toPosix(join(owner, basename(vidDir), f));
       const song = find(rel, stemKey(f));
       // "<Song> Vertical Clip.mp4" is the song's clip for the Clips feed. "<Song> Vertical.mp4" alone is
       // the footage its Canvas loop is cut from (canvas.mjs), not something to watch — skipped here.

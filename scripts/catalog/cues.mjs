@@ -75,7 +75,7 @@ export async function analyse(file) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { createClient } = await import("@supabase/supabase-js");
-  const { DEFAULT_ROOT } = await import("./scan.mjs");
+  const { abs } = await import("./scan.mjs");
   const here = fileURLToPath(new URL(".", import.meta.url));
   process.loadEnvFile(join(here, "../../.env.local"));
   const db = createClient(new URL(process.env.NEXT_PUBLIC_SUPABASE_URL.trim()).origin,
@@ -104,7 +104,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       try {
         // The streaming copy — exactly what listeners hear, and it never
         // makes Google Drive download a cloud-only file. Else the local file.
-        const local = join(DEFAULT_ROOT, s.source_path ?? "");
+        const local = s.source_path ? abs(s.source_path) : "";
         const stream = s.song_files.find((f) => f.file_type === "mp3");
         const src = stream ? `${audioBase}/${stream.storage_key}` : s.source_path && existsSync(local) && local;
         if (!src) throw new Error("no audio");

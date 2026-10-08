@@ -16,7 +16,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { DEFAULT_ROOT } from "./scan.mjs";
+import { abs } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -51,11 +51,11 @@ function tagsOf(path) {
   return tags;
 }
 
-/** Tagged itself, or inside a tagged folder (up to the IMPRINT folder). */
+/** Tagged itself, or inside a tagged folder (up to the IMPRINT or LABELS folder). */
 function isTagged(rel) {
   const parts = rel.split("/");
   for (let i = parts.length; i > 0; i--) {
-    if (tagsOf(join(DEFAULT_ROOT, ...parts.slice(0, i))).includes(TAG)) return true;
+    if (tagsOf(abs(parts.slice(0, i).join("/"))).includes(TAG)) return true;
   }
   return false;
 }
@@ -80,7 +80,7 @@ if (args.includes("--suggest")) {
 const changes = [];
 let missing = 0;
 for (const s of songs) {
-  if (!existsSync(join(DEFAULT_ROOT, s.source_path))) {
+  if (!existsSync(abs(s.source_path))) {
     missing++;
     continue;
   }

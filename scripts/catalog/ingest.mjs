@@ -4,6 +4,10 @@
 //   node scripts/catalog/ingest.mjs            everything
 //   node scripts/catalog/ingest.mjs --limit 20 a test batch
 //   node scripts/catalog/ingest.mjs --channels rebuild channels only
+//   node scripts/catalog/ingest.mjs --only riot-temple   one label (its slug) only
+//
+// Held artists (paused with hold.mjs) are skipped entirely — nothing of theirs
+// is imported or moved, new files included — until they are released.
 //
 // Reads .env.local (see .env.local.example). AWS access comes from the
 // musicsquare-uploader CLI profile (AWS_PROFILE), never from a file here.
@@ -25,7 +29,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
 import { analyse } from "./cues.mjs";
-import { DEFAULT_ROOT, parseImprint, scan, slugify } from "./scan.mjs";
+import { abs, parseImprint, scan, slugify } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
@@ -33,6 +37,7 @@ process.loadEnvFile(join(here, "../../.env.local"));
 const args = process.argv.slice(2);
 const LIMIT = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : Infinity;
 const CHANNELS_ONLY = args.includes("--channels");
+const ONLY = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
 const CONCURRENCY = 4;
 const READ_TIMEOUT_MS = 5 * 60_000;
 
@@ -140,7 +145,7 @@ async function importOne(entry, ctx) {
     // the song — same code, same place in the rotations — and re-point it.
     // If the old file is still there, this is a genuine second copy.
     const prior = ctx.songsById.get(ctx.songByChecksum.get(checksum));
-    if (prior && !existsSync(join(DEFAULT_ROOT, prior.source_path))) {
+    if (prior && !existsSync(abs(prior.source_path))) {
       await moveSong(prior, entry, ctx);
       return "moved";
     }
@@ -354,7 +359,12 @@ async function buildChannels(imprints) {
 
 // --- run ---------------------------------------------------------------------
 
-const { entries: all } = await scan();
+const scanned = (await scan().then((r) => r.entries)).filter((e) => !ONLY || e.imprint.slug === ONLY);
+if (ONLY && !scanned.length) throw new Error(`No music found for --only ${ONLY} (use the label's slug, e.g. riot-temple)`);
+// Held artists stay untouched until hold.mjs --release.
+const held = new Set((await selectAll(() => db.from("artists").select("slug").eq("status", "paused").order("slug"))).map((a) => a.slug));
+const all = scanned.filter((e) => !(e.artist && held.has(e.artist.slug)));
+if (scanned.length !== all.length) console.log(`skipping ${scanned.length - all.length} files of held artists: ${[...held].join(", ")}`);
 // MP3s first so every WAV master finds its streaming twin.
 all.sort((a, b) => (a.format === "wav") - (b.format === "wav"));
 const entries = all.slice(0, LIMIT);

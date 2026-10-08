@@ -1,7 +1,7 @@
 // Replace a song's audio after Robert swaps the file under the same name (the
 // importer recognises files by path, so it skips a replaced file).
 //
-//   node scripts/catalog/replace.mjs "<path under IMPRINT/>"   e.g.
+//   node scripts/catalog/replace.mjs "<path under IMPRINT/, or LABELS/…>"   e.g.
 //   node scripts/catalog/replace.mjs "VELVET NOIR RECORDS - R&B:SOUL/ARISTS/LEA BABI/MUSIC/ALBUM 2/Silence On Speakerphone.mp3"
 //
 // Uploads the new MP3 under a new key (audio/SONG-001251-<hash>.mp3): the old
@@ -18,14 +18,14 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
 import { analyse } from "./cues.mjs";
-import { DEFAULT_ROOT } from "./scan.mjs";
+import { abs, relOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const arg = process.argv[2];
 if (!arg) throw new Error('usage: node scripts/catalog/replace.mjs "<path under IMPRINT/>"');
-const file = isAbsolute(arg) ? arg : join(DEFAULT_ROOT, arg);
-const sourcePath = relative(DEFAULT_ROOT, file).split("\\").join("/");
+const file = isAbsolute(arg) ? arg : abs(arg);
+const sourcePath = relOf(file);
 if (!file.toLowerCase().endsWith(".mp3")) throw new Error("only MP3s are streamed; export an MP3 first");
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });

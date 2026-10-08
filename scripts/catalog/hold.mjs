@@ -8,10 +8,11 @@
 // Holding sets the artist to `paused` and their released songs to `draft`.
 // Every site reads only active artists and released songs (Row Level
 // Security), so they disappear at once; the channels are rebuilt afterwards
-// so the radio stops scheduling them. The importer never overrides either
-// status, so held songs stay held through later imports. New files added to a
-// held artist's folders do import as released, though: run hold again after
-// such an import. Releasing restores `released_radio` and `active`.
+// so the radio stops scheduling them. While an artist is held the importer
+// skips their folders entirely (nothing imported or moved, new files
+// included). Releasing restores `released_radio` and `active`; then run the
+// import for their label (ingest.mjs --only <label-slug>) to bring in anything
+// added or renamed while they were held.
 
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";

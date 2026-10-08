@@ -6,7 +6,18 @@
 //
 // Writes scripts/catalog/out/manifest.json and prints a summary.
 //
-// Three layouts, all under IMPRINT/:
+// Two trees. LABELS/ is the master (Oct 2026); IMPRINT/ is the original and is
+// being emptied label by label (move-label.mjs). Source paths in the catalogue
+// are relative to IMPRINT/, or start with "LABELS/" for the new tree — use
+// abs() to turn one into a file path.
+//
+// LABELS/ (one layout):
+//   LABELS/<Label - Genre, Genre>/Artists/<Artist>/Songs/[<Album>/]<Title>.mp3
+//   LABELS/<Label - Genre>/Compilations/<Name>/Songs/[<Album>/]<Title>.mp3   (credited to <Name>)
+//   LABELS/<Label - Genre>/Compilations/<Album>/<Title>.mp3                  (credited to the label)
+//   with Photos/, Videos/, Lyrics/ beside Songs/, and the label's Cover/Logo in Artwork/.
+//
+// IMPRINT/ (three layouts):
 //   <Imprint - Genre>/ARISTS/<Artist>/MUSIC/[<Album>/]<Title>.mp3
 //   <Imprint - Genre>/<Artist>/MUSIC/[<Album>/]<Title>.mp3
 //   <Imprint - Genre>/MUSIC/<Album>/<Title>.mp3       (imprint compilations)
@@ -16,16 +27,31 @@
 // disk and reports the rest as cloud-only.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const DEFAULT_ROOT = join(
-  homedir(),
-  "Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS/IMPRINT",
-);
+export const BUSINESS = join(homedir(), "Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS");
+export const DEFAULT_ROOT = join(BUSINESS, "IMPRINT");
+export const LABELS_ROOT = join(BUSINESS, "LABELS");
+
+/** A catalogue source path ("LABELS/…" or IMPRINT-relative) as a file path. */
+export const abs = (rel) => join(rel.startsWith("LABELS/") ? BUSINESS : DEFAULT_ROOT, rel);
+/** The inverse of abs(): a file path as a catalogue source path. */
+export const relOf = (file) =>
+  file.startsWith(LABELS_ROOT + sep) ? toPosixPath(relative(BUSINESS, file)) : toPosixPath(relative(DEFAULT_ROOT, file));
+const toPosixPath = (p) => p.split(sep).join("/");
+
+// The asset folders beside an artist's music, by tree.
+const ASSET_DIRS = {
+  labels: { music: "Songs", images: "Photos", videos: "Videos", docs: "Lyrics" },
+  imprint: { music: "MUSIC", images: "IMAGES", videos: "VIDEOS", docs: "DOCUMENTS" },
+};
+/** The Photos/Videos/Lyrics (or IMAGES/VIDEOS/DOCUMENTS) folder of an owner, as a file path. */
+export const assetDir = (owner, kind) =>
+  join(abs(owner), ASSET_DIRS[owner.startsWith("LABELS/") ? "labels" : "imprint"][kind]);
 
 const AUDIO = new Set([".mp3", ".wav", ".m4a"]);
 const ARTISTS_DIR = /^ART?ISTS$/i; // the folders are spelled ARISTS
@@ -95,6 +121,8 @@ export function slugify(s) {
 // Where a label's folder lists its styles but the genre has a broader name
 // (SEMBORA - ZOUK, KOMPA & KIZOMBA is Afro-Caribbean), keyed by label slug.
 const GENRE_NAMES = JSON.parse(readFileSync(new URL("./genre-names.json", import.meta.url), "utf8"));
+// Labels renamed in LABELS/ (Waivy Records → Waivy Collective): new slug → the slug the catalogue already uses.
+const IMPRINT_SLUGS = JSON.parse(readFileSync(new URL("./imprint-slugs.json", import.meta.url), "utf8"));
 
 export function parseImprint(folder) {
   const m = folder.match(/^(.*?)\s*-\s*(.+)$/);
@@ -103,8 +131,9 @@ export function parseImprint(folder) {
   const named = GENRE_NAMES[slug];
   const genres = named
     ? [named.genre, ...(named.subgenres ?? [])]
-    : m ? m[2].split(/[:/]/).map((g) => displayName(g.trim())) : [];
-  return { name, slug, genres, channel: named?.channel ?? null };
+    : m ? m[2].split(/[:/,]/).map((g) => displayName(g.trim())).filter(Boolean) : [];
+  // A renamed label keeps its old slug, so its channel, pages and art stay put.
+  return { name, slug: IMPRINT_SLUGS[slug] ?? slug, genres, channel: named?.channel ?? null };
 }
 
 // "(ALT)" takes are kept in the catalogue but out of rotation.
@@ -169,6 +198,10 @@ export const SONG_TITLES = JSON.parse(
  */
 export function ownerOf(sourcePath) {
   const parts = sourcePath.split("/");
+  if (parts[0] === "LABELS") {
+    // LABELS/<Label>/Artists|Compilations/<Name>/… — the Name folder owns it.
+    return parts.length >= 5 && /^(Artists|Compilations)$/.test(parts[2]) ? parts.slice(0, 4).join("/") : null;
+  }
   const music = parts.findIndex((p) => p.toUpperCase() === "MUSIC");
   if (music >= 1) return parts.slice(0, music).join("/");
   if (parts.length >= 4 && ARTISTS_DIR.test(parts[1])) return parts.slice(0, 3).join("/");
@@ -176,6 +209,7 @@ export function ownerOf(sourcePath) {
 }
 
 export function parsePath(root, file) {
+  if (root === LABELS_ROOT) return parseLabelsPath(file);
   const parts = relative(root, file).split(sep);
   let music = parts.findIndex((p) => p.toUpperCase() === "MUSIC");
   // Sembora's layout has no MUSIC folder: <Imprint>/ARTISTS/<Artist>/<Album>/file.
@@ -215,6 +249,36 @@ export function parsePath(root, file) {
   };
 }
 
+/** LABELS/<Label>/Artists/<Artist>/Songs/[<Album>/]file, and the two Compilations forms. */
+function parseLabelsPath(file) {
+  const parts = relOf(file).split("/"); // LABELS, <Label>, …
+  if (parts.length < 5) return null;
+  const imprint = parseImprint(parts[1]);
+  let artist = null;
+  let between;
+  if (parts[2] === "Artists" || (parts[2] === "Compilations" && parts[4] === "Songs")) {
+    if (parts[4] !== "Songs" || parts.length < 6) return null;
+    const name = displayName(parts[3]);
+    artist = { name, slug: slugify(name) };
+    between = parts.slice(5, -1);
+  } else if (parts[2] === "Compilations") {
+    between = parts.slice(3, -1); // a label compilation: the folder is the album
+  } else {
+    return null;
+  }
+  const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? displayName(between.join(" · ")) : null);
+  const parsed = parseTitle(parts.at(-1));
+  return {
+    sourcePath: parts.join("/"),
+    imprint,
+    artist,
+    album,
+    title: SONG_TITLES[parts.join("/")] ?? parsed.title,
+    version: parsed.version,
+    format: extname(file).slice(1).toLowerCase(),
+  };
+}
+
 // SF_DATALESS: the file is a cloud placeholder with no bytes on disk.
 const SF_DATALESS = 0x40000000;
 
@@ -234,10 +298,14 @@ export function cloudOnly(files) {
 export async function scan(root = DEFAULT_ROOT) {
   const entries = [];
   const skipped = [];
-  for await (const file of walk(root)) {
-    const parsed = parsePath(root, file);
-    if (parsed) entries.push({ file, ...parsed });
-    else skipped.push(relative(root, file));
+  // The default scan reads both trees; an explicit root reads just that one.
+  const roots = root === DEFAULT_ROOT && existsSync(LABELS_ROOT) ? [DEFAULT_ROOT, LABELS_ROOT] : [root];
+  for (const r of roots) {
+    for await (const file of walk(r)) {
+      const parsed = parsePath(r, file);
+      if (parsed) entries.push({ file, ...parsed });
+      else skipped.push(relOf(file));
+    }
   }
   const dataless = cloudOnly(entries.map((e) => e.file));
   for (const e of entries) e.cloudOnly = dataless.get(e.file);
