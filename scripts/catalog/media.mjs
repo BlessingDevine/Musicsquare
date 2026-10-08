@@ -35,7 +35,7 @@ const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md"]);
 const VIDEOS = new Set([".mp4", ".mov", ".m4v"]);
 
 const norm = (s) => s.replace(/\bft\.?(?=\s)/gi, "feat").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
-const NOISE = /\b(official|music|lyrics?|video|visuali[sz]er|canvas|loop|final|vertical|hd|4k|1080p?)\b|\(.*?\)|\[.*?\]/gi;
+const NOISE = /\b(official|music|lyrics?|video|visuali[sz]er|canvas|loop|final|vertical|clip|hd|4k|1080p?)\b|\(.*?\)|\[.*?\]/gi;
 const stemKey = (file) => norm(basename(file, extname(file)).replace(NOISE, " "));
 const toPosix = (p) => p.split(sep).join("/");
 
@@ -130,8 +130,11 @@ for (const owner of byArtist.keys()) {
     for (const f of readdirSync(vidDir).filter((f) => VIDEOS.has(extname(f).toLowerCase()) && !f.startsWith("."))) {
       const rel = toPosix(join(owner, "VIDEOS", f));
       const song = find(rel, stemKey(f));
-      // "... Vertical.mp4" is a clip for the Clips feed (and the source Robert's Canvas loops are cut from).
-      const kind = /lyric/i.test(f) ? "lyric_video" : /\bvertical\b/i.test(f) ? "clip" : /canvas|loop/i.test(f) ? "canvas" : "music_video";
+      // "<Song> Vertical Clip.mp4" is the song's clip for the Clips feed. "<Song> Vertical.mp4" alone is
+      // the footage its Canvas loop is cut from (canvas.mjs), not something to watch — skipped here.
+      const vertical = /\bvertical\b/i.test(f);
+      if (vertical && !/\bclip\b/i.test(f)) continue;
+      const kind = vertical ? "clip" : /lyric/i.test(f) ? "lyric_video" : /canvas|loop/i.test(f) ? "canvas" : "music_video";
       if (song) videos.push({ song, kind, path: join(vidDir, f), source: rel });
       else unmatched.push(rel);
     }
