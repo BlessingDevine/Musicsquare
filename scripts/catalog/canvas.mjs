@@ -6,7 +6,6 @@
 //   node scripts/catalog/canvas.mjs --todo     JSON list of covers still without one (with CDN cover URL)
 //   node scripts/catalog/canvas.mjs --upload   finish and upload the clips in ~/Sites/canvas/raw/
 //   node scripts/catalog/canvas.mjs --upload --redo <checksum20>   replace a cover's Canvas with a new raw clip
-//   node scripts/catalog/canvas.mjs --webp     make the animated image for Canvases that don't have one yet
 //
 // Clips are named after the cover's checksum (first 20 characters, the same
 // as its key under audio/covers/): ~/Sites/canvas/raw/<checksum20>.mp4. A
@@ -19,26 +18,20 @@
 // the cover) fills the screen; a square one is set on the 9:16 frame over a
 // blurred copy of itself so the title on the cover stays whole. Uploaded to
 // audio/canvas/<sha>.mp4 with a poster image. Nothing in Robert's folders changes.
-//
-// GoSquare plays the Canvas from an animated WebP next to the mp4
-// (<sha>.webp, 540×960, 15 fps, needs `brew install webp`), not from the video:
-// on iPhone a video player reconfigures the audio session when it starts,
-// which silenced the music on the next song. An animated image never touches audio.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const UPLOAD = process.argv.includes("--upload");
 const TODO = process.argv.includes("--todo");
-const WEBP = process.argv.includes("--webp");
 const REDO = process.argv.includes("--redo") ? process.argv[process.argv.indexOf("--redo") + 1] : null;
 const RAW = process.env.CANVAS_DIR ?? join(homedir(), "Sites/canvas/raw");
 const CDN = process.env.NEXT_PUBLIC_AUDIO_BASE_URL;
@@ -63,35 +56,6 @@ const singles = (await all("song_art", "song_id, storage_key, checksum, canvas_k
 const covers = [...albums, ...singles];
 const id = (c) => c.checksum.slice(0, 20);
 const has = (c) => c.canvas_key && c.canvas_checksum === c.checksum && id(c) !== REDO;
-
-/** The animated WebP GoSquare plays: from the finished 720×1280 mp4, 540×960 at 15 fps. */
-function animatedWebp(mp4, name) {
-  const dir = join(tmpdir(), "gosquare-canvas", `${name}-frames`);
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(dir, { recursive: true });
-  execFileSync("ffmpeg", ["-y", "-v", "error", "-i", mp4, "-vf", "fps=15,scale=540:960:flags=lanczos", join(dir, "%04d.png")]);
-  const frames = readdirSync(dir).filter((f) => f.endsWith(".png")).sort().map((f) => join(dir, f));
-  const out = join(tmpdir(), "gosquare-canvas", `${name}.webp`);
-  execFileSync("img2webp", ["-loop", "0", "-lossy", "-q", "60", "-m", "4", "-d", "67", ...frames, "-o", out], { stdio: "ignore" });
-  rmSync(dir, { recursive: true, force: true });
-  return readFileSync(out);
-}
-
-if (WEBP) {
-  const s3 = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
-  mkdirSync(join(tmpdir(), "gosquare-canvas"), { recursive: true });
-  for (const c of covers.filter((c) => c.canvas_key)) {
-    const webpKey = c.canvas_key.replace(/\.mp4$/, ".webp");
-    const exists = await s3.send(new HeadObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: webpKey })).then(() => true, () => false);
-    if (exists) continue;
-    const mp4 = join(tmpdir(), "gosquare-canvas", basename(c.canvas_key));
-    writeFileSync(mp4, Buffer.from(await (await fetch(`${CDN}/${c.canvas_key}`)).arrayBuffer()));
-    const webp = animatedWebp(mp4, basename(c.canvas_key, ".mp4"));
-    await s3.send(new PutObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: webpKey, Body: webp, ContentType: "image/webp", CacheControl: "public, max-age=31536000, immutable" }));
-    console.log(`  ✓ ${c.name} → ${webpKey} (${Math.round(webp.length / 1e5) / 10} MB)`);
-  }
-  process.exit(0);
-}
 
 if (TODO) {
   console.log(JSON.stringify(covers.filter((c) => !has(c)).map((c) => ({ id: id(c), name: c.name, cover: `${CDN}/${c.storage_key}` })), null, 1));
@@ -136,7 +100,6 @@ for (const c of ready) {
   const key = `audio/canvas/${createHash("sha256").update(video).digest("hex").slice(0, 20)}.mp4`;
   await put(key, video, "video/mp4");
   await put(key.replace(/\.mp4$/, ".jpg"), readFileSync(poster), "image/jpeg");
-  await put(key.replace(/\.mp4$/, ".webp"), animatedWebp(out, id(c)), "image/webp");
   const { error } = await db.from(c.table).update({ canvas_key: key, canvas_checksum: c.checksum }).match(c.match);
   if (error) throw new Error(`${c.name}: ${error.message}`);
   console.log(`  ✓ ${c.name} → ${key}`);
