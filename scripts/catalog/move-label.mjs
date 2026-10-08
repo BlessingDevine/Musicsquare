@@ -39,7 +39,7 @@ const ALBUMS = {
 // House collections filed as artists in IMPRINT; in LABELS they live under Compilations/<Name>/
 // (still credited to the collection, as before). Anything on the label's LABELS artist roster stays an artist.
 const COMPILATIONS = new Set(["AFRO SQUARE", "COUNTRY SQUARE", "POP SQUARE", "R&B SQUARE", "SOUL SQUARE", "LOFI SQUARE",
-  "DREAMY POP", "DREAMY POP V1", "KIZOMBA SQUARE", "ZOUK LOVE", "EASY SUNDAY I", "EASY SUNDAY II", "LATIN VIBES"]);
+  "DREAMY POP", "DREAMY POP V1", "KIZOMBA SQUARE", "ZOUK LOVE", "EASY SUNDAY I", "EASY SUNDAY II", "LATIN VIBES", "KINGSTON SQUARE"]);
 const ASSETS = { MUSIC: "Songs", IMAGES: "Photos", VIDEO: "Videos", VIDEOS: "Videos", DOCUMENTS: "Lyrics" };
 const AUDIO = /\.(mp3|wav|m4a)$/i;
 const key = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -95,38 +95,73 @@ for (const e of dirs(SRC)) {
     moves.push({ from: p, to });
   }
 }
-if (artistsDir) {
-  for (const a of dirs(join(SRC, artistsDir)).filter((e) => e.isDirectory())) {
-    const from = join(SRC, artistsDir, a.name);
-    const onRoster = existingLabelsArtists.find((n) => key(n) === key(a.name));
-    const compilation = !onRoster && (COMPILATIONS.has(a.name.toUpperCase()) || existingCompilations.some((n) => key(n) === key(a.name)));
-    const target = RENAMES[a.name] ?? onRoster ?? existingCompilations.find((n) => key(n) === key(a.name)) ?? displayName(a.name);
-    const to = join(DST, compilation ? "Compilations" : "Artists", target);
-    const oldSlug = slugify(displayName(a.name));
-    if (slugify(target) !== oldSlug) artistRenames.push({ from: oldSlug, name: target });
-    const kids = dirs(from);
-    const hasMusic = kids.some((k) => k.name.toUpperCase() === "MUSIC");
-    for (const k of kids) {
-      const kp = join(from, k.name);
-      if (k.isDirectory() && k.name.toUpperCase() === "MUSIC") {
-        for (const m of dirs(kp)) {
-          if (m.isDirectory()) planAlbum(join(kp, m.name), join(to, "Songs"));
-          else moves.push({ from: join(kp, m.name), to: join(to, "Songs", m.name) });
-        }
-      } else if (k.isDirectory() && ASSETS[k.name.toUpperCase()]) {
-        plan(kp, join(to, ASSETS[k.name.toUpperCase()]));
-      } else if (k.isDirectory() && !hasMusic) {
-        planAlbum(kp, join(to, "Songs")); // albums straight in the artist folder (Throne Attic)
-      } else if (k.isDirectory()) {
-        plan(kp, join(to, k.name));
-      } else {
-        moves.push({ from: kp, to: join(to, k.name) });
+/** One artist (or collection) folder with MUSIC/IMAGES/… (or albums straight inside). */
+function planOwner(from, name) {
+  const onRoster = existingLabelsArtists.find((n) => key(n) === key(name));
+  const compilation = !onRoster && (COMPILATIONS.has(name.toUpperCase()) || existingCompilations.some((n) => key(n) === key(name)));
+  const target = RENAMES[name] ?? onRoster ?? existingCompilations.find((n) => key(n) === key(name)) ?? displayName(name);
+  const to = join(DST, compilation ? "Compilations" : "Artists", target);
+  const oldSlug = slugify(displayName(name));
+  if (!compilation && slugify(target) !== oldSlug) artistRenames.push({ from: oldSlug, name: target });
+  const kids = dirs(from);
+  const hasMusic = kids.some((k) => k.name.toUpperCase() === "MUSIC");
+  for (const k of kids) {
+    const kp = join(from, k.name);
+    if (k.isDirectory() && k.name.toUpperCase() === "MUSIC") {
+      // Loose songs that belong to a named album (Neka's "Holy Moly") get that album's folder.
+      const looseTitle = ALBUMS[rel(kp)] ?? ALBUM_TITLES[rel(kp)] ?? null;
+      const looseTo = looseTitle ? join(to, "Songs", fileName(looseTitle)) : join(to, "Songs");
+      if (looseTitle && dirs(kp).some((m) => m.isFile() && AUDIO.test(m.name))) albumMoves.push({ from: rel(kp), to: relNew(looseTo), title: looseTitle });
+      for (const m of dirs(kp)) {
+        if (m.isDirectory()) planAlbum(join(kp, m.name), join(to, "Songs"));
+        else moves.push({ from: join(kp, m.name), to: join(looseTo, m.name) });
       }
+    } else if (k.isDirectory() && ASSETS[k.name.toUpperCase()]) {
+      plan(kp, join(to, ASSETS[k.name.toUpperCase()]));
+    } else if (k.isDirectory() && !hasMusic) {
+      planAlbum(kp, join(to, "Songs")); // albums straight in the artist folder (Throne Attic)
+    } else if (k.isDirectory()) {
+      plan(kp, join(to, k.name));
+    } else {
+      moves.push({ from: kp, to: join(to, k.name) });
     }
   }
 }
-const leftovers = dirs(SRC).filter((e) => e.isDirectory() && e.name !== artistsDir);
-if (leftovers.length) throw new Error(`Not handled yet (compilations?): ${leftovers.map((e) => e.name).join(", ")}`);
+
+/**
+ * The label's own collections (IMPRINT/<Label>/MUSIC/<Collection>/<Vol>/…), credited to the
+ * label: each album becomes Compilations/<Album title>/ — "Dance Square Vol 1".
+ */
+function planLabelMusic(musicDir) {
+  (function walk(dir, names) {
+    const kids = dirs(dir);
+    if (kids.some((k) => k.isFile() && AUDIO.test(k.name))) {
+      const r = rel(dir);
+      const title = ALBUMS[r] ?? ALBUM_TITLES[r] ?? names.map((n) => displayName(n)).join(" ");
+      const to = join(DST, "Compilations", fileName(title));
+      albumMoves.push({ from: r, to: relNew(to), title });
+      for (const k of kids) if (k.isFile()) moves.push({ from: join(dir, k.name), to: join(to, k.name) });
+    }
+    for (const k of kids) if (k.isDirectory()) walk(join(dir, k.name), [...names, k.name]);
+  })(musicDir, []);
+}
+
+const LABEL_ASSETS = { IMAGES: "Artwork", VIDEOS: "Marketing", VIDEO: "Marketing", DOCUMENTS: "Archives" };
+const handled = new Set();
+if (artistsDir) {
+  handled.add(artistsDir);
+  // Loose images in the artists folder (Sol de Oro's "Latin Pop.png") are label art.
+  for (const f of dirs(join(SRC, artistsDir)).filter((e) => e.isFile())) moves.push({ from: join(SRC, artistsDir, f.name), to: join(DST, "Artwork", f.name) });
+  for (const a of dirs(join(SRC, artistsDir)).filter((e) => e.isDirectory())) planOwner(join(SRC, artistsDir, a.name), a.name);
+}
+for (const e of dirs(SRC).filter((e) => e.isDirectory() && !handled.has(e.name))) {
+  const p = join(SRC, e.name);
+  const up = e.name.toUpperCase();
+  if (up === "MUSIC") planLabelMusic(p);
+  else if (LABEL_ASSETS[up]) plan(p, join(DST, LABEL_ASSETS[up]));
+  else if (dirs(p).some((k) => k.isDirectory() && k.name.toUpperCase() === "MUSIC")) planOwner(p, e.name); // Kingston Square
+  else throw new Error(`Not handled yet: ${e.name}`);
+}
 
 // Safety: nothing may land on an existing file, and no two files may share a target.
 const clash = moves.filter((m) => existsSync(m.to));
@@ -163,13 +198,17 @@ if (existsSync(RENAME_LOG)) {
 const stemKey = (p) => key(p.split("/").at(-1).replace(/\.[^.]+$/, "").replace(/^(\d+\s*-\s*)?LANDR\s*-\s*/i, "").replace(/-(Open|Balanced|Warm|Bright)-(High|Medium|Low)$/i, "").replace(/_\d+$/, ""));
 // Folder case may have changed too (DUSK 2 → Dusk 2).
 const folderKey = (p) => p.split("/").slice(0, -1).join("/").toLowerCase();
-const byFolderStem = new Map(songs.map((s) => [`${folderKey(s.source_path)}|${stemKey(s.source_path)}`, s]));
+// The extension is part of the key: a master WAV beside its MP3 must not take the MP3's song.
+const ext = (p) => p.slice(p.lastIndexOf(".")).toLowerCase();
+const byFolderStem = new Map(songs.map((s) => [`${folderKey(s.source_path)}|${stemKey(s.source_path)}${ext(s.source_path)}`, s]));
 const findSong = (fromRel) =>
-  byPath.get(fromRel) ?? byPath.get(renamed.get(fromRel)) ?? byFolderStem.get(`${folderKey(fromRel)}|${stemKey(fromRel)}`);
+  byPath.get(fromRel) ?? byPath.get(renamed.get(fromRel)) ?? byFolderStem.get(`${folderKey(fromRel)}|${stemKey(fromRel)}${ext(fromRel)}`);
 const songUpdates = [];
+const claimed = new Set();
 for (const m of moves) {
   const s = AUDIO.test(m.from) ? findSong(rel(m.from)) : null;
-  if (!s) continue;
+  if (!s || claimed.has(s.song_id)) continue; // one file per song
+  claimed.add(s.song_id);
   const parsed = parsePath(LABELS_ROOT, m.to);
   const patch = { source_path: relNew(m.to) };
   if (parsed && parsed.album !== s.album_title) patch.album_title = parsed.album;
