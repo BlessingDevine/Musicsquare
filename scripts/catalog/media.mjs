@@ -1,5 +1,5 @@
-// Lyrics and videos: reads each artist's DOCUMENTS/ and VIDEOS/ folders in
-// IMPRINT/, matches files to that artist's songs, and loads them into
+// Lyrics and videos: reads each artist's Lyrics/ and Videos/ folders in LABELS/ (DOCUMENTS/ and VIDEOS/ in
+// the old IMPRINT/ layout), matches files to that artist's songs, and loads them into
 // song_lyrics / song_videos (migration 20261007030000_lyrics_videos.sql).
 //
 //   node scripts/catalog/media.mjs            report: what matches which song
@@ -31,7 +31,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const UPLOAD = process.argv.includes("--upload");
 const LINKS = JSON.parse(readFileSync(join(here, "media-links.json"), "utf8"));
-const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md"]);
+const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md", ".pdf"]);
 const VIDEOS = new Set([".mp4", ".mov", ".m4v"]);
 
 const norm = (s) => s.replace(/\bft\.?(?=\s)/gi, "feat").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -62,6 +62,13 @@ for (const s of songs) {
 function readDoc(path) {
   const ext = extname(path).toLowerCase();
   if (ext === ".txt" || ext === ".md") return readFileSync(path, "utf8");
+  // PDFs through macOS's own PDFKit (no extra install).
+  if (ext === ".pdf")
+    return execFileSync(
+      "osascript",
+      ["-l", "JavaScript", "-e", "ObjC.import('PDFKit'); function run(a){ const d = $.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(a[0])); return d.isNil() ? '' : ObjC.unwrap(d.string) }", path],
+      { encoding: "utf8", maxBuffer: 20e6 },
+    );
   return execFileSync("textutil", ["-convert", "txt", "-stdout", path], { encoding: "utf8", maxBuffer: 20e6 });
 }
 
@@ -82,10 +89,20 @@ function songsInDoc(path) {
       .replace(/\n{3,}/g, "\n\n")
       .replace(/^\s+|\s+$/g, "");
   if (!marks.length) return [{ title: null, text: clean(text) }];
-  return marks.map((m, i) => ({
+  const parts = marks.map((m, i) => ({
     title: m[1],
     text: clean(text.slice(m.index + m[0].length, i + 1 < marks.length ? marks[i + 1].index : undefined)),
   }));
+  // A contents list at the top (1. Song, 2. Song …, with section headings between) splits
+  // into near-empty "songs": a real lyric has a few lines. When a title appears twice,
+  // keep its longest text.
+  const best = new Map();
+  for (const p of parts) {
+    if (p.text.split("\n").filter((l) => l.trim()).length < 4) continue;
+    const k = norm(p.title);
+    if (!best.has(k) || best.get(k).text.length < p.text.length) best.set(k, p);
+  }
+  return [...best.values()];
 }
 
 const sha = (path) =>
