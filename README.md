@@ -347,8 +347,21 @@ streaming server.
 
 ### Adding music
 
-Put songs in the catalogue folder (`SQUARE BUSINESS/IMPRINT/<Imprint - Genre>/
-[ARISTS/]<Artist>/MUSIC/[<Album>/]`), then:
+Put songs in the catalogue folder, `SQUARE BUSINESS/LABELS/` (the master tree
+since Oct 2026; the old `IMPRINT/` tree was moved into it label by label with
+`scripts/catalog/move-label.mjs` and is empty):
+
+```
+LABELS/<Label - Genre, Genre>/Artists/<Artist>/Songs/[<Album title>/]<Title>.mp3
+                                              /Photos  /Videos  /Lyrics  /Press Kit  /Branding  /Social Media
+LABELS/<Label>/Compilations/<Collection>/Songs/…     (house collections, credited to the collection)
+LABELS/<Label>/Compilations/<Album>/<Title>.mp3      (the label's own albums, credited to the label)
+LABELS/<Label>/Artwork/Cover.png, Logo.png
+```
+
+Folder and file names are used as written: name them the way they should read.
+Catalogue source paths start with `LABELS/` (relative to `SQUARE BUSINESS/`);
+the older notes below say `IMPRINT/` where they predate the move. Then:
 
 ```bash
 node scripts/catalog/ingest.mjs

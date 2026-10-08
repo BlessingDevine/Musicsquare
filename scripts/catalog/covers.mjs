@@ -224,10 +224,10 @@ async function labelArt(root, sub = "") {
 // LABELS is the master: where both trees have art for a label, LABELS wins.
 const hasLabels = existsSync(LABELS_ROOT);
 const labelMap = new Map();
-for (const l of await labelArt(DEFAULT_ROOT)) labelMap.set(l.slug, l);
+for (const l of existsSync(DEFAULT_ROOT) ? await labelArt(DEFAULT_ROOT) : []) labelMap.set(l.slug, l);
 for (const l of hasLabels ? await labelArt(LABELS_ROOT, "Artwork") : []) if (l.cover || l.logo || !labelMap.has(l.slug)) labelMap.set(l.slug, l);
 const labels = [...labelMap.values()].sort((a, b) => a.slug.localeCompare(b.slug));
-const all = [...(await albums(DEFAULT_ROOT)), ...(hasLabels ? await albums(LABELS_ROOT) : [])];
+const all = [...(existsSync(DEFAULT_ROOT) ? await albums(DEFAULT_ROOT) : []), ...(hasLabels ? await albums(LABELS_ROOT) : [])];
 const ready = all.filter((a) => a.covers.length === 1);
 const missing = all.filter((a) => a.covers.length === 0);
 const unclear = all.filter((a) => a.covers.length > 1);

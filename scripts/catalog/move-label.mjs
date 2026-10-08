@@ -105,6 +105,12 @@ function planOwner(from, name) {
   if (!compilation && slugify(target) !== oldSlug) artistRenames.push({ from: oldSlug, name: target });
   const kids = dirs(from);
   const hasMusic = kids.some((k) => k.name.toUpperCase() === "MUSIC");
+  // No MUSIC folder and songs straight in the folder (Easy Sunday, Zouk Love): they go to Songs/,
+  // or Songs/<album> when the folder has an album title. Their companion files go with them.
+  const looseSongs = !hasMusic && kids.some((k) => k.isFile() && AUDIO.test(k.name));
+  const looseTitle = looseSongs ? (ALBUMS[rel(from)] ?? ALBUM_TITLES[rel(from)] ?? null) : null;
+  const looseTo = looseTitle ? join(to, "Songs", fileName(looseTitle)) : join(to, "Songs");
+  if (looseSongs) albumMoves.push({ from: rel(from), to: relNew(looseTo), title: looseTitle });
   for (const k of kids) {
     const kp = join(from, k.name);
     if (k.isDirectory() && k.name.toUpperCase() === "MUSIC") {
@@ -123,7 +129,7 @@ function planOwner(from, name) {
     } else if (k.isDirectory()) {
       plan(kp, join(to, k.name));
     } else {
-      moves.push({ from: kp, to: join(to, k.name) });
+      moves.push({ from: kp, to: looseSongs ? join(looseTo, k.name) : join(to, k.name) });
     }
   }
 }
@@ -210,6 +216,8 @@ for (const m of moves) {
   if (!s || claimed.has(s.song_id)) continue; // one file per song
   claimed.add(s.song_id);
   const parsed = parsePath(LABELS_ROOT, m.to);
+  const keptTitle = albumMoves.find((a) => a.title && m.to.startsWith(join(BUSINESS, a.to) + "/") && a.to.split("/").at(-1) !== a.title)?.title;
+  if (parsed && keptTitle && m.to.split("/").slice(0, -1).join("/") === join(BUSINESS, albumMoves.find((a) => a.title === keptTitle).to)) parsed.album = keptTitle;
   const patch = { source_path: relNew(m.to) };
   if (parsed && parsed.album !== s.album_title) patch.album_title = parsed.album;
   // Held artists' titles were never imported cleanly; their files now carry the real names.
@@ -228,6 +236,12 @@ if (unmatchedSongs.length) {
   console.log(`  ${unmatchedSongs.length} catalogue songs have no file here (left as they are):`);
   for (const s of unmatchedSongs.slice(0, 10)) console.log(`    ${s.source_path}`);
 }
+const albumChanges = new Map();
+for (const u of songUpdates.filter((u) => u.patch.album_title !== undefined)) {
+  const k = `${u.old.album_title ?? "(none)"}  →  ${u.patch.album_title ?? "(none)"}`;
+  albumChanges.set(k, (albumChanges.get(k) ?? 0) + 1);
+}
+for (const [k, n] of albumChanges) console.log(`  album name  ${k}  (${n} songs)`);
 if (!APPLY) {
   console.log("\nNothing changed. Run with --apply to move.");
   process.exit(0);
@@ -265,7 +279,11 @@ for (const f of ["song-titles.json", "media-links.json"]) {
   writeFileSync(json(f), JSON.stringify(out, null, 2) + "\n");
 }
 const titles = readJson("album-titles.json");
-for (const a of albumMoves) delete titles[a.from];
+for (const a of albumMoves) {
+  delete titles[a.from];
+  // A title a folder name can't hold (11:11 Wish → folder "11.11 Wish") stays in the list, by its new path.
+  if (a.title && a.to.split("/").at(-1) !== a.title) titles[a.to] = a.title;
+}
 writeFileSync(json("album-titles.json"), JSON.stringify(titles, null, 2) + "\n");
 
 // What's left behind in IMPRINT should be empty folders only.

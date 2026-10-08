@@ -258,7 +258,8 @@ function parseLabelsPath(file) {
   let between;
   if (parts[2] === "Artists" || (parts[2] === "Compilations" && parts[4] === "Songs")) {
     if (parts[4] !== "Songs" || parts.length < 6) return null;
-    const name = displayName(parts[3]);
+    // LABELS folder names are written as they should read ("SOS", "AmaNova"): taken as they are.
+    const name = parts[3].trim();
     artist = { name, slug: slugify(name) };
     between = parts.slice(5, -1);
   } else if (parts[2] === "Compilations") {
@@ -266,7 +267,7 @@ function parseLabelsPath(file) {
   } else {
     return null;
   }
-  const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? displayName(between.join(" · ")) : null);
+  const album = ALBUM_TITLES[parts.slice(0, -1).join("/")] ?? (between.length ? between.join(" · ").trim() : null);
   const parsed = parseTitle(parts.at(-1));
   return {
     sourcePath: parts.join("/"),
@@ -299,7 +300,8 @@ export async function scan(root = DEFAULT_ROOT) {
   const entries = [];
   const skipped = [];
   // The default scan reads both trees; an explicit root reads just that one.
-  const roots = root === DEFAULT_ROOT && existsSync(LABELS_ROOT) ? [DEFAULT_ROOT, LABELS_ROOT] : [root];
+  // (IMPRINT/ was emptied in Oct 2026 and may be deleted; LABELS/ is the master.)
+  const roots = (root === DEFAULT_ROOT ? [DEFAULT_ROOT, LABELS_ROOT] : [root]).filter((r) => existsSync(r));
   for (const r of roots) {
     for await (const file of walk(r)) {
       const parsed = parsePath(r, file);

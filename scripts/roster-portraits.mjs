@@ -19,43 +19,44 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const IMPRINT = join(homedir(), "Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS/IMPRINT");
-const V = "VELVET NOIR RECORDS - R&B:SOUL/ARISTS";
-const S = "SUNFLAG AFRICA - AFROBEAT/ARISTS";
-const W = "WAVELIGHT RECORDS - POP/ARISTS";
-const RT = "RIOT TEMPLE - ROCK/ARISTS";
-const RW = "REDWOOD RECORDS - COUNTRY/ARISTS";
+// Photos live in LABELS/<Label>/Artists/<Artist>/Photos (IMPRINT/ was retired in Oct 2026).
+const IMPRINT = join(homedir(), "Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS/LABELS");
+const V = "Velvet Noir Records - R&B, Soul/Artists";
+const S = "Sunflag Africa - Afrobeats/Artists";
+const W = "Wavelight Records - POP/Artists";
+const RT = "Riot Temple - Rock/Artists";
+const RW = "Redwood Records - Country/Artists";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
 const PORTRAITS = [
-  ["fizz", `${S}/FIZZ/IMAGES/Fizz 1.jpg`, 0.5, 0, 1],
+  ["fizz", `${S}/Fizz/Photos/Fizz 1.jpg`, 0.5, 0, 1],
   // New look (Oct 2026, the "Holy Moly" era): the close-up, not the full-length shot.
-  ["neka", `${S}/NEKA/IMAGES/Neka 1.png`, 0.5, 0, 1],
+  ["neka", `${S}/Neka/Photos/Neka 1.png`, 0.5, 0, 1],
   // Robert removed the printed titles from Bantan's and Echo Rae's covers.
-  ["bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.42, 0, 1],
-  ["sanza-benito", `${S}/SANZA BENITO/IMAGES/Benito 1.jpg`, 0.5, 0, 1],
-  ["pala", `${S}/PALA/IMAGES/Pala 1.png`, 0.5, 0, 1],
-  ["nova-liyah", `${W}/NOVA LIYAH/IMAGES/2.png`, 0.5, 0, 1],
-  ["echo-rae", `${W}/ECHO RAE/IMAGES/Echo 1.jpg`, 0.45, 0, 1],
-  ["lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5, 0, 1],
-  ["lea-babi", `${V}/LEA BABI/IMAGES/Lea 1.png`, 0.5, 0, 1],
-  ["lucas-meno", `${V}/LUCAS MENO/IMAGES/02.jpg`, 0.5, 0, 1],
-  ["virgo-dunst", `${V}/VIRGO DUNST/IMAGES/3.jpg`, 0.5, 0, 1],
-  ["j-cruz", `${W}/J CRUZ/IMAGES/2.jpg`, 0.5, 0, 1],
-  ["riven-cole", `${W}/RIVEN COLE/IMAGES/01.jpg`, 0.5, 0, 1],
-  ["noah-rust", `${RT}/NOAH RUST/IMAGES/Noah Rust.png`, 0.5, 0, 1],
-  ["vegah-riot", `${RT}/VEGAH RIOT/IMAGES/02.png`, 0.5, 0, 1],
-  ["saka", `${W}/SAKA/IMAGES/1.jpg`, 0.45, 0.12, 0.85, [`${W}/SAKA/IMAGES/1.jpg`, 0.42, 0.14, 0.64]],
-  ["sadie-rose", `${RW}/SADIE ROSE/IMAGES/Sadie 1.jpg`, 0.42, 0, 1],
+  ["bantan", `${V}/Bantan/Photos/Cover II.jpg`, 0.42, 0, 1],
+  ["sanza-benito", `${S}/Sanza Benito/Photos/Benito 1.jpg`, 0.5, 0, 1],
+  ["pala", `${S}/Pala/Photos/Pala 1.png`, 0.5, 0, 1],
+  ["nova-liyah", `${W}/Nova Liyah/Photos/2.png`, 0.5, 0, 1],
+  ["echo-rae", `${W}/Echo Rae/Photos/Echo 1.jpg`, 0.45, 0, 1],
+  ["lumi-astra", `${W}/Lumi Astra/Photos/2.jpg`, 0.5, 0, 1],
+  ["lea-babi", `${V}/Lea Babi/Photos/Lea 1.png`, 0.5, 0, 1],
+  ["lucas-meno", `${V}/Lucas Meno/Photos/02.jpg`, 0.5, 0, 1],
+  ["virgo-dunst", `${V}/Virgo Dunst/Photos/3.jpg`, 0.5, 0, 1],
+  ["j-cruz", `${W}/J Cruz/Photos/2.jpg`, 0.5, 0, 1],
+  ["riven-cole", `${W}/Riven Cole/Photos/01.jpg`, 0.5, 0, 1],
+  ["noah-rust", `${RT}/Noah Rust/Photos/Noah Rust.png`, 0.5, 0, 1],
+  ["vegah-riot", `${RT}/Vegah Riot/Photos/02.png`, 0.5, 0, 1],
+  ["saka", `${W}/Saka/Photos/1.jpg`, 0.45, 0.12, 0.85, [`${W}/Saka/Photos/1.jpg`, 0.42, 0.14, 0.64]],
+  ["sadie-rose", `${RW}/Sadie Rose/Photos/Sadie 1.jpg`, 0.42, 0, 1],
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
-  ["ash-revenant", `${RT}/ASH REVENANT/IMAGES/1.png`, 0.47, 0, 1, [`${RT}/ASH REVENANT/IMAGES/1.png`, 0.52, 0.03, 0.94]],
-  ["iron-mirage", `${RT}/IRON MIRAGE/IMAGES/Iron Mirage 1.png`, 0.52, 0, 1],
-  ["lunah", `${V}/LUNAH/IMAGES/Lunah 1.jpg`, 0.5, 0.03, 1],
+  ["ash-revenant", `${RT}/Ash Revenant/Photos/1.png`, 0.47, 0, 1, [`${RT}/Ash Revenant/Photos/1.png`, 0.52, 0.03, 0.94]],
+  ["iron-mirage", `${RT}/Iron Mirage/Photos/Iron Mirage 1.png`, 0.52, 0, 1],
+  ["lunah", `${V}/Lunah/Photos/Lunah 1.jpg`, 0.5, 0.03, 1],
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
   // uses the head-and-shoulders close-up, which only fits all three square.
-  ["luv-tonez", `${V}/LUV TONEZ/IMAGES/Luv Tonez.jpeg`, 0.5, 0, 1,
-    [`${V}/LUV TONEZ/IMAGES/Luv Tonez 1.jpg`, 0.5, 0, 1]],
+  ["luv-tonez", `${V}/Luv Tonez/Photos/Luv Tonez.jpeg`, 0.5, 0, 1,
+    [`${V}/Luv Tonez/Photos/Luv Tonez 1.jpg`, 0.5, 0, 1]],
 ];
 
 // ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square
@@ -109,8 +110,8 @@ if (preview > -1) {
   // The home page's channel cards ("What we play") are square too. Each is
   // fronted by an artist from that channel's imprint.
   for (const [name, file, cx] of ONLY ? [] : [
-    ["pop-lumi-astra", `${W}/LUMI ASTRA/IMAGES/2.jpg`, 0.5],
-    ["rnb-bantan", `${V}/BANTAN/IMAGES/Cover II.jpg`, 0.5],
+    ["pop-lumi-astra", `${W}/Lumi Astra/Photos/2.jpg`, 0.5],
+    ["rnb-bantan", `${V}/Bantan/Photos/Cover II.jpg`, 0.5],
   ]) {
     const src = join(IMPRINT, file);
     const m = await sharp(src).metadata();
