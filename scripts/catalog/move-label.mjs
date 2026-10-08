@@ -36,6 +36,10 @@ const ALBUMS = {
   "RIOT TEMPLE - ROCK/ARISTS/KNOX HAVOC/MUSIC/Knox 2": "I'm Fine, This Is Great",
   "RIOT TEMPLE - ROCK/ARISTS/KNOX HAVOC/MUSIC/Knox 3": "Legend By Morning",
 };
+// House collections filed as artists in IMPRINT; in LABELS they live under Compilations/<Name>/
+// (still credited to the collection, as before). Anything on the label's LABELS artist roster stays an artist.
+const COMPILATIONS = new Set(["AFRO SQUARE", "COUNTRY SQUARE", "POP SQUARE", "R&B SQUARE", "SOUL SQUARE", "LOFI SQUARE",
+  "DREAMY POP", "DREAMY POP V1", "KIZOMBA SQUARE", "ZOUK LOVE", "EASY SUNDAY I", "EASY SUNDAY II", "LATIN VIBES"]);
 const ASSETS = { MUSIC: "Songs", IMAGES: "Photos", VIDEO: "Videos", VIDEOS: "Videos", DOCUMENTS: "Lyrics" };
 const AUDIO = /\.(mp3|wav|m4a)$/i;
 const key = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -70,13 +74,15 @@ function plan(from, to) {
 function planAlbum(from, toSongs) {
   const r = rel(from);
   const title = ALBUMS[r] ?? ALBUM_TITLES[r] ?? null;
-  const name = title ? fileName(title) : from.split("/").at(-1);
+  // No known title: the folder name as the site shows it (capitals tidied, typos fixed: REGGATON II → Reggaeton II).
+  const name = fileName(title ?? displayName(from.split("/").at(-1)));
   const to = join(toSongs, name);
   albumMoves.push({ from: r, to: relNew(to), title });
   plan(from, to);
 }
 
 const existingLabelsArtists = dirs(join(DST, "Artists")).filter((e) => e.isDirectory()).map((e) => e.name);
+const existingCompilations = existsSync(join(DST, "Compilations")) ? dirs(join(DST, "Compilations")).filter((e) => e.isDirectory()).map((e) => e.name) : [];
 const artistsDir = dirs(SRC).find((e) => /^ART?ISTS$/i.test(e.name))?.name;
 
 for (const e of dirs(SRC)) {
@@ -92,8 +98,10 @@ for (const e of dirs(SRC)) {
 if (artistsDir) {
   for (const a of dirs(join(SRC, artistsDir)).filter((e) => e.isDirectory())) {
     const from = join(SRC, artistsDir, a.name);
-    const target = RENAMES[a.name] ?? existingLabelsArtists.find((n) => key(n) === key(a.name)) ?? displayName(a.name);
-    const to = join(DST, "Artists", target);
+    const onRoster = existingLabelsArtists.find((n) => key(n) === key(a.name));
+    const compilation = !onRoster && (COMPILATIONS.has(a.name.toUpperCase()) || existingCompilations.some((n) => key(n) === key(a.name)));
+    const target = RENAMES[a.name] ?? onRoster ?? existingCompilations.find((n) => key(n) === key(a.name)) ?? displayName(a.name);
+    const to = join(DST, compilation ? "Compilations" : "Artists", target);
     const oldSlug = slugify(displayName(a.name));
     if (slugify(target) !== oldSlug) artistRenames.push({ from: oldSlug, name: target });
     const kids = dirs(from);
