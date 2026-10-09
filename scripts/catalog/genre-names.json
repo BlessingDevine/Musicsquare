@@ -1,3 +1,17 @@
 {
-  "sembora": { "genre": "Afro-Caribbean", "subgenres": ["Zouk", "Kompa", "Kizomba"], "channel": "Afro-Caribbean" }
+  "sembora": {
+    "genre": "Afro-Caribbean",
+    "subgenres": [
+      "Zouk",
+      "Kompa",
+      "Kizomba"
+    ],
+    "channel": "Afro-Caribbean"
+  },
+  "piano-nation": {
+    "genre": "Amapiano",
+    "subgenres": [
+      "Afro House"
+    ]
+  }
 }
