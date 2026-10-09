@@ -89,6 +89,9 @@ async function upsertImprints(entries) {
   return new Map(data.map((r) => [r.slug, r]));
 }
 
+// An artist's genre is their label's first genre unless set here (Litha Flow: Amapiano on Piano Nation).
+const ARTIST_GENRES = JSON.parse(readFileSync(new URL("./artist-genres.json", import.meta.url), "utf8"));
+
 async function upsertArtists(entries, imprints) {
   const rows = new Map();
   for (const { artist, imprint } of entries) {
@@ -97,7 +100,7 @@ async function upsertArtists(entries, imprints) {
       artist_name: artist.name,
       slug: artist.slug,
       primary_imprint_id: imprints.get(imprint.slug).imprint_id,
-      genre: imprint.genres[0] ?? null,
+      genre: ARTIST_GENRES[artist.slug] ?? imprint.genres[0] ?? null,
     });
   }
   if (!rows.size) return new Map();
