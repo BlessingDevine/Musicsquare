@@ -14,7 +14,8 @@
 //   - Another document in Press Kit/ with an "Artist at a Glance" list
 //     ("Genre: …" lines, "|" separating two on one line) gives the facts panel.
 //   - A PDF in Press Kit/ (not the Bio) is offered as "Download press kit".
-// Each photo is stored at 480, 960 and 1600 px wide under
+// Each photo is stored at 480, 960 and 1600 px wide (hero photos also 2400 and
+// 2880, at higher quality, since they fill the screen) under
 // audio/photos/<slug>/<hash>-<width>.jpg (named by content, so replacing a file
 // makes a new one and never shows a stale copy), and the list at
 // audio/photos/<slug>/index.json. Unchanged photos aren't uploaded again.
@@ -39,6 +40,8 @@ if (!slugs.length) throw new Error("Name an artist slug, e.g. node scripts/catal
 const IMAGES = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const DOCS = new Set([".txt", ".md", ".rtf", ".docx", ".doc", ".pdf"]);
 const WIDTHS = [480, 960, 1600];
+// Hero photos fill the screen, so sharp (retina) desktops need up to ~2880 px.
+const HERO_WIDTHS = [480, 960, 1600, 2400, 2880];
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
 const s3 = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
 const Bucket = process.env.AUDIO_BUCKET;
@@ -124,14 +127,15 @@ for (const slug of slugs) {
     const img = sharp(buf).rotate();
     const { width, height } = await img.metadata().then((m) => (m.orientation >= 5 ? { width: m.height, height: m.width } : m));
     const role = /^hero/i.test(f) ? "hero" : "gallery";
-    const widths = WIDTHS.filter((w) => w < width).concat(width < WIDTHS.at(-1) ? [width] : []).slice(0, 3);
+    const sizes = role === "hero" ? HERO_WIDTHS : WIDTHS;
+    const widths = sizes.filter((w) => w < width).concat(width < sizes.at(-1) ? [width] : []);
     const shape = width / height > 1.2 ? "wide" : width / height < 0.85 ? "tall" : "square";
     photos.push({ id, file: f, role, shape, width, height, widths });
     const done = await exists(`audio/photos/${slug}/${id}-${widths.at(-1)}.jpg`);
     console.log(`  ${done ? "✓" : UPLOAD ? "↑" : "new"}  ${role.padEnd(7)} ${shape.padEnd(6)} ${width}×${height}  ${f}  (${(statSync(src).size / 1e6).toFixed(1)} MB)`);
     if (done || !UPLOAD) continue;
     for (const w of widths) {
-      const out = await sharp(buf).rotate().resize({ width: w }).flatten({ background: "#000" }).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+      const out = await sharp(buf).rotate().resize({ width: w }).flatten({ background: "#000" }).jpeg({ quality: role === "hero" ? 88 : 80, mozjpeg: true }).toBuffer();
       await put(`audio/photos/${slug}/${id}-${w}.jpg`, out, "image/jpeg");
     }
   }
