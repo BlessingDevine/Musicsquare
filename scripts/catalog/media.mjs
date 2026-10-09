@@ -75,6 +75,7 @@ function readDoc(path) {
 /** Split a document into { title, text } songs (one, unless it has SONG n: headers). */
 function songsInDoc(path) {
   const text = readDoc(path).replace(/\r/g, "");
+  if (/ORIGINAL LYRICS SONG \d+ OF \d+/.test(text)) return songbook(text);
   // Song headers seen in Robert's sheets: SONG 7: "DÉJÀ VU" · 1. The Undisputed
   // Algorithm · Title 1: Snow Day Signal. A sheet needs at least two to be split.
   const header = /^\s*(?:SONG|TITLE|TRACK)?\s*\d{1,3}\s*[:.)\-–]\s*["“”']?([^\n]{2,80}?)["“”']?\s*$/gim;
@@ -103,6 +104,38 @@ function songsInDoc(path) {
     if (!best.has(k) || best.get(k).text.length < p.text.length) best.set(k, p);
   }
   return [...best.values()];
+}
+
+/**
+ * The designed songbook PDFs (Amapiano songbooks, Oct 2026): every page has a
+ * "… ORIGINAL LYRICS SONG 41 OF 60" header and a "… SONGBOOK / SESOTHO 03"
+ * footer; a song opens with "41 Nna Ke Sharp!", its English title in capitals,
+ * then STYLE and PRODUCTION PROMPT notes before the first [Section]. Only the
+ * lyrics are kept: the production notes are studio instructions, not lyrics.
+ */
+function songbook(text) {
+  const lines = text
+    .split("\n")
+    .filter((l) => !/ORIGINAL LYRICS SONG \d+ OF \d+\s*$/.test(l) && !/SONGBOOK \/ .*\d+\s*$/.test(l));
+  const songs = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*\d{1,3}\s+(\S.{1,80}?)\s*$/);
+    const english = lines[i + 1]?.trim() ?? "";
+    if (m && english && english === english.toUpperCase() && /[A-Z]/.test(english)) {
+      songs.push({ title: m[1], lines: [] });
+      i++;
+      continue;
+    }
+    songs.at(-1)?.lines.push(lines[i]);
+  }
+  return songs
+    .map(({ title, lines: body }) => {
+      const first = body.findIndex((l) => /^\s*\[/.test(l));
+      const t = (first < 0 ? body : body.slice(first)).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return { title, text: t };
+    })
+    // A featured song in the intro pages ("Inoba Uphi? Where Could You Be?") isn't a lyric.
+    .filter((p) => p.text.split("\n").filter((l) => l.trim()).length >= 4);
 }
 
 const sha = (path) =>

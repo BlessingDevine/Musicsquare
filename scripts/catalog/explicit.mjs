@@ -66,7 +66,7 @@ const songs = await all(() =>
 
 if (args.includes("--suggest")) {
   // A starting point for review, not a verdict: Robert decides what gets tagged.
-  const WORDS = /\b(fuck\w*|shit\w*|bitch\w*|ass(hole)?s?|dick|pussy|nigg\w+|motherfuck\w*|cunt|hoe?s?|damn)\b/gi;
+  const WORDS = /\b(fuck\w*|shit\w*|bitch\w*|ass(hole)?s?|dick|pussy|nigg\w+|motherfuck\w*|cunt|hoes?|damn)\b/gi;
   const lyrics = await all(() => db.from("song_lyrics").select("song_id, lyrics").order("song_id"));
   const byId = new Map(songs.map((s) => [s.song_id, s]));
   const hits = lyrics
