@@ -21,7 +21,7 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -290,9 +290,13 @@ const songKey = (e) => `${e.artist?.slug ?? e.imprint.slug}|${e.album ?? ""}|${e
 // released song on the imprint, minus ALT takes, keeping one recording per
 // artist + title (the catalogue holds 146 titles recorded twice).
 
+// Labels whose music is in the catalogue (site, app) but not on air yet.
+const NO_CHANNEL = new Set(JSON.parse(readFileSync(new URL("./channels-off.json", import.meta.url), "utf8")));
+
 async function buildChannels(imprints) {
   const built = [];
   for (const imprint of imprints.values()) {
+    if (NO_CHANNEL.has(imprint.slug)) continue;
     const songs = await selectAll(() => db.from("songs")
       .select("song_id, title, primary_artist_id, source_path")
       .eq("primary_imprint_id", imprint.imprint_id)
