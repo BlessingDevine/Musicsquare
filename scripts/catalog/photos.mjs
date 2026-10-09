@@ -11,6 +11,9 @@
 //   - Every other photo is the gallery, in filename order ("Lea 01", "Lea 02"…).
 //   - A "Bio" document in Press Kit/ (.txt, .md, .rtf, .docx or .pdf) is the
 //     About text.
+//   - Another document in Press Kit/ with an "Artist at a Glance" list
+//     ("Genre: …" lines, "|" separating two on one line) gives the facts panel.
+//   - A PDF in Press Kit/ (not the Bio) is offered as "Download press kit".
 // Each photo is stored at 480, 960 and 1600 px wide under
 // audio/photos/<slug>/<hash>-<width>.jpg (named by content, so replacing a file
 // makes a new one and never shows a stale copy), and the list at
@@ -69,8 +72,22 @@ const exists = (Key) =>
     () => true,
     () => false,
   );
-const put = (Key, Body, ContentType, CacheControl = "public, max-age=31536000, immutable") =>
-  s3.send(new PutObjectCommand({ Bucket, Key, Body, ContentType, CacheControl }));
+const put = (Key, Body, ContentType, CacheControl = "public, max-age=31536000, immutable", ContentDisposition) =>
+  s3.send(new PutObjectCommand({ Bucket, Key, Body, ContentType, CacheControl, ContentDisposition }));
+
+/** "Artist at a Glance" lines from a press kit's text, as [label, value] pairs. */
+function glanceOf(text) {
+  const lines = text.replace(/\r/g, "").split("\n").map((l) => l.trim());
+  const at = lines.findIndex((l) => /^artist at a glance$/i.test(l));
+  if (at < 0) return [];
+  const out = [];
+  for (const line of lines.slice(at + 1)) {
+    const parts = line.split(/\s+\|\s+/).map((p) => p.match(/^([^:]{2,30}):\s*(.+)$/));
+    if (!parts.every(Boolean)) break;
+    for (const m of parts) out.push([m[1].trim(), m[2].trim()]);
+  }
+  return out;
+}
 
 for (const slug of slugs) {
   const { data: artist, error } = await db.from("artists").select("artist_name, slug").eq("slug", slug).maybeSingle();
@@ -86,8 +103,18 @@ for (const slug of slugs) {
   const press = join(folder, "Press Kit");
   const bioFile = existsSync(press) ? readdirSync(press).find((f) => /^bio/i.test(f) && DOCS.has(extname(f).toLowerCase())) : null;
   const bio = bioFile ? readDoc(join(press, bioFile)).replace(/\r/g, "").trim() : null;
+  const pressDocs = existsSync(press)
+    ? readdirSync(press).filter((f) => !/^bio/i.test(f) && !f.startsWith(".") && DOCS.has(extname(f).toLowerCase()))
+    : [];
+  // The editable document first: a designed PDF's text doesn't keep "Label: value" lines.
+  let glance = [];
+  for (const f of [...pressDocs].sort((a, b) => (extname(a) === ".pdf") - (extname(b) === ".pdf"))) {
+    glance = glanceOf(readDoc(join(press, f)));
+    if (glance.length) break;
+  }
+  const kitFile = pressDocs.filter((f) => extname(f).toLowerCase() === ".pdf").sort((a, b) => statSync(join(press, b)).mtimeMs - statSync(join(press, a)).mtimeMs)[0];
 
-  console.log(`${artist.artist_name}: ${files.length} photos${bio ? `, bio from "${bioFile}"` : ", no bio"}`);
+  console.log(`${artist.artist_name}: ${files.length} photos${bio ? `, bio from "${bioFile}"` : ", no bio"}, ${glance.length} facts, ${kitFile ? `press kit "${kitFile}"` : "no press kit PDF"}`);
   const photos = [];
   for (const f of files) {
     const src = join(photoDir, f);
@@ -110,7 +137,15 @@ for (const slug of slugs) {
   }
 
   if (!UPLOAD) continue;
-  const index = { artist: artist.artist_name, updated: new Date().toISOString(), bio, photos: photos.map(({ file, ...p }) => ({ ...p, name: basename(file, extname(file)) })) };
+  let presskit = null;
+  if (kitFile) {
+    const buf = readFileSync(join(press, kitFile));
+    const key = `audio/photos/${slug}/presskit-${createHash("sha256").update(buf).digest("hex").slice(0, 16)}.pdf`;
+    const name = `${artist.artist_name} - Press Kit.pdf`;
+    if (!(await exists(key))) await put(key, buf, "application/pdf", undefined, `attachment; filename="${name}"`);
+    presskit = { key, name, bytes: buf.length };
+  }
+  const index = { artist: artist.artist_name, updated: new Date().toISOString(), bio, glance, presskit, photos: photos.map(({ file, ...p }) => ({ ...p, name: basename(file, extname(file)) })) };
   await put(`audio/photos/${slug}/index.json`, JSON.stringify(index), "application/json", "public, max-age=300");
   console.log(`  index.json written (${photos.length} photos). squaredrum.com shows it within 5 minutes.`);
 }

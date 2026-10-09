@@ -375,7 +375,9 @@ node scripts/catalog/photos.mjs lea-babi --upload
 
 Photos whose name starts with "hero" open the page (a tall one on phones, a
 wide one on computers); the rest are the gallery, in filename order. A "Bio"
-document in Press Kit/ becomes the About text. Re-run it after changing the
+document in Press Kit/ becomes the About text, an "Artist at a Glance" list in
+another Press Kit document the facts panel, and a PDF there the "Download press
+kit" button. Re-run it after changing the
 folder; unchanged photos aren't uploaded again.
 
 Uploads run as the IAM user `musicsquare-uploader` (AWS CLI profile of the
