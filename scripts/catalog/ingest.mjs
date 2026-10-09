@@ -437,4 +437,9 @@ if (!CHANNELS_ONLY) {
 }
 
 console.log("\nchannels:");
-await buildChannels(imprints);
+// Channels are rebuilt from every label, even after --only: given just the one
+// label, the rebuild would archive every other channel (it did, 2026-10-09).
+const allImprints = ONLY
+  ? new Map((await selectAll(() => db.from("imprints").select("*").order("slug"))).map((i) => [i.slug, i]))
+  : imprints;
+await buildChannels(allImprints);
