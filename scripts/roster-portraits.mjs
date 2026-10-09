@@ -26,6 +26,7 @@ const S = "Sunflag Africa - Afrobeats/Artists";
 const W = "Wavelight Records - POP/Artists";
 const RT = "Riot Temple - Rock/Artists";
 const RW = "Redwood Records - Country/Artists";
+const PN = "Piano Nation - Afro-house, Amapiano/Artists";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
@@ -55,6 +56,8 @@ const PORTRAITS = [
   ["lunah", `${V}/Lunah/Photos/Lunah 1.jpg`, 0.5, 0.03, 1],
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
   // uses the head-and-shoulders close-up, which only fits all three square.
+  // Both of them, full length; the square drop crop keeps their faces.
+  ["litha-flow", `${PN}/Litha Flow/Photos/hero 1.png`, 0.5, 0, 1],
   ["luv-tonez", `${V}/Luv Tonez/Photos/Luv Tonez.jpeg`, 0.5, 0, 1,
     [`${V}/Luv Tonez/Photos/Luv Tonez 1.jpg`, 0.5, 0, 1]],
 ];
