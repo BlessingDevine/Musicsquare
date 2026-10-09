@@ -367,6 +367,17 @@ the older notes below say `IMPRINT/` where they predate the move. Then:
 node scripts/catalog/ingest.mjs
 ```
 
+Artist photos for squaredrum.com's artist pages (one artist at a time):
+
+```bash
+node scripts/catalog/photos.mjs lea-babi --upload
+```
+
+Photos whose name starts with "hero" open the page (a tall one on phones, a
+wide one on computers); the rest are the gallery, in filename order. A "Bio"
+document in Press Kit/ becomes the About text. Re-run it after changing the
+folder; unchanged photos aren't uploaded again.
+
 Uploads run as the IAM user `musicsquare-uploader` (AWS CLI profile of the
 same name, selected by `AWS_PROFILE` in `.env.local`), made by
 `scripts/aws/setup-uploader.sh`. It can add files under `audio/` and
