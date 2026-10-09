@@ -8,7 +8,8 @@
 // In the Photos folder:
 //   - Files whose name starts with "hero" open the page. A portrait one (taller
 //     than wide) is used on phones, a wide one on computers.
-//   - Every other photo is the gallery, in filename order ("Lea 01", "Lea 02"…).
+//   - Every other photo is the gallery, in filename order ("Lea 01", "Lea 02"…),
+//     except covers, Canvas art and collages (by name).
 //   - A "Bio" document in Press Kit/ (.txt, .md, .rtf, .docx or .pdf) is the
 //     About text.
 //   - Another document in Press Kit/ with an "Artist at a Glance" list
@@ -40,6 +41,8 @@ if (!slugs.length) throw new Error("Name an artist slug, e.g. node scripts/catal
 const IMAGES = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const DOCS = new Set([".txt", ".md", ".rtf", ".docx", ".doc", ".pdf"]);
 const WIDTHS = [480, 960, 1600];
+// Album covers, Canvas artwork and collages live in Photos/ too but aren't gallery photos.
+const NOT_PHOTOS = /cover|canvas|collage/i;
 // Hero photos fill the screen, so sharp (retina) desktops need up to ~2880 px.
 const HERO_WIDTHS = [480, 960, 1600, 2400, 2880];
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
@@ -100,7 +103,9 @@ for (const slug of slugs) {
   if (!folder) throw new Error(`No LABELS folder for ${artist.artist_name}`);
   const photoDir = join(folder, "Photos");
   const files = existsSync(photoDir)
-    ? readdirSync(photoDir).filter((f) => IMAGES.has(extname(f).toLowerCase()) && !f.startsWith(".")).sort(byName)
+    ? readdirSync(photoDir)
+        .filter((f) => IMAGES.has(extname(f).toLowerCase()) && !f.startsWith(".") && !NOT_PHOTOS.test(f))
+        .sort(byName)
     : [];
 
   const press = join(folder, "Press Kit");
