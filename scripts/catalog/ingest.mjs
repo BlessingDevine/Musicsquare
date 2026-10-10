@@ -296,13 +296,21 @@ const songKey = (e) => `${e.artist?.slug ?? e.imprint.slug}|${e.album ?? ""}|${e
 // Labels whose music is in the catalogue (site, app) but not on air yet.
 const NO_CHANNEL = new Set(JSON.parse(readFileSync(new URL("./channels-off.json", import.meta.url), "utf8")));
 
+// Artists who also play on another label's channel (artist slug → that label's slug):
+// Litha Flow (Piano Nation, no channel yet) is on the Afrobeats channel.
+const GUESTS = JSON.parse(readFileSync(new URL("./channel-guests.json", import.meta.url), "utf8"));
+
 async function buildChannels(imprints) {
   const built = [];
+  const guestArtists = Object.keys(GUESTS).length
+    ? await selectAll(() => db.from("artists").select("artist_id, slug").in("slug", Object.keys(GUESTS)).order("slug"))
+    : [];
   for (const imprint of imprints.values()) {
     if (NO_CHANNEL.has(imprint.slug)) continue;
+    const guests = guestArtists.filter((a) => GUESTS[a.slug] === imprint.slug).map((a) => a.artist_id);
     const songs = await selectAll(() => db.from("songs")
       .select("song_id, title, primary_artist_id, source_path")
-      .eq("primary_imprint_id", imprint.imprint_id)
+      .or([`primary_imprint_id.eq.${imprint.imprint_id}`, ...(guests.length ? [`primary_artist_id.in.(${guests.join(",")})`] : [])].join(","))
       .in("release_status", ["released_radio", "released_app", "released_public"])
       .neq("version_type", "alt")
       .not("duration_ms", "is", null)
