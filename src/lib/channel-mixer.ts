@@ -205,19 +205,27 @@ export class ChannelMixer {
 
   // --- playing -------------------------------------------------------------------
 
+  /** Resolves once the element is at the right place in the song (after any correcting seek). */
+  private placed: Promise<void> = Promise.resolve();
+
   private loadInto(air: Playing) {
     const el = this.el!;
     const offset = Math.max(0, (Date.now() - air.startedAt) / 1000);
     el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(2)}` : air.track.src;
-    el.addEventListener(
-      "loadedmetadata",
-      () => {
-        // Correct for however long loading took.
-        const target = (Date.now() - air.startedAt) / 1000;
-        if (Math.abs(el.currentTime - target) > 1.5) el.currentTime = target;
-      },
-      { once: true },
-    );
+    this.placed = new Promise<void>((resolve) => {
+      el.addEventListener(
+        "loadedmetadata",
+        () => {
+          // Correct for however long loading took.
+          const target = (Date.now() - air.startedAt) / 1000;
+          if (Math.abs(el.currentTime - target) <= 1.5) return resolve();
+          el.addEventListener("seeked", () => resolve(), { once: true });
+          el.currentTime = target;
+        },
+        { once: true },
+      );
+      setTimeout(resolve, 4000); // never hold the sound back for long
+    });
   }
 
   /** Start playing `air` now. Call from the tap itself. */
@@ -341,6 +349,14 @@ export class ChannelMixer {
     const enough = head && head.buffer.duration >= startsAt + current.fadeMs / 1000 + 3;
     const wait = Math.max(0, current.endsAt - Date.now());
 
+    if (!this.volumeWorks) {
+      // iPhone: no overlap and no fade, so let the song finish (its cue out,
+      // fadeMs after the change) and join the next one fadeMs in — the 3s an
+      // overlap would share comes off the next song's intro, not this song's
+      // last line.
+      return this.segue(next, Math.max(0, current.endsAt + current.fadeMs - Date.now()));
+    }
+
     if (head && enough && this.ctx) {
       this.stopTimers();
       this.timers.push(setTimeout(() => this.overlap(current, next, head.buffer), wait));
@@ -411,8 +427,11 @@ export class ChannelMixer {
       this.hooks.onStatus("playing");
       const bridge = this.bridge;
       if (!fromBridge || !bridge || !this.ctx) {
-        el.muted = false;
-        this.fadeEl(0, 1, 200);
+        // Unmute only once in place, so a correcting jump is never heard.
+        void this.placed.then(() => {
+          el.muted = false;
+          this.fadeEl(0, 1, 200);
+        });
         return;
       }
       const fadeOutHead = (ms: number) => {
