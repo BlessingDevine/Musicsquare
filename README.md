@@ -380,6 +380,18 @@ another Press Kit document the facts panel, and a PDF there the "Download press
 kit" button. Re-run it after changing the
 folder; unchanged photos aren't uploaded again.
 
+**Master sound (Oct 2026).** Every streaming file goes through Robert's master
+chain — The Smoother (his saved settings) → −14 LUFS → −1 dB ceiling — run by
+`~/Sites/master-eq`. After importing new music:
+
+```bash
+node scripts/catalog/master.mjs --list
+cd ~/Sites/master-eq && .venv/bin/python process.py --batch todo.json out --workers 6
+node scripts/catalog/master.mjs --upload
+```
+
+`--undo` switches every song back to its original file (kept on the CDN).
+
 Uploads run as the IAM user `musicsquare-uploader` (AWS CLI profile of the
 same name, selected by `AWS_PROFILE` in `.env.local`), made by
 `scripts/aws/setup-uploader.sh`. It can add files under `audio/` and
