@@ -89,6 +89,20 @@ export class ChannelMixer {
   private ctx: AudioContext | null = null;
   /** iOS: element volume is read-only. */
   private volumeWorks = true;
+  /**
+   * Phones (iPhone, Android) play every song whole, from its start to its
+   * end, back to back. A phone can only prepare one song at a time, so
+   * joining the next song at the channel's exact second meant loading it and
+   * then jumping into it — heard as the next song's start being cut or
+   * tripping (Robert, Oct 2026). Instead the phone runs `lag` ms behind the
+   * channel clock, a few seconds more per song; tuning in again resets it.
+   */
+  private phone = false;
+  private lag = 0;
+  /** The channel clock as this listener hears it. */
+  private clock() {
+    return Date.now() - this.lag;
+  }
   private timers: ReturnType<typeof setTimeout>[] = [];
   private air: Playing | null = null;
   private running = false;
@@ -110,8 +124,13 @@ export class ChannelMixer {
 
   get mode() {
     if (!this.el) return "not started";
-    const kind = this.ctx ? "crossfade (Web Audio heads)" : this.volumeWorks ? "segue (no CORS)" : "segue (iPhone)";
+    const kind = this.ctx ? "crossfade (Web Audio heads)" : this.phone ? `whole songs (phone, ${Math.round(this.lag / 1000)}s behind)` : "segue (no CORS)";
     return this.volumeWorks ? kind : `${kind}, iOS volume`;
+  }
+
+  /** How far behind the channel clock this listener is (phones), for progress bars. */
+  get lagMs() {
+    return this.lag;
   }
 
   get contextState() {
@@ -132,6 +151,7 @@ export class ChannelMixer {
     el.preload = "auto";
     el.volume = 0.5;
     this.volumeWorks = Math.abs(el.volume - 0.5) < 0.01;
+    this.phone = !this.volumeWorks || window.matchMedia?.("(pointer: coarse)").matches === true;
     el.volume = 1;
 
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -139,7 +159,7 @@ export class ChannelMixer {
     // overlap's hand-over from the head to the element failed more often than
     // it worked there (gaps, cuts, jumps — Robert, Oct 2026). A clean change
     // on the clock beats a crossfade that breaks.
-    if (corsOk === true && Ctx && this.volumeWorks) {
+    if (corsOk === true && Ctx && !this.phone) {
       this.ctx = new Ctx();
       this.ctx.resume().catch(() => {});
       // iOS unlocks Web Audio on the first sound started inside a tap.
@@ -210,14 +230,14 @@ export class ChannelMixer {
 
   private loadInto(air: Playing) {
     const el = this.el!;
-    const offset = Math.max(0, (Date.now() - air.startedAt) / 1000);
+    const offset = Math.max(0, (this.clock() - air.startedAt) / 1000);
     el.src = offset > 1 ? `${air.track.src}#t=${offset.toFixed(2)}` : air.track.src;
     this.placed = new Promise<void>((resolve) => {
       el.addEventListener(
         "loadedmetadata",
         () => {
           // Correct for however long loading took.
-          const target = (Date.now() - air.startedAt) / 1000;
+          const target = (this.clock() - air.startedAt) / 1000;
           if (Math.abs(el.currentTime - target) <= 1.5) return resolve();
           el.addEventListener("seeked", () => resolve(), { once: true });
           el.currentTime = target;
@@ -230,6 +250,7 @@ export class ChannelMixer {
 
   /** Start playing `air` now. Call from the tap itself. */
   start(air: Playing) {
+    this.lag = 0; // tuning in joins the channel live
     this.stopTimers();
     this.stopBridge();
     this.running = true;
@@ -279,8 +300,9 @@ export class ChannelMixer {
   private nowPlaying(air: Playing) {
     this.air = air;
     this.head = null;
-    this.hooks.onTrack(air);
-    const until = air.endsAt - Date.now();
+    // Report times as this listener hears them, so progress bars match the sound.
+    this.hooks.onTrack(this.lag ? { ...air, startedAt: air.startedAt + this.lag, endsAt: air.endsAt + this.lag } : air);
+    const until = air.endsAt - this.clock();
     this.timers.push(setTimeout(
       () => (this.ctx ? this.prefetchHead(air) : this.warmNext(air)),
       Math.max(0, until - PREFETCH_MS),
@@ -347,15 +369,11 @@ export class ChannelMixer {
     const head = this.head?.src === next.track.src ? this.head : null;
     const startsAt = Math.max(next.track.cueInMs / 1000, (current.endsAt - next.startedAt) / 1000);
     const enough = head && head.buffer.duration >= startsAt + current.fadeMs / 1000 + 3;
-    const wait = Math.max(0, current.endsAt - Date.now());
+    const wait = Math.max(0, current.endsAt - this.clock());
 
-    if (!this.volumeWorks) {
-      // iPhone: no overlap and no fade, so let the song finish (its cue out,
-      // fadeMs after the change) and join the next one fadeMs in — the 3s an
-      // overlap would share comes off the next song's intro, not this song's
-      // last line.
-      return this.segue(next, Math.max(0, current.endsAt + current.fadeMs - Date.now()));
-    }
+    // Phones: let the song finish (its cue out, fadeMs after the change); the
+    // next starts from its own beginning (see `phone`).
+    if (this.phone) return this.segue(next, Math.max(0, current.endsAt + current.fadeMs - this.clock()));
 
     if (head && enough && this.ctx) {
       this.stopTimers();
@@ -372,7 +390,7 @@ export class ChannelMixer {
     const ctx = this.ctx!;
     const fadeMs = current.fadeMs;
     // Where the next song should be right now, by the clock.
-    const offset = Math.max(next.track.cueInMs / 1000, (Date.now() - next.startedAt) / 1000);
+    const offset = Math.max(next.track.cueInMs / 1000, (this.clock() - next.startedAt) / 1000);
     const from = Math.min(offset, Math.max(0, buffer.duration - 0.05));
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -400,6 +418,9 @@ export class ChannelMixer {
     this.lastMix = { mode: "segue", at: Date.now(), reason: this.lastMix?.reason };
     this.stopTimers();
     this.timers.push(setTimeout(() => {
+      // Phones start the next song at its beginning: fall back to whatever
+      // the clock needs for that to be "now".
+      if (this.phone) this.lag = Math.max(0, Date.now() - (next.startedAt + next.track.cueInMs));
       this.nowPlaying(next);
       this.switchElement(next, false);
     }, wait));
