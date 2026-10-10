@@ -18,7 +18,8 @@
  * change the head fades in while the element's song fades out; then the
  * element, muted, jumps to the next song, lines itself up with the head, is
  * unmuted, and the head fades away. Fetching the head needs CORS on the
- * files (probeAudioCors), so without it, or if a head fails, the mixer
+ * files (probeAudioCors), so without it, on iPhone (where the hand-over
+ * proved unreliable), or if a head fails, the mixer
  * segues: the song fades out over its last CROSSFADE_MS and the next starts
  * on the clock, already downloaded so it starts at once. Never silence.
  *
@@ -109,7 +110,7 @@ export class ChannelMixer {
 
   get mode() {
     if (!this.el) return "not started";
-    const kind = this.ctx ? "crossfade (Web Audio heads)" : "segue (no CORS)";
+    const kind = this.ctx ? "crossfade (Web Audio heads)" : this.volumeWorks ? "segue (no CORS)" : "segue (iPhone)";
     return this.volumeWorks ? kind : `${kind}, iOS volume`;
   }
 
@@ -134,7 +135,11 @@ export class ChannelMixer {
     el.volume = 1;
 
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (corsOk === true && Ctx) {
+    // iPhone (element volume is read-only) segues instead of overlapping: the
+    // overlap's hand-over from the head to the element failed more often than
+    // it worked there (gaps, cuts, jumps — Robert, Oct 2026). A clean change
+    // on the clock beats a crossfade that breaks.
+    if (corsOk === true && Ctx && this.volumeWorks) {
       this.ctx = new Ctx();
       this.ctx.resume().catch(() => {});
       // iOS unlocks Web Audio on the first sound started inside a tap.
