@@ -55,8 +55,8 @@ export function Logo({
         <path d={BRACKET_MIDDLE} className={styles.middle} />
         <path d={BRACKET_OUTER} className={styles.outer} />
       </g>
-      <path d={MUSICSQUARE} className={styles.name} />
-      <path d={RADIO} className={styles.gold} />
+      <path d={MUSICSQUARE} className={`${styles.name} ${styles.word}`} />
+      <path d={RADIO} className={`${styles.gold} ${styles.word}`} />
     </svg>
   );
 }

@@ -31,6 +31,23 @@
   fill: currentColor;
 }
 
+/* The wordmark set bolder (Robert, Oct 2026): the kit's letters are traced
+   outlines, so the weight comes from a same-colour stroke around them —
+   2.5 units, the kit's "C · bold". */
+.word {
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  transition: fill 0.5s var(--ease-out), stroke 0.5s var(--ease-out);
+}
+
+.name.word {
+  stroke: currentColor;
+}
+
+.gold.word {
+  stroke: var(--logo-gold);
+}
+
 .middle {
   opacity: var(--logo-middle);
 }
