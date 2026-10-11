@@ -431,7 +431,11 @@ export class ChannelMixer {
     const el = this.el;
     if (!el || !this.running) return;
     this.switching = true;
-    el.pause();
+    // Phones: never pause between songs. Once the page goes silent, iOS only
+    // lets sound start again from a tap, so the next song's play() was refused
+    // ("play" then "pause" at once — Robert's ?debug, Oct 2026). Pointing the
+    // still-playing element at the next file keeps the audio session alive.
+    if (!this.phone) el.pause();
     // Silent until it is in place. Desktop: a near-zero volume — muting, or
     // volume exactly 0, lets Chrome park its audio output, and restarting it
     // stalls the element ~150ms right at the hand-over. iOS ignores volume,
