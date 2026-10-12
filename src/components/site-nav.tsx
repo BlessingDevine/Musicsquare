@@ -27,9 +27,11 @@ export function SiteNav() {
     // so the big titles can't show through it. Once that dark section has
     // scrolled up behind the bar, it docks white over the light content.
     // Every page opens with an .on-ink section, so "docked" is measured from
-    // its real bottom edge rather than a guessed scroll distance.
+    // its real bottom edge rather than a guessed scroll distance — the last of
+    // the dark sections that open the page, when several run on (Channels).
     const onScroll = () => {
-      const dark = document.querySelector("main > .on-ink:first-child");
+      let dark = document.querySelector("main > .on-ink:first-child");
+      while (dark?.nextElementSibling?.classList.contains("on-ink")) dark = dark.nextElementSibling;
       const barHeight = barRef.current?.offsetHeight ?? 80;
       const darkBottom = dark
         ? dark.getBoundingClientRect().bottom

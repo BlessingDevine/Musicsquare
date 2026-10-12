@@ -85,8 +85,34 @@ export function ChannelCard({
   const elapsed = air ? Math.max(0, (now ?? 0) - air.startedAt) : 0;
   const progress = air ? elapsed / air.track.durationMs : 0;
 
+  // Artwork: the album cover of the song on air (blurred behind the card too),
+  // and the label's own art as a small badge.
+  const cover = channel.cover ?? channel.art;
+
   return (
-    <article className={`${styles.card} ${tuned ? styles.tuned : ""}`}>
+    <article className={`${styles.card} ${tuned ? styles.tuned : ""} ${air ? styles.live : ""}`}>
+      {cover && <span className={styles.backdrop} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
+
+      <div className={styles.artWrap}>
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element -- CDN covers, already sized
+          <img className={styles.art} src={cover} alt="" loading="lazy" />
+        ) : (
+          <span className={`${styles.art} ${styles.artBlank}`} aria-hidden="true" />
+        )}
+        {channel.art && channel.art !== cover && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className={styles.badge} src={channel.art.replace("-600.jpg", "-300.jpg")} alt="" loading="lazy" />
+        )}
+        <span className={styles.eq} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+      </div>
+
       <p className={`mono ${styles.meta}`}>
         <span>{channel.imprint}</span>
         <span>{channel.tracks} songs</span>
@@ -107,19 +133,25 @@ export function ChannelCard({
         <span className={styles.bar} aria-hidden="true">
           <i style={{ transform: `scaleX(${Math.min(1, Math.max(0, progress))})` }} />
         </span>
-        <p className={styles.title}>{playing?.track.title ?? " "}</p>
-        <p className={`mono ${styles.artist}`}>{playing?.track.artist ?? " "}</p>
+        <p className={styles.title}>{playing?.track.title ?? " "}</p>
+        <p className={`mono ${styles.artist}`}>{playing?.track.artist ?? " "}</p>
       </div>
 
       {!compact && channel.next && (
         <p className={`mono ${styles.next}`}>
-          Next <span>{channel.next.title}</span> · {channel.next.artist}
+          {channel.nextCover && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={channel.nextCover.replace("-600.jpg", "-300.jpg")} alt="" loading="lazy" />
+          )}
+          <span className={styles.nextText}>
+            Next <span>{channel.next.title}</span> · {channel.next.artist}
+          </span>
         </p>
       )}
 
       <button
         type="button"
-        className={`btn ${tuned ? "" : "btn-ghost"} ${styles.btn}`}
+        className={`btn ${tuned ? "btn-ghost" : ""} ${styles.btn}`}
         onClick={() => playChannel(channel.slug, channel.name, channel.now)}
         aria-pressed={tuned}
       >

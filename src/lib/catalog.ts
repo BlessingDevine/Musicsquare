@@ -20,6 +20,10 @@ export type Channel = {
   rotation: Rotation;
   /** Length of one full pass through the rotation. */
   totalMs: number;
+  /** The label's artwork for this channel (imprint_art), if uploaded. */
+  art: string | null;
+  /** Album cover per song code (song_covers), for the cards' artwork. */
+  covers: Record<string, string>;
 };
 
 const TTL_MS = 5 * 60_000;
@@ -40,7 +44,7 @@ type StationRow = {
   station_name: string;
   description: string | null;
   epoch: string;
-  imprints: { imprint_name: string } | null;
+  imprints: { imprint_name: string; slug: string } | null;
 };
 
 type TrackRow = {
@@ -63,7 +67,7 @@ async function load(): Promise<Channel[]> {
 
   const { data: stations, error } = await db
     .from("radio_stations")
-    .select("slug, station_name, description, epoch, imprints(imprint_name)")
+    .select("slug, station_name, description, epoch, imprints(imprint_name, slug)")
     .order("sort_order")
     .returns<StationRow[]>();
   if (error) throw new Error(`radio_stations: ${error.message}`);
@@ -81,6 +85,22 @@ async function load(): Promise<Channel[]> {
     rows.push(...data);
     if (data.length < PAGE) break;
   }
+
+  // Artwork: album covers by song code, and each label's own art. Optional —
+  // the cards fall back to type alone if either lookup fails.
+  const coverRows: { song_code: string; cover_key: string }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: ce } = await db.from("song_covers").select("song_code, cover_key").order("song_code").range(from, from + PAGE - 1);
+    if (ce || !data) break;
+    coverRows.push(...data);
+    if (data.length < PAGE) break;
+  }
+  const coverByCode = new Map(coverRows.map((c) => [c.song_code, `${audioBase}/${c.cover_key.replace(/\.jpg$/, "-600.jpg")}`]));
+  const { data: artRows } = await db.from("imprint_art").select("slug, cover_key, logo_key");
+  const artBySlug = new Map((artRows ?? []).map((a: { slug: string; cover_key: string | null; logo_key: string | null }) => {
+    const key = a.cover_key ?? a.logo_key;
+    return [a.slug, key ? `${audioBase}/${key.replace(/\.jpg$/, "-600.jpg")}` : null];
+  }));
 
   const bySlug = new Map<string, ChannelTrack[]>();
   for (const r of rows) {
@@ -109,6 +129,8 @@ async function load(): Promise<Channel[]> {
         description: s.description,
         rotation: { slug: s.slug, epoch: Date.parse(s.epoch), tracks },
         totalMs: rotationMs({ slug: s.slug, epoch: 0, tracks }),
+        art: (s.imprints?.slug && artBySlug.get(s.imprints.slug)) || null,
+        covers: Object.fromEntries(tracks.flatMap((t) => (coverByCode.has(t.code) ? [[t.code, coverByCode.get(t.code)!]] : []))),
       };
     })
     .filter((c) => c.rotation.tracks.length > 0);

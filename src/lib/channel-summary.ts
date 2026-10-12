@@ -13,6 +13,10 @@ export type ChannelSummary = {
    */
   now: { track: ChannelTrack; startedAt: number; endsAt: number; fadeMs: number } | null;
   next: ChannelTrack | null;
+  /** Artwork: the label's art, and the covers of the songs on now and next. */
+  art: string | null;
+  cover: string | null;
+  nextCover: string | null;
 };
 
 /** What every channel is playing at `at`. */
@@ -27,6 +31,9 @@ export function summarise(channels: Channel[], at: number): ChannelSummary[] {
       totalMs: c.totalMs,
       now: air && { track: air.track, startedAt: air.startedAt, endsAt: air.endsAt, fadeMs: air.fadeMs },
       next: air?.next ?? null,
+      art: c.art,
+      cover: (air && c.covers[air.track.code]) || null,
+      nextCover: (air?.next && c.covers[air.next.code]) || null,
     };
   });
 }

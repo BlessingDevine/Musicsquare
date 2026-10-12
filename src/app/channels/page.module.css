@@ -68,14 +68,19 @@
   line-height: 1;
 }
 
+.stage {
+  background: var(--color-ink);
+  padding-block: 0 clamp(3.5rem, 7vw, 6rem);
+}
+
 .list {
-  padding-block: clamp(3rem, 6vw, 5rem) clamp(4rem, 9vw, 8rem);
+  padding-block: 1px clamp(4rem, 9vw, 8rem);
   background: var(--color-paper);
 }
 
 .empty {
   max-width: 46ch;
-  color: var(--color-ash);
+  color: var(--color-ash-dark);
   margin: 0;
 }
 

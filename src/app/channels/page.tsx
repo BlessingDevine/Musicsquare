@@ -60,15 +60,21 @@ export default async function ChannelsPage() {
         </div>
       </header>
 
+      {/* The channels, on the same night stage as the header. */}
+      <section className={`on-ink ${styles.stage}`} aria-label="Live channels">
+        <div className="wrap">
+          {summaries.length ? (
+            <LiveChannels initial={summaries} />
+          ) : (
+            <p className={styles.empty}>
+              The channels are being tuned. In the meantime, the main station is on
+              the air.
+            </p>
+          )}
+        </div>
+      </section>
+
       <div className={`wrap ${styles.list}`}>
-        {summaries.length ? (
-          <LiveChannels initial={summaries} />
-        ) : (
-          <p className={styles.empty}>
-            The channels are being tuned. In the meantime, the main station is on
-            the air.
-          </p>
-        )}
 
         {/* The main signal is a separate, programmed stream; say so plainly
             rather than leave it implied. */}
