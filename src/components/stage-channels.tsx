@@ -35,21 +35,37 @@ export function StageChannels({
   const [index, setIndex] = useState(0);
   const strip = useRef<HTMLDivElement>(null);
 
-  // Keep the small cover of the channel in front lined up in the strip below it.
-  useEffect(() => {
+  // Where the arrows, a strip cover or Tune in are taking the track, so the strip
+  // can head straight there instead of chasing each card the track passes.
+  const heading = useRef<number | null>(null);
+
+  // Line the small cover of channel i up in the middle of the strip, under the card in front.
+  const centreChip = (i: number) => {
     const row = strip.current;
-    const chip = row?.children[index] as HTMLElement | undefined;
+    const chip = row?.children[i] as HTMLElement | undefined;
     if (!row || !chip) return;
     const r = row.getBoundingClientRect();
     const c = chip.getBoundingClientRect();
-    row.scrollBy({ left: c.left + c.width / 2 - (r.left + r.width / 2), behavior: "smooth" });
+    row.scrollTo({ left: row.scrollLeft + c.left + c.width / 2 - (r.left + r.width / 2), behavior: "smooth" });
+  };
+
+  // After a swipe, keep the strip following the card in front.
+  useEffect(() => {
+    if (heading.current !== null) {
+      if (index === heading.current) heading.current = null;
+      return;
+    }
+    centreChip(index);
   }, [index]);
 
   const go = (i: number) => {
     const list = track.current;
-    const target = list?.children[Math.max(0, Math.min(channels.length - 1, i))] as HTMLElement | undefined;
+    const to = Math.max(0, Math.min(channels.length - 1, i));
+    const target = list?.children[to] as HTMLElement | undefined;
     if (!list || !target) return;
     list.scrollTo({ left: target.offsetLeft - list.offsetLeft - (list.clientWidth - target.clientWidth) / 2, behavior: "smooth" });
+    heading.current = to === index ? null : to;
+    centreChip(to);
   };
 
   // Which panel is centred, so the strip and arrows follow a swipe.
