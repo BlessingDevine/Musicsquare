@@ -134,7 +134,12 @@ async function fromImages(dir) {
   }
   const folder = basename(dir);
   // Loose songs (straight in MUSIC/, or in the artist folder itself) count as album 1.
-  const album = folder === "MUSIC" || folder === "Songs" || where.loose ? { base: "", n: 1 } : splitNumber(folder);
+  let album = folder === "MUSIC" || folder === "Songs" || where.loose ? { base: "", n: 1 } : splitNumber(folder);
+  // An artist's only album (LABELS Songs/<Album>/) is album 1, so Photos/Cover.png is its cover.
+  if (album.n === null && basename(dirname(dir)) === "Songs") {
+    const albums = (await readdir(dirname(dir), { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith("."));
+    if (albums.length === 1) album = { base: album.base, n: 1 };
+  }
   const names = [album.base, norm(where.collection)].filter((c) => c.length >= 3 && !["vol", "album", "music"].includes(c));
   const matches = [];
   for (const f of files) {
@@ -155,7 +160,15 @@ async function fromImages(dir) {
       // unreadable: not a candidate
     }
   }
-  matches.sort((a, b) => Number(!/\.jpe?g$/i.test(a)) - Number(!/\.jpe?g$/i.test(b)) || a.length - b.length || a.localeCompare(b));
+  // A file actually called "Cover" beats one named after the artist ("Sadie 1.jpg" is a portrait).
+  const isCover = (f) => ["cover", "maincover", "albumcover"].includes(splitNumber(f.slice(0, -extname(f).length)).base);
+  matches.sort(
+    (a, b) =>
+      Number(!isCover(a)) - Number(!isCover(b)) ||
+      Number(!/\.jpe?g$/i.test(a)) - Number(!/\.jpe?g$/i.test(b)) ||
+      a.length - b.length ||
+      a.localeCompare(b),
+  );
   return matches.length ? { dir: where.imagesDir, file: matches[0] } : null;
 }
 
