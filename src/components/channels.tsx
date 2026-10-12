@@ -31,7 +31,7 @@ export function Channels({ initial }: { initial: ChannelSummary[] }) {
             All {channels.length} channels &rarr;
           </Link>
         </Reveal>
-        <StageChannels initial={initial} only={FEATURED} />
+        <StageChannels initial={initial} only={FEATURED} grid />
       </div>
     </section>
   );

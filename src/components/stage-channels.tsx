@@ -16,7 +16,16 @@ const mmss = (ms: number) => {
  * of the song on air filling it; swipe (or use the arrows) to the next
  * station, or jump with the strip of covers underneath.
  */
-export function StageChannels({ initial, only }: { initial: ChannelSummary[]; only?: string[] }) {
+export function StageChannels({
+  initial,
+  only,
+  grid = false,
+}: {
+  initial: ChannelSummary[];
+  only?: string[];
+  /** All the cards at once, two to a row, with no arrows or strip (the home page). */
+  grid?: boolean;
+}) {
   const live = useChannelSummaries(initial);
   const now = live.now;
   // The home page shows a few channels; the Channels page shows them all.
@@ -60,22 +69,24 @@ export function StageChannels({ initial, only }: { initial: ChannelSummary[]; on
   };
 
   return (
-    <div className={styles.stage}>
-      <div className={styles.controls}>
-        <p className={`mono ${styles.count}`}>
-          <span>{String(index + 1).padStart(2, "0")}</span> / {String(channels.length).padStart(2, "0")}
-        </p>
-        <div className={styles.arrows}>
-          <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Previous channel">
-            ←
-          </button>
-          <button type="button" onClick={() => go(index + 1)} disabled={index === channels.length - 1} aria-label="Next channel">
-            →
-          </button>
+    <div className={`${styles.stage} ${grid ? styles.grid : ""}`}>
+      {!grid && (
+        <div className={styles.controls}>
+          <p className={`mono ${styles.count}`}>
+            <span>{String(index + 1).padStart(2, "0")}</span> / {String(channels.length).padStart(2, "0")}
+          </p>
+          <div className={styles.arrows}>
+            <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Previous channel">
+              ←
+            </button>
+            <button type="button" onClick={() => go(index + 1)} disabled={index === channels.length - 1} aria-label="Next channel">
+              →
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <ol className={styles.track} ref={track} onScroll={onScroll}>
+      <ol className={styles.track} ref={track} onScroll={grid ? undefined : onScroll}>
         {channels.map((c, i) => {
           const air = airOf(c);
           const tuned = isOnChannel(c.slug);
@@ -125,27 +136,29 @@ export function StageChannels({ initial, only }: { initial: ChannelSummary[]; on
         })}
       </ol>
 
-      <div className={styles.strip} role="tablist" aria-label="Channels">
-        {channels.map((c, i) => (
-          <button
-            key={c.slug}
-            type="button"
-            role="tab"
-            aria-selected={i === index}
-            className={`${styles.chip} ${i === index ? styles.chipOn : ""} ${isOnChannel(c.slug) ? styles.chipTuned : ""}`}
-            onClick={() => go(i)}
-            title={c.name}
-          >
-            {c.cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.cover.replace("-600.jpg", "-300.jpg")} alt="" loading="lazy" />
-            ) : (
-              <span />
-            )}
-            <span className={`mono ${styles.chipName}`}>{c.name}</span>
-          </button>
-        ))}
-      </div>
+      {!grid && (
+        <div className={styles.strip} role="tablist" aria-label="Channels">
+          {channels.map((c, i) => (
+            <button
+              key={c.slug}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              className={`${styles.chip} ${i === index ? styles.chipOn : ""} ${isOnChannel(c.slug) ? styles.chipTuned : ""}`}
+              onClick={() => go(i)}
+              title={c.name}
+            >
+              {c.cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={c.cover.replace("-600.jpg", "-300.jpg")} alt="" loading="lazy" />
+              ) : (
+                <span />
+              )}
+              <span className={`mono ${styles.chipName}`}>{c.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

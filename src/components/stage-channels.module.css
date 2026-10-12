@@ -292,7 +292,28 @@
   color: var(--color-paper);
 }
 
+/* Grid mode (home page): every card at once, two to a row. */
+.grid .track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.grid .panel {
+  opacity: 1;
+  transform: none;
+}
+
+.grid .name {
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
+}
+
 @media (max-width: 620px) {
+  .grid .track {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .arrows {
     display: none;
   }
