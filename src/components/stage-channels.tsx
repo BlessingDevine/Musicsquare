@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChannelSummary } from "@/lib/channel-summary";
 import { useChannelSummaries } from "./live-channels";
 import { usePlayer } from "./player-provider";
@@ -33,6 +33,17 @@ export function StageChannels({
   const { playChannel, isOnChannel, source, status } = usePlayer();
   const track = useRef<HTMLOListElement>(null);
   const [index, setIndex] = useState(0);
+  const strip = useRef<HTMLDivElement>(null);
+
+  // Keep the small cover of the channel in front lined up in the strip below it.
+  useEffect(() => {
+    const row = strip.current;
+    const chip = row?.children[index] as HTMLElement | undefined;
+    if (!row || !chip) return;
+    const r = row.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    row.scrollBy({ left: c.left + c.width / 2 - (r.left + r.width / 2), behavior: "smooth" });
+  }, [index]);
 
   const go = (i: number) => {
     const list = track.current;
@@ -139,7 +150,7 @@ export function StageChannels({
       </ol>
 
       {!grid && (
-        <div className={styles.strip} role="tablist" aria-label="Channels">
+        <div className={styles.strip} ref={strip} role="tablist" aria-label="Channels">
           {channels.map((c, i) => (
             <button
               key={c.slug}
