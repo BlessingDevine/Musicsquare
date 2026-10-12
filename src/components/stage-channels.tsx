@@ -35,8 +35,14 @@ export function StageChannels({
   const [index, setIndex] = useState(0);
   const strip = useRef<HTMLDivElement>(null);
 
-  // Where the arrows, a strip cover or Tune in are taking the track, so the strip
-  // can head straight there instead of chasing each card the track passes.
+  // The strip keeps the playing channel's small cover in the middle, so it's
+  // always there to tap back to while you browse; with nothing playing, it
+  // follows the card in front.
+  const playing = channels.findIndex((c) => isOnChannel(c.slug));
+  const chipAt = playing >= 0 ? playing : index;
+
+  // Where the strip has been sent ahead of time (arrows, a strip cover, Tune in),
+  // so it heads straight there instead of chasing each card the track passes.
   const heading = useRef<number | null>(null);
 
   // Line the small cover of channel i up in the middle of the strip, under the card in front.
@@ -49,23 +55,23 @@ export function StageChannels({
     row.scrollTo({ left: row.scrollLeft + c.left + c.width / 2 - (r.left + r.width / 2), behavior: "smooth" });
   };
 
-  // After a swipe, keep the strip following the card in front.
   useEffect(() => {
     if (heading.current !== null) {
-      if (index === heading.current) heading.current = null;
+      if (chipAt === heading.current) heading.current = null;
       return;
     }
-    centreChip(index);
-  }, [index]);
+    centreChip(chipAt);
+  }, [chipAt]);
 
-  const go = (i: number) => {
+  const go = (i: number, chipTo?: number) => {
     const list = track.current;
     const to = Math.max(0, Math.min(channels.length - 1, i));
     const target = list?.children[to] as HTMLElement | undefined;
     if (!list || !target) return;
     list.scrollTo({ left: target.offsetLeft - list.offsetLeft - (list.clientWidth - target.clientWidth) / 2, behavior: "smooth" });
-    heading.current = to === index ? null : to;
-    centreChip(to);
+    const chip = chipTo ?? (playing >= 0 ? playing : to);
+    heading.current = chip === chipAt ? null : chip;
+    centreChip(chip);
   };
 
   // Which panel is centred, so the strip and arrows follow a swipe.
@@ -153,7 +159,7 @@ export function StageChannels({
                     onClick={() => {
                       playChannel(c.slug, c.name, c.now);
                       // Bring the card you've just tuned in to into the middle.
-                      if (!grid && !tuned) go(i);
+                      if (!grid && !tuned) go(i, i);
                     }}
                     aria-pressed={tuned}
                   >

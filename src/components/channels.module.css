@@ -24,8 +24,10 @@
   margin: 0;
 }
 
+/* Under the cards, on the right — where a thumb is on a phone. */
 .more {
-  display: inline-block;
+  display: table;
+  margin-left: auto;
   margin-top: clamp(1.8rem, 4vw, 2.6rem);
   color: var(--color-gold);
   border-bottom: 1px solid currentColor;
