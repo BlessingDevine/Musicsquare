@@ -99,7 +99,9 @@ export function StageChannels({
               <div className={styles.content}>
                 <p className={`mono ${styles.kicker}`}>
                   <span className="pip" aria-hidden="true" />
-                  {tuned ? (status === "loading" ? "Tuning in" : "You're listening") : "On air"} · {c.imprint}
+                  <span className={styles.kickText}>
+                    {tuned ? (status === "loading" ? "Tuning in" : "You're listening") : "On air"} · {c.imprint}
+                  </span>
                   <span className={`${styles.eq} ${air ? styles.eqLive : ""}`} aria-hidden="true">
                     <i />
                     <i />
