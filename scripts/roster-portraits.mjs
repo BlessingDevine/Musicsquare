@@ -50,6 +50,9 @@ const PORTRAITS = [
   ["vegah-riot", `${RT}/Vegah Riot/Photos/02.png`, 0.5, 0, 1],
   ["saka", `${W}/Saka/Photos/1.jpg`, 0.45, 0.12, 0.85, [`${W}/Saka/Photos/1.jpg`, 0.42, 0.14, 0.64]],
   ["sadie-colton", `${RW}/Sadie Colton/Photos/Sadie 1.jpg`, 0.42, 0, 1],
+  // Six-piece band: the 4:5 studio shot keeps everyone in frame.
+  ["cedar-line", `${RW}/Cedar Line/Photos/5.png`, 0.5, 0, 1],
+  ["deejay-zethu", `${PN}/Deejay Zethu/Photos/11.png`, 0.5, 0, 1],
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
   ["ash-revenant", `${RT}/Ash Revenant/Photos/1.png`, 0.47, 0, 1, [`${RT}/Ash Revenant/Photos/1.png`, 0.52, 0.03, 0.94]],
   ["iron-mirage", `${RT}/Iron Mirage/Photos/Iron Mirage 1.png`, 0.52, 0, 1],
