@@ -317,6 +317,16 @@
   transform: none;
 }
 
+/* Home cards stay black and white until you tune in; then the colour comes up. */
+.grid .bg {
+  filter: grayscale(1) contrast(1.04);
+  transition: filter 0.9s var(--ease-out), background-image 0.8s var(--ease-out);
+}
+
+.grid .tuned .bg {
+  filter: none;
+}
+
 .grid .name {
   font-size: clamp(2.2rem, 4vw, 3.8rem);
 }
