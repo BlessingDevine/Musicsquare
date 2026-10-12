@@ -133,6 +133,8 @@ export const ROSTER: Artist[] = [
   { slug: "sadie-colton", name: "Sadie Colton", lane: "Country", portrait: "/roster/sadie-colton.jpg", square: "/roster/sadie-colton-square.jpg" },
   { slug: "cedar-line", name: "Cedar Line", lane: "Country", portrait: "/roster/cedar-line.jpg", square: "/roster/cedar-line-square.jpg" },
   { slug: "deejay-zethu", name: "Deejay Zethu", lane: "Amapiano", portrait: "/roster/deejay-zethu.jpg", square: "/roster/deejay-zethu-square.jpg" },
+  { slug: "elkana", name: "Elkana", lane: "Trap", portrait: "/roster/elkana.jpg", square: "/roster/elkana-square.jpg" },
+  { slug: "lune-skylar", name: "Lune Skylar", lane: "Pop", portrait: "/roster/lune-skylar.jpg", square: "/roster/lune-skylar-square.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg", square: "/roster/riven-cole-square.jpg" },
   { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka.jpg", square: "/roster/neka-square.jpg" },
