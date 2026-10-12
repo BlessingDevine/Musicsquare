@@ -130,7 +130,7 @@ export type Artist = {
 export const ROSTER: Artist[] = [
   { slug: "luv-tonez", name: "Luv Tonez", lane: "R&B / Soul", portrait: "/roster/luv-tonez.jpg", square: "/roster/luv-tonez-square.jpg" },
   { slug: "saka", name: "Saka", lane: "Pop / K-Pop", portrait: "/roster/saka.jpg", square: "/roster/saka-square.jpg" },
-  { slug: "sadie-rose", name: "Sadie Rose", lane: "Country", portrait: "/roster/sadie-rose.jpg", square: "/roster/sadie-rose-square.jpg" },
+  { slug: "sadie-colton", name: "Sadie Colton", lane: "Country", portrait: "/roster/sadie-colton.jpg", square: "/roster/sadie-colton-square.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg", square: "/roster/riven-cole-square.jpg" },
   { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
   { slug: "neka", name: "Neka", lane: "Afro Soul", portrait: "/roster/neka.jpg", square: "/roster/neka-square.jpg" },

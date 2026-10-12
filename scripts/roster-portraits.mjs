@@ -49,7 +49,7 @@ const PORTRAITS = [
   ["noah-rust", `${RT}/Noah Rust/Photos/Noah Rust.png`, 0.5, 0, 1],
   ["vegah-riot", `${RT}/Vegah Riot/Photos/02.png`, 0.5, 0, 1],
   ["saka", `${W}/Saka/Photos/1.jpg`, 0.45, 0.12, 0.85, [`${W}/Saka/Photos/1.jpg`, 0.42, 0.14, 0.64]],
-  ["sadie-rose", `${RW}/Sadie Rose/Photos/Sadie 1.jpg`, 0.42, 0, 1],
+  ["sadie-colton", `${RW}/Sadie Colton/Photos/Sadie 1.jpg`, 0.42, 0, 1],
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
   ["ash-revenant", `${RT}/Ash Revenant/Photos/1.png`, 0.47, 0, 1, [`${RT}/Ash Revenant/Photos/1.png`, 0.52, 0.03, 0.94]],
   ["iron-mirage", `${RT}/Iron Mirage/Photos/Iron Mirage 1.png`, 0.52, 0, 1],
