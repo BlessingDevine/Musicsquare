@@ -1,0 +1,291 @@
+/* Design C — the stage: one channel at a time, its song's cover filling a big
+   panel; swipe or step between stations. Same night stage and gold rules. */
+
+.stage {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-ash-dark);
+}
+
+.count {
+  margin: 0;
+}
+
+.count span {
+  color: var(--color-gold);
+}
+
+.arrows {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.arrows button {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--rule-dark);
+  background: transparent;
+  color: var(--color-paper);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.3s var(--ease-out), color 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+}
+
+.arrows button:hover:not(:disabled) {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.arrows button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* The panels: a horizontal track that snaps one channel to the centre. */
+.track {
+  list-style: none;
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 0 var(--gutter);
+  display: flex;
+  gap: clamp(0.8rem, 1.6vw, 1.4rem);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--gutter);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.panel {
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 min(78vw, 64rem);
+  min-height: min(72vh, 40rem);
+  border-radius: 20px;
+  overflow: hidden;
+  scroll-snap-align: center;
+  background: var(--color-ink-2);
+  color: var(--color-paper);
+  border: 1px solid var(--rule-dark);
+  display: flex;
+  align-items: flex-end;
+  opacity: 0.55;
+  transform: scale(0.97);
+  transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out), border-color 0.5s var(--ease-out);
+}
+
+.current {
+  opacity: 1;
+  transform: none;
+}
+
+.tuned {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px var(--color-gold), 0 30px 80px -30px rgba(212, 162, 76, 0.6);
+}
+
+/* The song's cover fills the panel, slowly drifting; darkened where the words sit. */
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center 30%;
+  transform: scale(1.04);
+  transition: background-image 0.8s var(--ease-out);
+}
+
+.current .bg {
+  animation: drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: scale(1.04) translate(0, 0);
+  }
+  to {
+    transform: scale(1.1) translate(-1.5%, -1%);
+  }
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to top, rgba(10, 10, 11, 0.95) 8%, rgba(10, 10, 11, 0.6) 42%, rgba(10, 10, 11, 0.05) 75%),
+    linear-gradient(to right, rgba(10, 10, 11, 0.6), transparent 60%);
+}
+
+.content {
+  width: 100%;
+  padding: clamp(1.4rem, 4vw, 3.2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  color: var(--color-gold);
+}
+
+.name {
+  font-size: clamp(3.2rem, 9vw, 8.5rem);
+  line-height: 0.88;
+  margin: 0.4rem 0 0.6rem;
+  overflow-wrap: anywhere;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.5);
+}
+
+.song {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  font-weight: 500;
+}
+
+.artist {
+  margin: 0;
+  color: var(--color-ash-dark);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.7rem;
+  max-width: 34rem;
+}
+
+.bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--color-gold);
+  transform-origin: left;
+  transition: transform 1s linear;
+}
+
+.time {
+  color: var(--color-ash-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 1rem;
+}
+
+.songs {
+  color: var(--color-ash-dark);
+}
+
+/* The strip: every channel as a small cover, to jump straight there. */
+.strip {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.3rem;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  width: 5.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-ash-dark);
+  cursor: pointer;
+  text-align: left;
+}
+
+.chip img,
+.chip > span:first-child {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: var(--color-ink-3);
+  opacity: 0.6;
+  transition: opacity 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+}
+
+.chip:hover img {
+  opacity: 0.9;
+}
+
+.chipOn img,
+.chipOn > span:first-child {
+  opacity: 1;
+  border-color: var(--color-gold);
+}
+
+.chipTuned .chipName::before {
+  content: "♪ ";
+  color: var(--color-gold);
+}
+
+.chipName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.6rem;
+}
+
+.chipOn .chipName {
+  color: var(--color-paper);
+}
+
+@media (max-width: 620px) {
+  .panel {
+    flex-basis: 86vw;
+    min-height: 70vh;
+  }
+  .arrows {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .bar i {
+    transition: none;
+  }
+  .current .bg {
+    animation: none;
+  }
+}

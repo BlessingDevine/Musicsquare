@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ListenButton } from "@/components/listen-button";
-import { LiveChannels } from "@/components/live-channels";
+import { StageChannels } from "@/components/stage-channels";
 import { getChannelSummaries } from "@/lib/catalog";
 import styles from "./page.module.css";
 
@@ -64,7 +64,7 @@ export default async function ChannelsPage() {
       <section className={`on-ink ${styles.stage}`} aria-label="Live channels">
         <div className="wrap">
           {summaries.length ? (
-            <LiveChannels initial={summaries} />
+            <StageChannels initial={summaries} />
           ) : (
             <p className={styles.empty}>
               The channels are being tuned. In the meantime, the main station is on
