@@ -96,21 +96,15 @@
   box-shadow: 0 0 0 1px var(--color-gold), 0 30px 80px -30px rgba(212, 162, 76, 0.6);
 }
 
-/* The little gold equaliser in the cover's corner (from design A): it moves
-   while the channel is live, and faster on the one you're listening to. */
+/* The little gold equaliser (from design A), at the right end of the line just
+   under the cover: it moves while the channel is live, faster on the one you're
+   listening to. */
 .eq {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  z-index: 1;
+  margin-left: auto;
   display: flex;
   align-items: flex-end;
   gap: 3px;
-  height: 1.7rem;
-  padding: 0.38rem 0.5rem;
-  border-radius: 7px;
-  background: rgba(10, 10, 11, 0.55);
-  backdrop-filter: blur(6px);
+  height: 1.1rem;
 }
 
 .eq i {
