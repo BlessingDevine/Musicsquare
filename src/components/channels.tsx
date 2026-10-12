@@ -27,11 +27,11 @@ export function Channels({ initial }: { initial: ChannelSummary[] }) {
             Every channel is its own station, live around the clock. Tune in and
             you join mid-song, at the same moment as everyone else.
           </p>
-          <Link href="/channels" className={`mono ${styles.more}`}>
-            All {channels.length} channels &rarr;
-          </Link>
         </Reveal>
         <StageChannels initial={initial} only={FEATURED} grid />
+        <Link href="/channels" className={`mono ${styles.more}`}>
+          All {channels.length} channels &rarr;
+        </Link>
       </div>
     </section>
   );

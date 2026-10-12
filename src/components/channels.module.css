@@ -26,7 +26,7 @@
 
 .more {
   display: inline-block;
-  margin-top: 1.6rem;
+  margin-top: clamp(1.8rem, 4vw, 2.6rem);
   color: var(--color-gold);
   border-bottom: 1px solid currentColor;
   padding-bottom: 0.3rem;
