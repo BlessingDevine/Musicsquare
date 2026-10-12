@@ -7,8 +7,10 @@ import { Reveal } from "./reveal";
 import { StageChannels } from "./stage-channels";
 import styles from "./channels.module.css";
 
-// The home page's channels, on the same stage as the Channels page: one big
-// square card per channel with the cover of the song on air, swipe for more.
+// Four channels on the home page, on the same stage as the Channels page (which
+// has them all): one big square card each with the cover of the song on air.
+const FEATURED = ["pop", "r-and-b-soul", "afrobeat", "country"];
+
 export function Channels({ initial }: { initial: ChannelSummary[] }) {
   const { channels } = useChannelSummaries(initial);
   if (!channels.length) return null;
@@ -29,7 +31,7 @@ export function Channels({ initial }: { initial: ChannelSummary[] }) {
             All {channels.length} channels &rarr;
           </Link>
         </Reveal>
-        <StageChannels initial={initial} />
+        <StageChannels initial={initial} only={FEATURED} />
       </div>
     </section>
   );

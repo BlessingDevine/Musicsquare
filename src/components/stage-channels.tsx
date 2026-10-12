@@ -16,8 +16,11 @@ const mmss = (ms: number) => {
  * of the song on air filling it; swipe (or use the arrows) to the next
  * station, or jump with the strip of covers underneath.
  */
-export function StageChannels({ initial }: { initial: ChannelSummary[] }) {
-  const { channels, now } = useChannelSummaries(initial);
+export function StageChannels({ initial, only }: { initial: ChannelSummary[]; only?: string[] }) {
+  const live = useChannelSummaries(initial);
+  const now = live.now;
+  // The home page shows a few channels; the Channels page shows them all.
+  const channels = only ? live.channels.filter((c) => only.includes(c.slug)) : live.channels;
   const { playChannel, isOnChannel, source, status } = usePlayer();
   const track = useRef<HTMLOListElement>(null);
   const [index, setIndex] = useState(0);
