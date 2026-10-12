@@ -85,8 +85,8 @@ export function ChannelCard({
   const elapsed = air ? Math.max(0, (now ?? 0) - air.startedAt) : 0;
   const progress = air ? elapsed / air.track.durationMs : 0;
 
-  // Artwork: the album cover of the song on air (blurred behind the card too),
-  // and the label's own art as a small badge.
+  // Artwork: the album cover of the song on air (blurred behind the card too);
+  // the label's art only stands in when a song has no cover.
   const cover = channel.cover ?? channel.art;
 
   return (
@@ -99,10 +99,6 @@ export function ChannelCard({
           <img className={styles.art} src={cover} alt="" loading="lazy" />
         ) : (
           <span className={`${styles.art} ${styles.artBlank}`} aria-hidden="true" />
-        )}
-        {channel.art && channel.art !== cover && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className={styles.badge} src={channel.art.replace("-600.jpg", "-300.jpg")} alt="" loading="lazy" />
         )}
         <span className={styles.eq} aria-hidden="true">
           <i />
