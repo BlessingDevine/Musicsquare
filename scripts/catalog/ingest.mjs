@@ -297,7 +297,7 @@ const songKey = (e) => `${e.artist?.slug ?? e.imprint.slug}|${e.album ?? ""}|${e
 const NO_CHANNEL = new Set(JSON.parse(readFileSync(new URL("./channels-off.json", import.meta.url), "utf8")));
 
 // Artists who also play on another label's channel (artist slug → that label's slug):
-// Litha Flow (Piano Nation, no channel yet) is on the Afrobeats channel.
+// Piano Nation's Litha Flow and Deejay Zethu also play on Afrobeats (Robert, 2026-10-11).
 const GUESTS = JSON.parse(readFileSync(new URL("./channel-guests.json", import.meta.url), "utf8"));
 
 async function buildChannels(imprints) {
