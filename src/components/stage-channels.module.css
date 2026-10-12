@@ -52,9 +52,9 @@
 /* The panels: a horizontal track that snaps one channel to the centre. */
 .track {
   list-style: none;
-  margin: 0 calc(var(--gutter) * -1);
-  /* Room at both ends so even the first and last card can sit in the middle. */
-  padding: 0 max(var(--gutter), calc((100% + 2 * var(--gutter) - min(86vw, 72vh, 40rem)) / 2));
+  /* Edge to edge across the screen, so cards fill both sides evenly. */
+  margin: 0 calc(50% - 50vw);
+  padding: 0;
   display: flex;
   gap: clamp(0.8rem, 1.6vw, 1.4rem);
   overflow-x: auto;
@@ -66,6 +66,11 @@
 
 .track::-webkit-scrollbar {
   display: none;
+}
+
+/* The looping row is placed on its middle copy before it is shown. */
+.loop:not([data-ready]) {
+  visibility: hidden;
 }
 
 .panel {
@@ -249,9 +254,6 @@
 .strip {
   display: flex;
   gap: 0.6rem;
-  /* Room either side so any cover, even the first or last, can sit in the
-     middle, right under the card in front. */
-  padding-inline: calc(50% - 2.8rem);
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 0.3rem;
