@@ -70,8 +70,9 @@
 .panel {
   position: relative;
   isolation: isolate;
-  flex: 0 0 min(78vw, 64rem);
-  min-height: min(72vh, 40rem);
+  /* Square, like the covers, so each one shows whole; sized to fit the screen. */
+  flex: 0 0 min(86vw, 72vh, 40rem);
+  aspect-ratio: 1;
   border-radius: 20px;
   overflow: hidden;
   scroll-snap-align: center;
@@ -95,28 +96,14 @@
   box-shadow: 0 0 0 1px var(--color-gold), 0 30px 80px -30px rgba(212, 162, 76, 0.6);
 }
 
-/* The song's cover fills the panel, slowly drifting; darkened where the words sit. */
+/* The song's cover fills the square panel exactly; darkened where the words sit. */
 .bg {
   position: absolute;
   inset: 0;
   z-index: -2;
   background-size: cover;
-  background-position: center 30%;
-  transform: scale(1.04);
+  background-position: center;
   transition: background-image 0.8s var(--ease-out);
-}
-
-.current .bg {
-  animation: drift 18s ease-in-out infinite alternate;
-}
-
-@keyframes drift {
-  from {
-    transform: scale(1.04) translate(0, 0);
-  }
-  to {
-    transform: scale(1.1) translate(-1.5%, -1%);
-  }
 }
 
 .panel::after {
@@ -125,16 +112,15 @@
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(to top, rgba(10, 10, 11, 0.95) 8%, rgba(10, 10, 11, 0.6) 42%, rgba(10, 10, 11, 0.05) 75%),
-    linear-gradient(to right, rgba(10, 10, 11, 0.6), transparent 60%);
+    linear-gradient(to top, rgba(10, 10, 11, 0.95) 6%, rgba(10, 10, 11, 0.55) 38%, rgba(10, 10, 11, 0) 62%);
 }
 
 .content {
   width: 100%;
-  padding: clamp(1.4rem, 4vw, 3.2rem);
+  padding: clamp(1.1rem, 3vw, 2.4rem);
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 
 .kicker {
@@ -146,16 +132,16 @@
 }
 
 .name {
-  font-size: clamp(3.2rem, 9vw, 8.5rem);
-  line-height: 0.88;
-  margin: 0.4rem 0 0.6rem;
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  line-height: 0.9;
+  margin: 0.25rem 0 0.4rem;
   overflow-wrap: anywhere;
   text-shadow: 0 6px 40px rgba(0, 0, 0, 0.5);
 }
 
 .song {
   margin: 0;
-  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  font-size: clamp(1.05rem, 1.8vw, 1.4rem);
   font-weight: 500;
 }
 
@@ -271,12 +257,38 @@
 }
 
 @media (max-width: 620px) {
-  .panel {
-    flex-basis: 86vw;
-    min-height: 70vh;
-  }
   .arrows {
     display: none;
+  }
+  /* Phones: the square cover on top, whole and clear; the words underneath. */
+  .panel {
+    aspect-ratio: auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bg {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .panel::after {
+    display: none;
+  }
+  .content {
+    gap: 0.25rem;
+    padding: 1rem 1.1rem 1.2rem;
+  }
+  .name {
+    font-size: 2.3rem;
+  }
+  .progress,
+  .row {
+    margin-top: 0.5rem;
+  }
+  .row :global(.btn) {
+    padding: 0.75rem 1.2rem;
   }
 }
 
@@ -284,8 +296,5 @@
   .panel,
   .bar i {
     transition: none;
-  }
-  .current .bg {
-    animation: none;
   }
 }
