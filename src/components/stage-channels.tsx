@@ -82,6 +82,13 @@ export function StageChannels({ initial }: { initial: ChannelSummary[] }) {
           return (
             <li key={c.slug} className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""}`}>
               {cover && <span className={styles.bg} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
+              <span className={`${styles.eq} ${air ? styles.eqLive : ""}`} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
               <div className={styles.content}>
                 <p className={`mono ${styles.kicker}`}>
                   <span className="pip" aria-hidden="true" />
