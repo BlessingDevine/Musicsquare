@@ -155,6 +155,13 @@ export const ROSTER: Artist[] = [
   { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg", square: "/roster/vegah-riot-square.jpg" },
   { slug: "ash-revenant", name: "Ash Revenant", lane: "Rock", portrait: "/roster/ash-revenant.jpg", square: "/roster/ash-revenant-square.jpg" },
   { slug: "iron-mirage", name: "Iron Mirage", lane: "Rock", portrait: "/roster/iron-mirage.jpg", square: "/roster/iron-mirage-square.jpg" },
+  { slug: "crimson-union", name: "Crimson Union", lane: "Rock", portrait: "/roster/crimson-union.jpg", square: "/roster/crimson-union-square.jpg" },
+  { slug: "dusk-cannon", name: "Dusk Cannon", lane: "Rock", portrait: "/roster/dusk-cannon.jpg", square: "/roster/dusk-cannon-square.jpg" },
+  { slug: "hollow-district", name: "Hollow District", lane: "Rock", portrait: "/roster/hollow-district.jpg", square: "/roster/hollow-district-square.jpg" },
+  { slug: "knox-havoc", name: "Knox Havoc", lane: "Rock", portrait: "/roster/knox-havoc.jpg", square: "/roster/knox-havoc-square.jpg" },
+  { slug: "lucid-arrows", name: "Lucid Arrows", lane: "Rock", portrait: "/roster/lucid-arrows.jpg", square: "/roster/lucid-arrows-square.jpg" },
+  { slug: "steel-vandal", name: "Steel Vandal", lane: "Rock", portrait: "/roster/steel-vandal.jpg", square: "/roster/steel-vandal-square.jpg" },
+  { slug: "throne-static", name: "Throne Static", lane: "Rock", portrait: "/roster/throne-static.jpg", square: "/roster/throne-static-square.jpg" },
 ];
 
 /* ------------------------------------------------------------- the week */

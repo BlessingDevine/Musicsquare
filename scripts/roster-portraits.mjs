@@ -56,6 +56,15 @@ const PORTRAITS = [
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
   ["ash-revenant", `${RT}/Ash Revenant/Photos/1.png`, 0.47, 0, 1, [`${RT}/Ash Revenant/Photos/1.png`, 0.52, 0.03, 0.94]],
   ["iron-mirage", `${RT}/Iron Mirage/Photos/Iron Mirage 1.png`, 0.52, 0, 1],
+  // The rest of Riot Temple (Oct 2026): each artist's styled photo, not the plain passport shot.
+  ["crimson-union", `${RT}/Crimson Union/Photos/Crimson 1.png`, 0.45, 0, 1],
+  ["dusk-cannon", `${RT}/Dusk Cannon/Photos/Dusk 1.png`, 0.5, 0, 1],
+  ["hollow-district", `${RT}/Hollow District/Photos/Hollow 1.png`, 0.5, 0, 1],
+  ["knox-havoc", `${RT}/Knox Havoc/Photos/Knox 1.png`, 0.5, 0, 1],
+  ["lucid-arrows", `${RT}/Lucid Arrows/Photos/Lucid 2.png`, 0.45, 0, 1],
+  // Duos: the 4:5 crop keeps both faces.
+  ["steel-vandal", `${RT}/Steel Vandal/Photos/Steel 1.png`, 0.5, 0, 1],
+  ["throne-static", `${RT}/Throne Static/Photos/Throne 1.png`, 0.5, 0, 1],
   ["lunah", `${V}/Lunah/Photos/Lunah 1.jpg`, 0.5, 0.03, 1],
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
   // uses the head-and-shoulders close-up, which only fits all three square.
