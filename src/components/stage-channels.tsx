@@ -134,7 +134,11 @@ export function StageChannels({
                   <button
                     type="button"
                     className={`btn ${tuned ? "btn-ghost" : ""}`}
-                    onClick={() => playChannel(c.slug, c.name, c.now)}
+                    onClick={() => {
+                      playChannel(c.slug, c.name, c.now);
+                      // Bring the card you've just tuned in to into the middle.
+                      if (!grid && !tuned) go(i);
+                    }}
                     aria-pressed={tuned}
                   >
                     <span aria-hidden="true">{tuned ? "■" : "▶"}</span>
