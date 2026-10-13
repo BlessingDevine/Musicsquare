@@ -298,8 +298,8 @@ const NO_CHANNEL = new Set(JSON.parse(readFileSync(new URL("./channels-off.json"
 
 // Artists who also play on another label's channel (artist slug → that label's slug):
 // Piano Nation's Litha Flow and Deejay Zethu also play on Afrobeats (Robert, 2026-10-11).
-// A label slug works too, for a whole label: Sol De Oro's Latin Square Vol I was
-// moved out of Barrio Sonico but stays in the Reggaeton mix (Robert, 2026-10-12).
+// A label slug works too, for a whole label (Sol De Oro played on Reggaeton until
+// it got its own Latin Pop channel, 2026-10-13).
 const GUESTS = JSON.parse(readFileSync(new URL("./channel-guests.json", import.meta.url), "utf8"));
 
 async function buildChannels(imprints) {
