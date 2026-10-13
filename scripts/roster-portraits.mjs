@@ -35,8 +35,8 @@ const PORTRAITS = [
   ["fizz", `${S}/Fizz/Photos/Fizz 1.jpg`, 0.5, 0, 1],
   // New look (Oct 2026, the "Holy Moly" era): the close-up, not the full-length shot.
   ["neka", `${S}/Neka/Photos/Neka 1.png`, 0.5, 0, 1],
-  // Robert removed the printed titles from Bantan's and Echo Rae's covers.
-  ["bantan", `${V}/Bantan/Photos/Cover II.jpg`, 0.42, 0, 1],
+  // Velvet suit in the leather armchair (Robert, Oct 2026).
+  ["bantan", `${V}/Bantan/Photos/11.png`, 0.52, 0, 0.85],
   ["sanza-benito", `${S}/Sanza Benito/Photos/Benito 1.jpg`, 0.5, 0, 1],
   ["pala", `${S}/Pala/Photos/Pala 1.png`, 0.5, 0, 1],
   ["nova-liyah", `${W}/Nova Liyah/Photos/2.png`, 0.5, 0, 1],
