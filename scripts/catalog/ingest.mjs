@@ -298,6 +298,8 @@ const NO_CHANNEL = new Set(JSON.parse(readFileSync(new URL("./channels-off.json"
 
 // Artists who also play on another label's channel (artist slug → that label's slug):
 // Piano Nation's Litha Flow and Deejay Zethu also play on Afrobeats (Robert, 2026-10-11).
+// A label slug works too, for a whole label: Sol De Oro's Latin Square Vol I was
+// moved out of Barrio Sonico but stays in the Reggaeton mix (Robert, 2026-10-12).
 const GUESTS = JSON.parse(readFileSync(new URL("./channel-guests.json", import.meta.url), "utf8"));
 
 async function buildChannels(imprints) {
@@ -308,9 +310,10 @@ async function buildChannels(imprints) {
   for (const imprint of imprints.values()) {
     if (NO_CHANNEL.has(imprint.slug)) continue;
     const guests = guestArtists.filter((a) => GUESTS[a.slug] === imprint.slug).map((a) => a.artist_id);
+    const labels = [imprint, ...[...imprints.values()].filter((i) => GUESTS[i.slug] === imprint.slug)].map((i) => i.imprint_id);
     const songs = await selectAll(() => db.from("songs")
       .select("song_id, title, primary_artist_id, source_path")
-      .or([`primary_imprint_id.eq.${imprint.imprint_id}`, ...(guests.length ? [`primary_artist_id.in.(${guests.join(",")})`] : [])].join(","))
+      .or([`primary_imprint_id.in.(${labels.join(",")})`, ...(guests.length ? [`primary_artist_id.in.(${guests.join(",")})`] : [])].join(","))
       .in("release_status", ["released_radio", "released_app", "released_public"])
       .neq("version_type", "alt")
       .not("duration_ms", "is", null)
