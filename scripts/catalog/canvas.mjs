@@ -7,6 +7,7 @@
 //   node scripts/catalog/canvas.mjs --upload   finish and upload the clips in ~/Sites/canvas/raw/
 //   node scripts/catalog/canvas.mjs --upload --redo <checksum20>   replace a cover's Canvas with a new raw clip
 //   node scripts/catalog/canvas.mjs --sources  Robert's Canvas images/footage and what each one is for
+//   node scripts/catalog/canvas.mjs --webp     make the animated-image copy for any Canvas that lacks one
 //
 // Two kinds of Canvas:
 //   album  — on the cover, so every song showing that cover gets it. Source: a
@@ -27,19 +28,27 @@
 // the cover) fills the screen; a square one is set on the 9:16 frame over a
 // blurred copy of itself so the title on the cover stays whole. Uploaded to
 // audio/canvas/<sha>.mp4 with a poster image. Nothing in Robert's folders changes.
+//
+// Each Canvas also gets an animated WebP next to it (audio/canvas/<sha>-anim.webp; the plain <sha>.webp files are an older, poorer attempt), which is what
+// GoSquare shows: on iPhone a video player rewires the audio session (pausing it when the app
+// goes to the background flipped it to "mix with others" and dropped the song), an image never
+// touches audio. Full 720×1280, 15 fps, quality 75; instead of forward-then-backward it plays the
+// clip once with a 0.8 s crossfade back to the start, which halves the frames (~5–6 MB).
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const UPLOAD = process.argv.includes("--upload");
+const WEBP = process.argv.includes("--webp");
 const TODO = process.argv.includes("--todo");
 const REDO = process.argv.includes("--redo") ? process.argv[process.argv.indexOf("--redo") + 1] : null;
 const RAW = process.env.CANVAS_DIR ?? join(homedir(), "Sites/canvas/raw");
@@ -157,6 +166,46 @@ console.log(`${covers.length} covers · ${done.length} with a Canvas · ${songCa
 for (const c of ready) console.log(`  ready  ${c.name}`);
 const orphans = [...raws].filter((r) => (r.startsWith("song-") ? !songByCode.has(r.slice(5)) : !covers.some((c) => id(c) === r)));
 for (const o of orphans) console.log(`  ✗ ${o}.mp4 matches no current cover (was the cover replaced?)`);
+/** Animated WebP of a finished Canvas mp4 (720×1280). A back-and-forth mp4 is cut to its forward
+ *  half; either way the loop closes with a crossfade from the last 0.8 s into the first. */
+async function animatedWebp(mp4, backAndForth, work) {
+  const dur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp4], { encoding: "utf8" }));
+  const len = backAndForth ? dur / 2 : dur;
+  const xf = 0.8, body = len - xf;
+  const frames = join(work, "webp-frames");
+  execFileSync("rm", ["-rf", frames]);
+  mkdirSync(frames, { recursive: true });
+  execFileSync("ffmpeg", ["-y", "-v", "error", "-i", mp4, "-filter_complex",
+    `[0:v]trim=0:${len},setpts=PTS-STARTPTS,fps=15,split[a][b];` +
+    `[a]trim=0:${body},setpts=PTS-STARTPTS,split[m1][m2];[m1]trim=0:${xf},setpts=PTS-STARTPTS[head];[m2]trim=${xf}:${body},setpts=PTS-STARTPTS[rest];` +
+    `[b]trim=${body}:${len},setpts=PTS-STARTPTS[tail];[tail][head]xfade=transition=fade:duration=${xf}:offset=0[blend];[blend][rest]concat=n=2:v=1`,
+    "-an", join(frames, "%04d.png")]);
+  const files = readdirSync(frames).filter((f) => f.endsWith(".png")).sort().map((f) => join(frames, f));
+  return sharp(files, { join: { animated: true } })
+    .webp({ quality: 75, effort: 5, smartSubsample: true, loop: 0, delay: Array(files.length).fill(67) })
+    .toBuffer();
+}
+
+if (WEBP) {
+  const s3w = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
+  const work = join(tmpdir(), "gosquare-canvas");
+  mkdirSync(work, { recursive: true });
+  const live = new Map();
+  for (const c of covers) if (c.canvas_key) live.set(c.canvas_key, id(c));
+  for (const v of await all("song_videos", "storage_key, source_file, kind")) if (v.kind === "canvas") live.set(v.storage_key, basename(v.source_file ?? "", ".mp4"));
+  for (const [key, raw] of live) {
+    const webpKey = key.replace(/\.mp4$/, "-anim.webp");
+    if ((await fetch(`${CDN}/${webpKey}`, { method: "HEAD" })).ok) continue;
+    const mp4 = join(work, "src.mp4");
+    writeFileSync(mp4, Buffer.from(await (await fetch(`${CDN}/${key}`)).arrayBuffer()));
+    const backAndForth = !existsSync(join(RAW, `${raw}.loop.mp4`));
+    const webp = await animatedWebp(mp4, backAndForth, work);
+    await s3w.send(new PutObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: webpKey, Body: webp, ContentType: "image/webp", CacheControl: "public, max-age=31536000, immutable" }));
+    console.log(`  ✓ ${webpKey}  ${(webp.length / 1e6).toFixed(1)} MB`);
+  }
+  process.exit(0);
+}
+
 if (!UPLOAD) {
   if (ready.length) console.log("\nRun with --upload to finish and upload them.");
   process.exit(0);
@@ -188,6 +237,7 @@ for (const c of ready) {
   const key = `audio/canvas/${createHash("sha256").update(video).digest("hex").slice(0, 20)}.mp4`;
   await put(key, video, "video/mp4");
   await put(key.replace(/\.mp4$/, ".jpg"), readFileSync(poster), "image/jpeg");
+  await put(key.replace(/\.mp4$/, "-anim.webp"), await animatedWebp(out, !looped, work), "image/webp");
   const { error } = c.cover
     ? await db.from(c.cover.table).update({ canvas_key: key, canvas_checksum: c.cover.checksum }).match(c.cover.match)
     : await db.from("song_videos").upsert({
