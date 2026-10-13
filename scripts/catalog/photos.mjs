@@ -102,9 +102,15 @@ for (const slug of slugs) {
   const folder = artistFolder(artist.artist_name);
   if (!folder) throw new Error(`No LABELS folder for ${artist.artist_name}`);
   const photoDir = join(folder, "Photos");
+  // An image named exactly like one of the artist's album folders is that
+  // album's cover (covers.mjs reads it so), not a gallery photo.
+  const key = (s) => s.normalize("NFC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  const songsDir = join(folder, "Songs");
+  const albums = new Set(existsSync(songsDir) ? readdirSync(songsDir).map(key) : []);
   const files = existsSync(photoDir)
     ? readdirSync(photoDir)
         .filter((f) => IMAGES.has(extname(f).toLowerCase()) && !f.startsWith(".") && !NOT_PHOTOS.test(f))
+        .filter((f) => !albums.has(key(f.slice(0, -extname(f).length))))
         .sort(byName)
     : [];
 
