@@ -153,6 +153,7 @@ export const ROSTER: Artist[] = [
   { slug: "fizz", name: "Fizz", lane: "Afrobeat", portrait: "/roster/fizz.jpg", square: "/roster/fizz-square.jpg" },
   { slug: "pala", name: "Pala", lane: "Afrobeat", portrait: "/roster/pala.jpg", square: "/roster/pala-square.jpg" },
   { slug: "lea-babi", name: "Lea Babi", lane: "R&B / Soul", portrait: "/roster/lea-babi.jpg", square: "/roster/lea-babi-square.jpg" },
+  { slug: "litha-flow", name: "Litha Flow", lane: "Amapiano", portrait: "/roster/litha-flow.jpg", square: "/roster/litha-flow-square.jpg" },
   { slug: "noah-rust", name: "Noah Rust", lane: "Rock", portrait: "/roster/noah-rust.jpg", square: "/roster/noah-rust-square.jpg" },
   { slug: "vegah-riot", name: "Vegah Riot", lane: "Rock", portrait: "/roster/vegah-riot.jpg", square: "/roster/vegah-riot-square.jpg" },
   { slug: "ash-revenant", name: "Ash Revenant", lane: "Rock", portrait: "/roster/ash-revenant.jpg", square: "/roster/ash-revenant-square.jpg" },
