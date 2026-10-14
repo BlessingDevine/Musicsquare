@@ -39,7 +39,7 @@ const PORTRAITS = [
   ["bantan", `${V}/Bantan/Photos/11.png`, 0.52, 0, 0.85],
   ["sanza-benito", `${S}/Sanza Benito/Photos/Benito 1.jpg`, 0.5, 0, 1],
   ["pala", `${S}/Pala/Photos/Pala 1.png`, 0.5, 0, 1],
-  ["nova-liyah", `${W}/Nova Liyah/Photos/2.png`, 0.5, 0, 1],
+  ["nova-liyah", `${W}/Nova Liyah/Photos/02.png`, 0.5, 0, 1],
   ["echo-rae", `${W}/Echo Rae/Photos/Echo 1.jpg`, 0.45, 0, 1],
   ["lumi-astra", `${W}/Lumi Astra/Photos/hero 1.jpg`, 0.5, 0, 1],
   ["lea-babi", `${V}/Lea Babi/Photos/hero 1.png`, 0.5, 0, 1],
