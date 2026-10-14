@@ -41,7 +41,7 @@ const PORTRAITS = [
   ["pala", `${S}/Pala/Photos/Pala 1.png`, 0.5, 0, 1],
   ["nova-liyah", `${W}/Nova Liyah/Photos/2.png`, 0.5, 0, 1],
   ["echo-rae", `${W}/Echo Rae/Photos/Echo 1.jpg`, 0.45, 0, 1],
-  ["lumi-astra", `${W}/Lumi Astra/Photos/2.jpg`, 0.5, 0, 1],
+  ["lumi-astra", `${W}/Lumi Astra/Photos/hero 1.jpg`, 0.5, 0, 1],
   ["lea-babi", `${V}/Lea Babi/Photos/hero 1.png`, 0.5, 0, 1],
   ["lucas-meno", `${V}/Lucas Meno/Photos/02.jpg`, 0.5, 0, 1],
   ["virgo-dunst", `${V}/Virgo Dunst/Photos/3.jpg`, 0.5, 0, 1],
@@ -128,7 +128,7 @@ if (preview > -1) {
   // The home page's channel cards ("What we play") are square too. Each is
   // fronted by an artist from that channel's imprint.
   for (const [name, file, cx] of ONLY ? [] : [
-    ["pop-lumi-astra", `${W}/Lumi Astra/Photos/2.jpg`, 0.5],
+    ["pop-lumi-astra", `${W}/Lumi Astra/Photos/hero 1.jpg`, 0.5],
     ["rnb-bantan", `${V}/Bantan/Photos/Cover II.jpg`, 0.5],
   ]) {
     const src = join(IMPRINT, file);
