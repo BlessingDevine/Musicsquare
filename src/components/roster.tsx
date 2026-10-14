@@ -17,8 +17,30 @@ function todaysOrder(featured?: string) {
   return order;
 }
 
-export function Roster({ featured }: { featured?: string }) {
+/**
+ * Slugs of roster artists whose page on squaredrum.com is built. That site
+ * shows an artist page once photos.mjs has published the artist's photo index,
+ * so the same file decides here; a page published later links on its own.
+ */
+async function artistsWithPages(): Promise<Set<string>> {
+  const audioBase = process.env.NEXT_PUBLIC_AUDIO_BASE_URL?.trim().replace(/\/$/, "");
+  if (!audioBase) return new Set();
+  const built = await Promise.all(
+    ROSTER.map(async ({ slug }) => {
+      try {
+        const r = await fetch(`${audioBase}/audio/photos/${slug}/index.json`, { next: { revalidate: 300 } });
+        return r.ok ? slug : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return new Set(built.filter((s): s is string => s !== null));
+}
+
+export async function Roster({ featured }: { featured?: string }) {
   const roster = todaysOrder(featured);
+  const pages = await artistsWithPages();
   return (
     <section id="roster" className={`on-ink ${styles.section}`}>
       <div className="wrap">
@@ -33,21 +55,41 @@ export function Roster({ featured }: { featured?: string }) {
       </div>
 
       <ul className={styles.rail}>
-        {roster.map((artist) => (
-          <li key={artist.slug} className={styles.card}>
-            <div className={styles.frame}>
-              <Image
-                src={artist.portrait}
-                alt={artist.name}
-                fill
-                sizes="(max-width: 760px) 62vw, 22vw"
-                className={styles.img}
-              />
-            </div>
-            <p className={`display ${styles.name}`}>{artist.name}</p>
-            <p className={`mono ${styles.lane}`}>{artist.lane}</p>
-          </li>
-        ))}
+        {roster.map((artist) => {
+          const card = (
+            <>
+              <div className={styles.frame}>
+                <Image
+                  src={artist.portrait}
+                  alt={artist.name}
+                  fill
+                  sizes="(max-width: 760px) 62vw, 22vw"
+                  className={styles.img}
+                />
+              </div>
+              <p className={`display ${styles.name}`}>{artist.name}</p>
+              <p className={`mono ${styles.lane}`}>{artist.lane}</p>
+            </>
+          );
+          return (
+            <li key={artist.slug} className={styles.card}>
+              {pages.has(artist.slug) ? (
+                // A new tab, so the radio keeps playing.
+                <a
+                  href={`https://squaredrum.com/artists/${artist.slug}`}
+                  target="_blank"
+                  rel="noopener"
+                  className={styles.link}
+                >
+                  {card}
+                  <p className={`mono ${styles.page}`}>Artist page &#8599;</p>
+                </a>
+              ) : (
+                card
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <div className="wrap">

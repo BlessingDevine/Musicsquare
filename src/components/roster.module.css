@@ -68,6 +68,27 @@
   color: var(--color-gold);
 }
 
+.link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 4px;
+}
+
+.page {
+  margin: 0.6rem 0 0;
+  color: var(--color-ash-dark);
+  transition: color 0.3s var(--ease-out);
+}
+
+.link:hover .page {
+  color: var(--color-paper);
+}
+
 .drag {
   margin: 1.5rem 0 0;
   color: var(--color-ash-dark);
