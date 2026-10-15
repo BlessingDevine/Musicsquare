@@ -44,7 +44,7 @@ const PORTRAITS = [
   ["lumi-astra", `${W}/Lumi Astra/Photos/hero 1.jpg`, 0.5, 0, 1],
   ["lea-babi", `${V}/Lea Babi/Photos/hero 1.png`, 0.5, 0, 1],
   ["lucas-meno", `${V}/Lucas Meno/Photos/02.jpg`, 0.5, 0, 1],
-  ["virgo-dunst", `${V}/Virgo Dunst/Photos/3.jpg`, 0.5, 0, 1],
+  ["virgo-dunstan", `${V}/Virgo Dunstan/Photos/3.jpg`, 0.5, 0, 1],
   ["j-cruz", `${W}/J Cruz/Photos/2.jpg`, 0.5, 0, 1],
   ["riven-cole", `${W}/Riven Cole/Photos/01.jpg`, 0.5, 0, 1],
   ["noah-rust", `${RT}/Noah Rust/Photos/Noah Rust.png`, 0.5, 0, 1],
