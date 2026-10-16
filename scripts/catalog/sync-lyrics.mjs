@@ -89,7 +89,8 @@ function sungLines(text, title, artist) {
   return out;
 }
 
-/** Whisper's words with start times (seconds), cached by audio checksum. */
+/** Whisper's words with start times (seconds), cached by audio checksum. -mc 0 (no carried-over
+ * context) stops whisper looping one phrase through long stretches of a song. */
 function listen(file) {
   const audio = readFileSync(file);
   const sum = createHash("sha256").update(audio).digest("hex").slice(0, 20);
@@ -97,7 +98,7 @@ function listen(file) {
   if (!existsSync(cached)) {
     const wav = join(work, `${sum}.wav`);
     execFileSync("ffmpeg", ["-y", "-v", "error", "-i", file, "-ar", "16000", "-ac", "1", wav]);
-    execFileSync("whisper-cli", ["-m", MODEL, "-f", wav, "-l", "en", "-ml", "1", "-sow", "-oj", "-of", join(work, sum), "-np"], { stdio: "ignore" });
+    execFileSync("whisper-cli", ["-m", MODEL, "-f", wav, "-l", "en", "-ml", "1", "-sow", "-mc", "0", "-oj", "-of", join(work, sum), "-np"], { stdio: "ignore" });
     const heard = JSON.parse(readFileSync(join(work, `${sum}.json`), "utf8")).transcription
       .map((t) => ({ w: norm(t.text), t: t.offsets.from / 1000 }))
       .filter((x) => x.w);
