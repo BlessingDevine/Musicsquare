@@ -79,7 +79,8 @@ function songsInDoc(path) {
   // Song headers seen in Robert's sheets: SONG 7: "DÉJÀ VU" · 1. The Undisputed
   // Algorithm · Title 1: Snow Day Signal. A sheet needs at least two to be split.
   const header = /^\s*(?:SONG|TITLE|TRACK)?\s*\d{1,3}\s*[:.)\-–]\s*["“”']?([^\n]{2,80}?)["“”']?\s*$/gim;
-  let marks = [...text.matchAll(header)];
+  // A clock time sung as a line ("2:17 AM") is not a header.
+  let marks = [...text.matchAll(header)].filter((m) => !/^\s*\d{1,2}:\d{2}\b/.test(m[0]));
   if (marks.length < 2) marks = [];
   // Drop separator rules and table/genre scaffolding ("Section", "Lyrical Content", "(Genre: …)").
   const clean = (t) =>
