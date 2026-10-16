@@ -89,6 +89,28 @@
   color: var(--color-paper);
 }
 
+.ig {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  color: var(--color-ash-dark);
+  text-decoration: none;
+  text-transform: none;
+  transition: color 0.3s var(--ease-out);
+}
+
+.ig svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+}
+
+.ig:hover,
+.ig:focus-visible {
+  color: var(--color-gold);
+}
+
 .drag {
   margin: 1.5rem 0 0;
   color: var(--color-ash-dark);

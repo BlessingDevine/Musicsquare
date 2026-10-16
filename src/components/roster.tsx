@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { pacificDay } from "@/lib/drop";
 import { seededShuffle } from "@/lib/seeded";
+import socials from "../../scripts/catalog/socials.json";
 import { CATALOGUE, ROSTER } from "@/lib/station";
 import { Reveal } from "./reveal";
 import styles from "./roster.module.css";
@@ -37,6 +38,9 @@ async function artistsWithPages(): Promise<Set<string>> {
   );
   return new Set(built.filter((s): s is string => s !== null));
 }
+
+/** Instagram handles (no @), the same list the catalogue uses for squaredrum.com and GoSquare. */
+const INSTAGRAM: Record<string, string> = socials;
 
 export async function Roster({ featured }: { featured?: string }) {
   const roster = todaysOrder(featured);
@@ -86,6 +90,22 @@ export async function Roster({ featured }: { featured?: string }) {
                 </a>
               ) : (
                 card
+              )}
+              {INSTAGRAM[artist.slug] && (
+                <a
+                  href={`https://www.instagram.com/${INSTAGRAM[artist.slug]}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mono ${styles.ig}`}
+                  aria-label={`${artist.name} on Instagram (@${INSTAGRAM[artist.slug]})`}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
+                    <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+                    <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
+                  </svg>
+                  @{INSTAGRAM[artist.slug]}
+                </a>
               )}
             </li>
           );
