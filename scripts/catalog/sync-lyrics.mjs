@@ -8,6 +8,7 @@
 //   node scripts/catalog/sync-lyrics.mjs --only "Lea Babi"   just one artist (or a song title)
 //   node scripts/catalog/sync-lyrics.mjs --hold "Lea Babi"   time them but don't upload (lyrics being checked)
 //   add --show to print every line with its time
+//   add --lang sw to listen in another language (Swahili songs, e.g. Fizz); default en
 //
 // Needs: brew install whisper-cpp, and the model at ~/Sites/models/ggml-large-v3-turbo.bin.
 // Takes ~40s a song; results are cached in ~/Sites/canvas/../lyrics-sync/ by
@@ -38,6 +39,7 @@ process.loadEnvFile(join(here, "../../.env.local"));
 const arg = (name) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
 const UPLOAD = process.argv.includes("--upload");
 const ONLY = arg("--only");
+const LANG = arg("--lang") ?? "en";
 const HOLD = arg("--hold");
 const SHOW = process.argv.includes("--show"); // print each line with its time
 const MODEL = process.env.WHISPER_MODEL ?? join(homedir(), "Sites/models/ggml-large-v3-turbo.bin");
@@ -94,11 +96,11 @@ function sungLines(text, title, artist) {
 function listen(file) {
   const audio = readFileSync(file);
   const sum = createHash("sha256").update(audio).digest("hex").slice(0, 20);
-  const cached = join(CACHE, `${sum}.json`);
+  const cached = join(CACHE, LANG === "en" ? `${sum}.json` : `${sum}.${LANG}.json`);
   if (!existsSync(cached)) {
     const wav = join(work, `${sum}.wav`);
     execFileSync("ffmpeg", ["-y", "-v", "error", "-i", file, "-ar", "16000", "-ac", "1", wav]);
-    execFileSync("whisper-cli", ["-m", MODEL, "-f", wav, "-l", "en", "-ml", "1", "-sow", "-mc", "0", "-oj", "-of", join(work, sum), "-np"], { stdio: "ignore" });
+    execFileSync("whisper-cli", ["-m", MODEL, "-f", wav, "-l", LANG, "-ml", "1", "-sow", "-mc", "0", "-oj", "-of", join(work, sum), "-np"], { stdio: "ignore" });
     const heard = JSON.parse(readFileSync(join(work, `${sum}.json`), "utf8")).transcription
       .map((t) => ({ w: norm(t.text), t: t.offsets.from / 1000 }))
       .filter((x) => x.w);
