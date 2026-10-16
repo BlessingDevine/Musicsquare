@@ -125,10 +125,32 @@ function align(a, b) {
   return hit;
 }
 
-function time(lines, heard, durationS) {
+/** Letter by letter: the lyrics and what was heard as one run of letters each, so words written
+ * apart in one and together in the other ("na kupenda" / "nakupenda", common in Swahili) still
+ * line up. Only runs of RUN+ matching letters count; single letters match anywhere. */
+const RUN = 5;
+function letters(lines, heard) {
   const flat = [];
-  lines.forEach(([, , text], li) => words(text).forEach((w, wi) => flat.push({ w, li, wi })));
-  const hit = align(flat.map((x) => x.w), heard.map((x) => x.w));
+  lines.forEach(([, , text], li) => [...words(text).join("")].forEach((w, ci) => flat.push({ w, li, wi: ci / 5 })));
+  const hb = heard.flatMap((x) => [...x.w].map((c) => ({ w: c, t: x.t })));
+  const hit = align(flat.map((x) => x.w), hb.map((x) => x.w));
+  for (let k = 0; k < hit.length; ) {
+    if (hit[k] < 0) { k++; continue; }
+    let e = k;
+    while (e + 1 < hit.length && hit[e + 1] === hit[e] + 1) e++;
+    if (e - k + 1 < RUN) for (let q = k; q <= e; q++) hit[q] = -1;
+    k = e + 1;
+  }
+  return { flat, hb, hit };
+}
+
+function time(lines, heard, durationS, byLetter = false) {
+  let flat = [], hit;
+  if (byLetter) ({ flat, hb: heard, hit } = letters(lines, heard));
+  else {
+    lines.forEach(([, , text], li) => words(text).forEach((w, wi) => flat.push({ w, li, wi })));
+    hit = align(flat.map((x) => x.w), heard.map((x) => x.w));
+  }
   const start = lines.map(() => null);
   const heardWords = lines.map(() => 0);
   const totalWords = lines.map((_, i) => flat.filter((x) => x.li === i).length);
@@ -172,7 +194,12 @@ for (const [i, s] of songs.entries()) {
   const lines = sungLines(s.lyrics, s.title, s.artist);
   const heard = listen(file);
   const durationS = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { encoding: "utf8" }));
-  const r = time(lines, heard, durationS);
+  let r = time(lines, heard, durationS);
+  // Word matching misses words the Mac writes apart or together differently; try letters too.
+  if (r.heardShare < 0.75) {
+    const l = time(lines, heard, durationS, true);
+    if (l.heardShare > r.heardShare) r = l;
+  }
   const held = HOLD && (matches(HOLD)(s.artist) || matches(HOLD)(s.title));
   const ok = r.heardShare >= MIN_HEARD;
   console.log(`${Math.round(r.heardShare * 100)}% heard${ok ? "" : " — not used"}${held ? " (held)" : ""}`);
