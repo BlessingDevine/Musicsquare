@@ -94,6 +94,7 @@ export async function GET() {
   const payload: Live = { current: nowPlaying, next: upNext, history: played };
 
   return NextResponse.json(nowPlaying || upNext || played.length ? payload : EMPTY, {
-    headers: { "cache-control": "no-store" },
+    // Public now-playing data; the GoSquare app (incl. its web build) reads it too.
+    headers: { "cache-control": "no-store", "access-control-allow-origin": "*" },
   });
 }
