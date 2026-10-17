@@ -20,7 +20,8 @@ if [ -f "$ICON" ]; then
   iconutil -c icns "$SET" -o "$APP/Contents/Resources/applet.icns"
   rm -f "$APP/Contents/Resources/Assets.car"
   /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$APP/Contents/Info.plist" 2>/dev/null || true
-  codesign --force --sign - "$APP" 2>/dev/null || true
+  xattr -cr "$APP"
+  codesign --force --deep --sign - "$APP"
   touch "$APP"
 fi
 echo "Made $APP"
