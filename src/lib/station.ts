@@ -367,6 +367,7 @@ export const SUPPORT_URL: string | null = null;
 
 export const SOCIALS = [
   { label: "Instagram", href: "https://instagram.com/musicsquareradio" },
+  { label: "TikTok", href: "https://www.tiktok.com/@musicsquareradio" },
   { label: "X", href: "https://x.com/musicsquareradio" },
   { label: "YouTube", href: "https://youtube.com/@musicsquareradio" },
   { label: "Facebook", href: "https://facebook.com/musicsquareradio" },
