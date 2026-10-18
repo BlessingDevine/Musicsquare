@@ -4,6 +4,7 @@
 //
 //   node scripts/catalog/media.mjs            report: what matches which song
 //   node scripts/catalog/media.mjs --upload   load lyrics, convert + upload videos
+//   node scripts/catalog/media.mjs --upload --only "/Yano Sky/"   just one artist's files
 //
 // Matching, per artist (the folder holding MUSIC/):
 //   - A file named after the song: "Deja Vu.rtf", "Deja Vu Lyrics.docx", "Song - Album.rtf",
@@ -30,6 +31,8 @@ import { assetDir, ownerOf } from "./scan.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 const UPLOAD = process.argv.includes("--upload");
+// --only "<text>": load only files whose path contains the text (one artist's folder, say), leaving the rest as they are.
+const ONLY = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
 const LINKS = JSON.parse(readFileSync(join(here, "media-links.json"), "utf8"));
 const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md", ".pdf"]);
 const VIDEOS = new Set([".mp4", ".mov", ".m4v"]);
@@ -74,11 +77,12 @@ function readDoc(path) {
 
 /** Split a document into { title, text } songs (one, unless it has SONG n: headers). */
 function songsInDoc(path) {
-  const text = readDoc(path).replace(/\r/g, "");
+  // Word's soft line breaks (Shift+Return) come through as U+2028: each is a sung line of its own.
+  const text = readDoc(path).replace(/\r/g, "").replace(/[\u2028\u2029]/g, "\n");
   if (/ORIGINAL LYRICS SONG \d+ OF \d+/.test(text)) return songbook(text);
   // Song headers seen in Robert's sheets: SONG 7: "DÉJÀ VU" · 1. The Undisputed
-  // Algorithm · Title 1: Snow Day Signal. A sheet needs at least two to be split.
-  const header = /^\s*(?:SONG|TITLE|TRACK)?\s*\d{1,3}\s*[:.)\-–]\s*["“”']?([^\n]{2,80}?)["“”']?\s*$/gim;
+  // Algorithm · Title 1: Snow Day Signal · 01  Ngibheke Kahle. A sheet needs at least two to be split.
+  const header = /^\s*(?:SONG|TITLE|TRACK)?\s*\d{1,3}(?:\s*[:.)\-–]|[ \t]{2,})\s*["“”']?([^\n]{2,80}?)["“”']?\s*$/gim;
   // A clock time sung as a line ("2:17 AM") is not a header.
   let marks = [...text.matchAll(header)].filter((m) => !/^\s*\d{1,2}:\d{2}\b/.test(m[0]));
   if (marks.length < 2) marks = [];
@@ -171,6 +175,7 @@ for (const owner of byArtist.keys()) {
       }
       for (const p of parts) {
         const song = p.title ? titles.get(norm(p.title)) : find(rel, stemKey(f));
+        if (ONLY && !rel.includes(ONLY)) continue;
         if (song && p.text) lyrics.push({ song, text: p.text, source: rel });
         else unmatched.push(p.title ? `${rel} → "${p.title}"` : rel);
       }
@@ -186,6 +191,7 @@ for (const owner of byArtist.keys()) {
       const vertical = /\bvertical\b/i.test(f);
       if (vertical && !/\bclip\b/i.test(f)) continue;
       const kind = vertical ? "clip" : /lyric/i.test(f) ? "lyric_video" : /canvas|loop/i.test(f) ? "canvas" : "music_video";
+      if (ONLY && !rel.includes(ONLY)) continue;
       if (song) videos.push({ song, kind, path: join(vidDir, f), source: rel });
       else unmatched.push(rel);
     }

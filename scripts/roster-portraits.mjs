@@ -54,6 +54,7 @@ const PORTRAITS = [
   // Six-piece band: the 4:5 studio shot keeps everyone in frame.
   ["cedar-line", `${RW}/Cedar Line/Photos/5.png`, 0.5, 0, 1],
   ["deejay-zethu", `${PN}/Deejay Zethu/Photos/11.png`, 0.5, 0, 1],
+  ["yano-sky", `${PN}/Yano Sky/Photos/Hero 2.png`, 0.5, 0.1, 0.78],
   ["elkana", `${C32}/Elkana/Photos/8.jpeg`, 0.5, 0, 1],
   ["lune-skylar", `${W}/Lune Skylar/Photos/Lune 2.png`, 0.5, 0, 1],
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
