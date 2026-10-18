@@ -253,6 +253,9 @@ export function parsePath(root, file) {
 function parseLabelsPath(file) {
   const parts = relOf(file).split("/"); // LABELS, <Label>, …
   if (parts.length < 5) return null;
+  // ALTN Collections (members-only alternate versions) stay out of every import until the members-only
+  // lock and the ALTN import rules exist; set ALTN_IMPORT=1 only once they do.
+  if (/^ALTN\b/i.test(parts[1]) && !process.env.ALTN_IMPORT) return null;
   const imprint = parseImprint(parts[1]);
   let artist = null;
   let between;
