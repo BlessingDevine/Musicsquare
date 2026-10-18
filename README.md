@@ -380,9 +380,12 @@ another Press Kit document the facts panel, and a PDF there the "Download press
 kit" button. Re-run it after changing the
 folder; unchanged photos aren't uploaded again.
 
-**Master sound (Oct 2026).** Every streaming file goes through Robert's master
-chain — The Smoother (his saved settings) → −14 LUFS → −1 dB ceiling — run by
-`~/Sites/master-eq`. After importing new music:
+**Master sound (Oct 2026) — SWITCHED OFF.** On 12 Oct 2026 Robert asked for
+the catalogue back on its original files (`master.mjs --undo`); new imports are
+NOT mastered. Don't run the steps below unless he asks for mastering again
+(`--list` would queue the whole catalogue). For reference, the chain was The
+Smoother (his saved settings) → −14 LUFS → −1 dB ceiling, run by
+`~/Sites/master-eq`:
 
 ```bash
 node scripts/catalog/master.mjs --list
