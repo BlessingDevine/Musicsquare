@@ -9,7 +9,7 @@
 //   - Files whose name starts with "hero" open the page. A portrait one (taller
 //     than wide) is used on phones, a wide one on computers.
 //   - Every other photo is the gallery, in filename order ("Lea 01", "Lea 02"…),
-//     except covers, Canvas art and collages (by name).
+//     except covers, Canvas art, collages and face references (by name).
 //   - A "Bio" document in Press Kit/ (.txt, .md, .rtf, .docx or .pdf) is the
 //     About text.
 //   - Another document in Press Kit/ with an "Artist at a Glance" list
@@ -41,8 +41,9 @@ if (!slugs.length) throw new Error("Name an artist slug, e.g. node scripts/catal
 const IMAGES = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const DOCS = new Set([".txt", ".md", ".rtf", ".docx", ".doc", ".pdf"]);
 const WIDTHS = [480, 960, 1600];
-// Album covers, Canvas artwork and collages live in Photos/ too but aren't gallery photos.
-const NOT_PHOTOS = /cover|canvas|collage/i;
+// Album covers, Canvas artwork, collages and face references live in Photos/ too but aren't gallery photos
+// (Robert, Oct 2026: skip those by name; every numbered photo goes in, even a grid of poses).
+const NOT_PHOTOS = /cover|canvas|collage|face ?ref/i;
 // Hero photos fill the screen, so sharp (retina) desktops need up to ~2880 px.
 const HERO_WIDTHS = [480, 960, 1600, 2400, 2880];
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
