@@ -56,6 +56,7 @@ const PORTRAITS = [
   ["deejay-zethu", `${PN}/Deejay Zethu/Photos/11.png`, 0.5, 0, 1],
   ["yano-sky", `${PN}/Yano Sky/Photos/Hero 2.png`, 0.5, 0.1, 0.78],
   ["elkana", `${C32}/Elkana/Photos/8.jpeg`, 0.5, 0, 1],
+  ["vxnti", `${C32}/VXNTI/Photos/02.png`, 0.5, 0.02, 0.92],
   ["lune-skylar", `${W}/Lune Skylar/Photos/Lune 2.png`, 0.5, 0, 1],
   // Ash's photos carry a strip of colour swatches down the left edge: keep it out.
   ["ash-revenant", `${RT}/Ash Revenant/Photos/1.png`, 0.47, 0, 1, [`${RT}/Ash Revenant/Photos/1.png`, 0.52, 0.03, 0.94]],
