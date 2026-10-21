@@ -165,8 +165,8 @@ if (!existsSync(NOTES)) {
 # Edit the words after each colon, then run the builder again. Lines starting with # are ignored.
 
 Subject: New Music Friday: ${nameList}
-Preview: ${count.replace(/\.$/, "")} out today, free on ${LISTEN}.
-Headline: ${count} | Out today.
+Preview: ${count.replace(/\.$/, "")} ${waiting ? "out today" : "this week"}, free on ${LISTEN}.
+Headline: ${count} | ${waiting ? "Out today." : "New this week."}
 Intro: ${albums.map((a) => `${a.title} from ${a.name}`).join(", ")}. Free on ${LISTEN} from this morning.
 
 ## Releases
@@ -308,7 +308,7 @@ const html = `<!doctype html>
 
 <tr><td style="background:${C.ink};"><a href="${SITE}/releases/${lead.slug}"><img src="${esc(heroUrl)}" width="600" alt="${esc(lead.name)}" style="display:block;width:100%;height:auto;border:0;"></a></td></tr>
 <tr><td class="px" style="background:${C.ink};padding:24px 36px 34px;">
-  <div style="${F.mono}color:${C.gold};padding-bottom:12px;">New Music Friday &middot; Out today</div>
+  <div style="${F.mono}color:${C.gold};padding-bottom:12px;">New Music Friday &middot; ${waiting ? "Out today" : "New this week"}</div>
   <div class="hero-h" style="${F.display}font-size:56px;line-height:.95;color:#ffffff;">${esc(head1)}${head2 ? `<br><span style="color:${C.gold};">${esc(head2)}</span>` : ""}</div>
   <div style="${F.body}font-size:16px;line-height:1.55;color:${C.soft};padding-top:14px;">${esc(notes.intro ?? "")}</div>
 </td></tr>
