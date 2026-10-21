@@ -99,7 +99,8 @@ let META = { labels: [], artists: [] };
 // Each job: what the page shows and which fields it asks for. "preview" jobs show what would
 // happen first; "Do it" only unlocks after a preview with the same values.
 const JOBS = [
-  { group: "New music", id: "import", title: "Import new music", what: "Brings new songs from a label's folders into the catalogue and uploads their covers. Preview lists the new files first, with anything that needs a second look flagged.", fields: ["label"], preview: true },
+  { group: "New music", id: "import", title: "Import new music", what: "Brings new songs from a label's folders into the catalogue and uploads their covers. They stay hidden until New Music Friday (9 AM), when they go live everywhere with Drumroll. Preview lists the new files first, with anything that needs a second look flagged.", fields: ["label"], preview: true },
+  { group: "New music", id: "friday", title: "Waiting for Friday", what: "Shows the albums imported this week that go live on Friday at 9 AM. \"Do it\" releases them right now instead; type an album or artist name to release just that one early.", fields: ["which"], preview: true },
   { group: "New music", id: "covers", title: "Upload covers", what: "Uploads new or changed album covers and single covers from your folders.", preview: true },
   { group: "New music", id: "playlists", title: "Curated playlists", what: "Loads the playlists in SQUARE BUSINESS/PLAYLISTS into GoSquare.", preview: true },
   { group: "Fix a song", id: "replace", title: "Replace a song's audio", what: "After you save a new version of a song over the old file, same name. The song keeps its likes, playlists and lyrics.", fields: ["song"], preview: true },
@@ -150,6 +151,7 @@ function field(name) {
     case "label": return `<label class="f"><span>Label</span><select id="f-label" name="label" required>${options(META.labels)}</select></label>`;
     case "artist": return `<label class="f"><span>Artist</span><select id="f-artist" name="artist" required>${options(META.artists)}</select></label><div class="hint" id="artist-note"></div>`;
     case "song": return `<div class="f" id="song-box"></div>`;
+    case "which": return `<label class="f"><span>Album or artist (leave empty for everything waiting)</span><input id="f-which" type="text" name="which" maxlength="120" placeholder="e.g. Who Came Through"></label>`;
     case "newtitle": return `<label class="f"><span>New title</span><input id="f-title" type="text" name="title" required maxlength="120"></label>`;
     case "to": return `<div class="f"><span class="hint">Change it to</span><div class="choices"><label><input type="radio" name="to" value="archived" checked> Archive (hide everywhere)</label><label><input type="radio" name="to" value="released_radio"> Make live</label></div></div>`;
     case "who": return `<label class="f"><span>Artist or song title</span><input id="f-who" type="text" name="who" required placeholder="e.g. Fizz, or Usiku Huu"></label>`;

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  New Music Friday: releases everything waiting (release.mjs) every Friday at 9:00 AM, Mac time (Pacific).
+  If the Mac is asleep at 9, it runs as soon as it wakes. Switch on:
+    cp scripts/catalog/release-friday.plist ~/Library/LaunchAgents/com.squaredrum.release-friday.plist
+    launchctl load ~/Library/LaunchAgents/com.squaredrum.release-friday.plist
+  Log: ~/Library/Logs/squaredrum-release-friday.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.squaredrum.release-friday</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/robertsimenya/Sites/musicsquareradio-2026/scripts/catalog/release.mjs</string>
+    <string>--apply</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/robertsimenya/Sites/musicsquareradio-2026</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>5</integer>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/robertsimenya/Library/Logs/squaredrum-release-friday.log</string>
+  <key>StandardErrorPath</key><string>/Users/robertsimenya/Library/Logs/squaredrum-release-friday.log</string>
+</dict>
+</plist>

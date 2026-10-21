@@ -65,6 +65,9 @@ const JOBS = {
   playlists: (_, apply) => [[cat("playlists.mjs"), ...(apply ? ["--upload"] : [])]],
   canvas: (_, apply) => [[cat("canvas.mjs"), ...(apply ? ["--upload"] : [])]],
   audit: () => [[cat("audit.mjs")]],
+  friday: ({ which }, apply) => [
+    [cat("release.mjs"), ...(which?.trim() ? ["--only", need(which.trim(), /^[^\n]{1,120}$/)] : []), ...(apply ? ["--apply"] : [])],
+  ],
 };
 
 function need(value, pattern) {

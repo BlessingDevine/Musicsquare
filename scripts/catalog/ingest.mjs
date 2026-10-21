@@ -5,6 +5,11 @@
 //   node scripts/catalog/ingest.mjs --limit 20 a test batch
 //   node scripts/catalog/ingest.mjs --channels rebuild channels only
 //   node scripts/catalog/ingest.mjs --only riot-temple   one label (its slug) only
+//   add --live to put new songs on air straight away instead of waiting for Friday
+//
+// New Music Friday (Oct 2026): new songs are imported as `ready` — uploaded, with covers, Canvas and lyrics
+// possible, but hidden everywhere — and go live together on Friday at 9 AM Pacific (release.mjs, run by
+// launchd), when Drumroll announces them. `--live` skips the wait.
 //
 // Held artists (paused with hold.mjs) are skipped entirely — nothing of theirs
 // is imported or moved, new files included — until they are released.
@@ -37,6 +42,8 @@ process.loadEnvFile(join(here, "../../.env.local"));
 const args = process.argv.slice(2);
 const LIMIT = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : Infinity;
 const CHANNELS_ONLY = args.includes("--channels");
+const LIVE = args.includes("--live");
+const NEW_STATUS = LIVE ? "released_radio" : "ready";
 const ONLY = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
 const CONCURRENCY = 4;
 const READ_TIMEOUT_MS = 5 * 60_000;
@@ -214,7 +221,7 @@ async function moveSong(prior, entry, { imprints, artists, songsById }) {
   // Only touch the release status if the move changed what kind of take it
   // is; a status set by hand (archived, say) is otherwise left alone.
   if (entry.version !== prior.version_type) {
-    patch.release_status = entry.version === "alt" ? "draft" : "released_radio";
+    patch.release_status = entry.version === "alt" ? "draft" : prior.release_status === "ready" ? "ready" : "released_radio";
   }
   must(await db.from("songs").update(patch).eq("song_id", prior.song_id));
   await log({ status: "moved", path: entry.sourcePath, from: prior.source_path, song: prior.song_code });
@@ -240,8 +247,8 @@ async function createSong(entry, { imprints, artists }, durationSeconds, trackNo
     subgenre: imprint.secondary_genres.join(", ") || null,
     duration_ms: durationSeconds ? Math.round(durationSeconds * 1000) : null,
     version_type: entry.version,
-    // Already on air via RadioKing, so released to radio; ALT takes stay drafts.
-    release_status: entry.version === "alt" ? "draft" : "released_radio",
+    // Waits for Friday as `ready` (or goes live now with --live); ALT takes stay drafts.
+    release_status: entry.version === "alt" ? "draft" : NEW_STATUS,
     source_path: entry.sourcePath,
   }).select("song_id, song_code").single());
 }

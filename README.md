@@ -367,6 +367,14 @@ the older notes below say `IMPRINT/` where they predate the move. Then:
 node scripts/catalog/ingest.mjs
 ```
 
+**New Music Friday (Oct 2026).** New songs are imported as `ready`: uploaded and
+ready for covers, Canvas and lyrics, but hidden everywhere until Friday 9 AM
+Pacific, when `release.mjs --apply` (launchd, `scripts/catalog/release-friday.plist`)
+puts them on air and rebuilds the channels, as Drumroll goes out. See what's
+waiting with `node scripts/catalog/release.mjs`; release early with
+`--apply [--only "<album or artist>"]`; import straight to air with
+`ingest.mjs --live`. Releases are logged in `SQUARE BUSINESS/Friday releases log.tsv`.
+
 Artist photos for squaredrum.com's artist pages (one artist at a time):
 
 ```bash
