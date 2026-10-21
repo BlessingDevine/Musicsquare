@@ -3,6 +3,7 @@
 //   node scripts/newsletter/send.mjs                        what would go out this Friday (changes nothing)
 //   node scripts/newsletter/send.mjs --test you@example.com send a test copy to one address, now
 //   node scripts/newsletter/send.mjs --schedule             schedule it for Friday 9:00 AM Pacific to the whole list
+//   node scripts/newsletter/send.mjs --update               replace the scheduled broadcast with a rebuilt issue (same time)
 //   add --date 2026-10-30 for another Friday's issue
 //
 // Needs two lines in .env.local, added by Robert (never by Claude):
@@ -20,6 +21,7 @@ const flag = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : null);
 const DATE = flag("--date") ?? nextFriday();
 const TEST = flag("--test");
 const SCHEDULE = args.includes("--schedule");
+const UPDATE = args.includes("--update");
 
 function nextFriday() {
   const d = new Date();
@@ -46,18 +48,18 @@ const when = nineAmPacific(DATE);
 
 console.log(`Drumroll ${DATE}\n  From:     ${send.from}\n  Subject:  ${send.subject}\n  Preview:  ${send.preview}\n  Sends at: ${when.toLocaleString("en-US", { timeZone: "America/Los_Angeles", dateStyle: "full", timeStyle: "short" })} Pacific`);
 if (send.broadcast) console.log(`  Already scheduled in Resend (broadcast ${send.broadcast}). Scheduling again would send it twice.`);
-if (!TEST && !SCHEDULE) {
+if (!TEST && !SCHEDULE && !UPDATE) {
   console.log("\nNothing sent. Use --test <address> for a test copy, or --schedule for Friday.");
   process.exit(0);
 }
 
 const KEY = process.env.RESEND_API_KEY;
 if (!KEY) throw new Error("RESEND_API_KEY isn't in .env.local yet (see the top of this file).");
-const api = async (path, body) => {
+const api = async (path, body, method = "POST") => {
   const r = await fetch(`https://api.resend.com${path}`, {
-    method: "POST",
+    method,
     headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Resend said ${r.status}: ${j.message ?? JSON.stringify(j)}`);
@@ -88,4 +90,22 @@ if (SCHEDULE) {
   send.broadcast = r.id;
   writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
   console.log(`\nScheduled for Friday 9 AM Pacific (broadcast ${r.id}). You can see or cancel it in Resend → Broadcasts.`);
+}
+
+if (UPDATE) {
+  // Resend can't edit a scheduled broadcast ("Only draft broadcasts can be edited"), so the old one is cancelled
+  // (deleting a scheduled broadcast cancels its delivery) and the rebuilt issue is scheduled for the same moment.
+  // Cancel first, so the list can never get it twice.
+  if (!send.broadcast) throw new Error("This issue isn't scheduled yet; use --schedule.");
+  if (when.getTime() < Date.now()) throw new Error("This issue has already gone out.");
+  const SEGMENT = process.env.RESEND_SEGMENT_ID;
+  if (!SEGMENT) throw new Error("RESEND_SEGMENT_ID isn't in .env.local yet (see the top of this file).");
+  const old = send.broadcast;
+  await api(`/broadcasts/${old}`, undefined, "DELETE");
+  delete send.broadcast;
+  writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
+  const r = await api("/broadcasts", { segment_id: SEGMENT, from: send.from, subject: send.subject, html, name: `Drumroll ${DATE}`, send: true, scheduled_at: when.toISOString() });
+  send.broadcast = r.id;
+  writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
+  console.log(`\nReplaced: cancelled ${old}, scheduled the new version as ${r.id} for Friday 9 AM Pacific.`);
 }

@@ -21,7 +21,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import sharp from "sharp";
 import { db } from "../admin/jobs/common.mjs";
 
 const OUT_ROOT = "/Users/robertsimenya/Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSINESS/Drumroll";
@@ -175,7 +177,9 @@ ${albums.map((a) => `${a.title}: ${a.line}`).join("\n")}
 
 ## Squaredrum world
 # What's happening inside Squaredrum this week (new artists, an artist going live on Instagram, Canvases,
-# collabs…), one per line: "Title | one or two sentences | optional link | optional button words".
+# collabs…), one per line: "Title | one or two sentences | optional link | optional button words | optional picture".
+# The picture can be a file (path from SQUARE BUSINESS, or a full path) or a web address. Without one, an artist named
+# in the title or text gets their roster photo, so every item shows a picture when it can.
 # Leave empty to skip the section.
 `,
   );
@@ -193,8 +197,8 @@ for (const raw of readFileSync(NOTES, "utf8").split("\n")) {
   if (!section && kv) notes[kv[1].trim().toLowerCase()] = kv[2].trim();
   else if (section === "releases" && kv) notes.releases.set(kv[1].trim().toLowerCase(), kv[2].trim());
   else if (section.startsWith("squaredrum world")) {
-    const [title, text, link, label] = line.split("|").map((x) => x.trim());
-    notes.world.push({ title, text: text ?? "", link: link ?? "", label: label ?? "" });
+    const [title, text, link, label, image] = line.split("|").map((x) => x.trim());
+    notes.world.push({ title, text: text ?? "", link: link ?? "", label: label ?? "", image: image ?? "", img: "" });
   }
 }
 for (const a of albums) a.line = notes.releases.get(a.title.toLowerCase()) ?? a.line;
@@ -253,6 +257,36 @@ if (canvasAlbum) {
   writeFileSync(mp4, Buffer.from(await (await fetch(`${CDN}/${canvasAlbum.canvas}`)).arrayBuffer()));
   execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-i", mp4, "-t", "5", "-vf", "fps=8,scale=220:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle", gif]);
   canvasGif = { url: await upload(gif, `audio/newsletter/${DATE}/canvas-${canvasAlbum.slug}.gif`, "image/gif"), album: canvasAlbum };
+}
+
+// ---------------------------------------------------------------- Squaredrum world pictures
+// Robert (Oct 2026): "Always show image if possible."
+const BUSINESS = join(OUT_ROOT, "..");
+const reEsc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+for (const [i, w] of notes.world.entries()) {
+  if (/^https?:\/\//.test(w.image)) w.img = w.image;
+  else if (w.image) {
+    const file = w.image.startsWith("/") ? w.image : join(BUSINESS, w.image);
+    if (!existsSync(file)) console.warn(`  ! Squaredrum world picture not found: ${w.image}`);
+    else {
+      // 4:5, cropped on the face/subject, sized for email.
+      const jpg = await sharp(file).rotate().resize({ width: 480, height: 600, fit: "cover", position: "attention" }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+      const out = join(tmpdir(), `drumroll-world-${i}.jpg`);
+      writeFileSync(out, jpg);
+      w.img = await upload(out, `audio/newsletter/${DATE}/world-${createHash("sha256").update(jpg).digest("hex").slice(0, 10)}.jpg`, "image/jpeg");
+    }
+  }
+  if (!w.img) {
+    // An artist named in the item: their roster photo from squaredrum.com (longest name first, so "Lea Babi" beats "Lea").
+    const hit = artists
+      .filter((a) => a.status === "active")
+      .sort((x, y) => y.artist_name.length - x.artist_name.length)
+      .find((a) => new RegExp(`\\b${reEsc(a.artist_name)}\\b`, "i").test(`${w.title} ${w.text}`));
+    if (hit) {
+      const url = `${SITE}/roster/${hit.slug}.jpg`;
+      if ((await fetch(url, { method: "HEAD" }).catch(() => null))?.ok) w.img = url;
+    }
+  }
 }
 
 // ---------------------------------------------------------------- On air
@@ -321,11 +355,21 @@ ${
     ? `${eyebrow(++n, "Squaredrum world")}
 <tr><td class="px" style="padding:0 36px;">${notes.world
         .map(
-          (w) => `<div style="border-top:1px solid ${C.line};padding:16px 0;">
-  <div style="${F.body}font-size:17px;font-weight:600;line-height:1.35;color:${C.ink};">${esc(w.title)}</div>
+          (w) => {
+            const words = `<div style="${F.body}font-size:17px;font-weight:600;line-height:1.35;color:${C.ink};">${esc(w.title)}</div>
   ${w.text ? `<div style="${F.body}font-size:14px;line-height:1.6;color:${C.text};padding-top:6px;">${esc(w.text)}</div>` : ""}
-  ${w.link ? `<div style="padding-top:10px;">${link(w.link, w.label || (/instagram\.com/.test(w.link) ? "Follow on Instagram" : "Read more"))}</div>` : ""}
-</div>`,
+  ${w.link ? `<div style="padding-top:10px;">${link(w.link, w.label || (/instagram\.com/.test(w.link) ? "Follow on Instagram" : "Read more"))}</div>` : ""}`;
+            const pic = w.img
+              ? `<img src="${esc(w.img)}" width="180" alt="${esc(w.title)}" style="display:block;width:100%;height:auto;border:0;">`
+              : "";
+            const picLinked = pic && w.link ? `<a href="${esc(w.link)}">${pic}</a>` : pic;
+            return w.img
+              ? `<div style="border-top:1px solid ${C.line};padding:18px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+  <td class="col" valign="top" width="180" style="padding-right:22px;">${picLinked}</td>
+  <td class="col" valign="middle">${words}</td>
+</tr></table></div>`
+              : `<div style="border-top:1px solid ${C.line};padding:16px 0;">${words}</div>`;
+          },
         )
         .join("")}</td></tr>`
     : ""
@@ -397,10 +441,15 @@ ${
 
 const FILE = join(OUT, `Drumroll ${DATE}.html`);
 writeFileSync(FILE, html);
+// Keep the Resend broadcast id when rebuilding a scheduled issue: send.mjs uses it to refuse scheduling twice
+// and to push changes (--update) into the broadcast that's already waiting.
+const SEND = join(OUT, "send.json");
+const prior = existsSync(SEND) ? JSON.parse(readFileSync(SEND, "utf8")) : {};
 writeFileSync(
-  join(OUT, "send.json"),
-  JSON.stringify({ from: FROM, subject: notes.subject ?? `New Music Friday: ${nameList}`, preview: notes.preview ?? "", scheduled_at: `${DATE}T09:00:00 America/Los_Angeles`, html: FILE }, null, 2) + "\n",
+  SEND,
+  JSON.stringify({ from: FROM, subject: notes.subject ?? `New Music Friday: ${nameList}`, preview: notes.preview ?? "", scheduled_at: `${DATE}T09:00:00 America/Los_Angeles`, html: FILE, ...(prior.broadcast ? { broadcast: prior.broadcast } : {}) }, null, 2) + "\n",
 );
+if (prior.broadcast) console.log(`  Already scheduled (broadcast ${prior.broadcast}): run send.mjs --update to put these changes into it.`);
 history[DATE] = { spotlight: spot?.artist.slug ?? null, releases: albums.map((a) => `${a.name} – ${a.title}`) };
 writeFileSync(HISTORY, JSON.stringify(history, null, 2) + "\n");
 
@@ -416,5 +465,5 @@ console.log(`  Releases:   ${albums.map((a) => `${a.name} – ${a.title} (${a.so
 console.log(`  Spotlight:  ${spot?.artist.artist_name ?? "none (no artist page available)"}`);
 console.log(`  Canvas:     ${canvasGif ? canvasGif.album.title : "none"}`);
 console.log(`  On air:     ${station?.station_name ?? "none"}`);
-console.log(`  World news: ${notes.world.length} items`);
+console.log(`  World news: ${notes.world.length} items (${notes.world.filter((w) => w.img).length} with a picture)`);
 console.log(`\nEmail:   ${FILE}\nWords:   ${NOTES}\nPreview: ${join(OUT, "preview.png")}`);
