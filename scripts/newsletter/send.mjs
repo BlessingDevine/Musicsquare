@@ -66,10 +66,14 @@ const api = async (path, body, method = "POST") => {
   return j;
 };
 
+// Replies land at fans@gosquare.app, where squaredrum.com/api/inbound drops auto-replies, takes "unsubscribe"
+// replies off the list and forwards the rest to fans@squaredrum.com.
+const REPLY_TO = "fans@gosquare.app";
+
 if (TEST) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(TEST)) throw new Error("That test address doesn't look right.");
   // A test is a one-off email: the unsubscribe placeholder only works in broadcasts, so it points at the privacy page.
-  const r = await api("/emails", { from: send.from, to: [TEST], subject: `[Test] ${send.subject}`, html: html.replaceAll("{{{RESEND_UNSUBSCRIBE_URL}}}", "https://www.squaredrum.com/privacy") });
+  const r = await api("/emails", { from: send.from, reply_to: REPLY_TO, to: [TEST], subject: `[Test] ${send.subject}`, html: html.replaceAll("{{{RESEND_UNSUBSCRIBE_URL}}}", "https://www.squaredrum.com/privacy") });
   console.log(`\nTest sent to ${TEST} (${r.id}).`);
 }
 
@@ -81,6 +85,7 @@ if (SCHEDULE) {
   const r = await api("/broadcasts", {
     segment_id: SEGMENT,
     from: send.from,
+    reply_to: REPLY_TO,
     subject: send.subject,
     html,
     name: `Drumroll ${DATE}`,
@@ -104,7 +109,7 @@ if (UPDATE) {
   await api(`/broadcasts/${old}`, undefined, "DELETE");
   delete send.broadcast;
   writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
-  const r = await api("/broadcasts", { segment_id: SEGMENT, from: send.from, subject: send.subject, html, name: `Drumroll ${DATE}`, send: true, scheduled_at: when.toISOString() });
+  const r = await api("/broadcasts", { segment_id: SEGMENT, from: send.from, reply_to: REPLY_TO, subject: send.subject, html, name: `Drumroll ${DATE}`, send: true, scheduled_at: when.toISOString() });
   send.broadcast = r.id;
   writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
   console.log(`\nReplaced: cancelled ${old}, scheduled the new version as ${r.id} for Friday 9 AM Pacific.`);
