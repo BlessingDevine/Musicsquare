@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Thursday reminder for New Music Friday: a Mac notification at 10:00 AM listing what goes live tomorrow.
+  Switch on:
+    cp scripts/catalog/thursday-reminder.plist ~/Library/LaunchAgents/com.squaredrum.thursday-reminder.plist
+    launchctl load ~/Library/LaunchAgents/com.squaredrum.thursday-reminder.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.squaredrum.thursday-reminder</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/robertsimenya/Sites/musicsquareradio-2026/scripts/catalog/thursday-reminder.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/robertsimenya/Sites/musicsquareradio-2026</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>4</integer>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/robertsimenya/Library/Logs/squaredrum-thursday-reminder.log</string>
+  <key>StandardErrorPath</key><string>/Users/robertsimenya/Library/Logs/squaredrum-thursday-reminder.log</string>
+</dict>
+</plist>
