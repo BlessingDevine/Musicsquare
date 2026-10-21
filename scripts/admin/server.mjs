@@ -65,6 +65,11 @@ const JOBS = {
   playlists: (_, apply) => [[cat("playlists.mjs"), ...(apply ? ["--upload"] : [])]],
   canvas: (_, apply) => [[cat("canvas.mjs"), ...(apply ? ["--upload"] : [])]],
   audit: () => [[cat("audit.mjs")]],
+  drumroll: () => [[join(REPO, "scripts/newsletter/drumroll.mjs")]],
+  drumrollsend: ({ test }, apply) =>
+    test?.trim()
+      ? [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--test", need(test.trim(), /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/)] : [])]]
+      : [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--schedule"] : [])]],
   friday: ({ which }, apply) => [
     [cat("release.mjs"), ...(which?.trim() ? ["--only", need(which.trim(), /^[^\n]{1,120}$/)] : []), ...(apply ? ["--apply"] : [])],
   ],

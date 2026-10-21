@@ -375,6 +375,16 @@ waiting with `node scripts/catalog/release.mjs`; release early with
 `--apply [--only "<album or artist>"]`; import straight to air with
 `ingest.mjs --live`. Releases are logged in `SQUARE BUSINESS/Friday releases log.tsv`.
 
+**Drumroll (the Friday email).** `node scripts/newsletter/drumroll.mjs` builds the
+coming Friday's issue into `SQUARE BUSINESS/Drumroll/<date>/`: the week's new
+albums, a rotating artist spotlight (history.json), the lead album's Canvas as a
+GIF (on the CDN under `audio/newsletter/`), its radio channel, three Off the
+Square headlines, and whatever is in `notes.md` (subject, headline, album lines,
+"Squaredrum world" news), which is created with defaults and can be edited and
+rebuilt. `scripts/newsletter/send.mjs --test <address>` / `--schedule` sends it
+through Resend (needs `RESEND_API_KEY` and `RESEND_SEGMENT_ID` in `.env.local`,
+added by Robert). The Thursday reminder builds the draft by itself.
+
 Artist photos for squaredrum.com's artist pages (one artist at a time):
 
 ```bash
