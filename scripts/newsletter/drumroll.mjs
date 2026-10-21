@@ -15,7 +15,7 @@
 //   Spotlight      a roster artist with an artist page who wasn't in the last 8 issues (history.json)
 //   Watch it move  the lead album's Canvas as an animated picture (uploaded to the CDN under audio/newsletter/)
 //   On air         the lead album's radio channel
-//   Off the Square three AI-music headlines from the music press this week
+//   (Off the Square, the music-press headlines, stays on squaredrum.com/news and is not in the email.)
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -28,6 +28,10 @@ const OUT_ROOT = "/Users/robertsimenya/Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSI
 const CDN = (process.env.NEXT_PUBLIC_AUDIO_BASE_URL ?? "https://d1j1hqrpj9spbo.cloudfront.net").replace(/\/$/, "");
 const SITE = "https://www.squaredrum.com";
 const FROM = "Drumroll by Squaredrum <drumroll@gosquare.app>";
+// GoSquare links stay out of Drumroll until the app is in the stores (Robert, Oct 2026: gosquare.app is
+// only a GoDaddy placeholder). Set GOSQUARE_LIVE=1 in .env.local on launch day to bring them back.
+const APP_LIVE = process.env.GOSQUARE_LIVE === "1";
+const LISTEN = APP_LIVE ? "GoSquare" : "squaredrum.com";
 const ADDRESS = "SQUAREDRUM LLC · 9350 Wilshire Blvd, Suite 203-C23, Beverly Hills, CA 90212";
 const SOCIAL = { Instagram: "https://www.instagram.com/squaredrumla/", TikTok: "https://www.tiktok.com/@squaredrumla", YouTube: "https://www.youtube.com/@squaredrum" };
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -161,25 +165,22 @@ if (!existsSync(NOTES)) {
 # Edit the words after each colon, then run the builder again. Lines starting with # are ignored.
 
 Subject: New Music Friday: ${nameList}
-Preview: ${count.replace(/\.$/, "")} out today, free on GoSquare.
+Preview: ${count.replace(/\.$/, "")} out today, free on ${LISTEN}.
 Headline: ${count} | Out today.
-Intro: ${albums.map((a) => `${a.title} from ${a.name}`).join(", ")}. Free on GoSquare from this morning.
+Intro: ${albums.map((a) => `${a.title} from ${a.name}`).join(", ")}. Free on ${LISTEN} from this morning.
 
 ## Releases
 # One line per album: "Album title: what it is in a sentence".
 ${albums.map((a) => `${a.title}: ${a.line}`).join("\n")}
 
 ## Squaredrum world
-# Anything else happening this week, one per line: "Title | one or two sentences | optional link".
+# What's happening inside Squaredrum this week (new artists, an artist going live on Instagram, Canvases,
+# collabs…), one per line: "Title | one or two sentences | optional link | optional button words".
 # Leave empty to skip the section.
-
-## Off the Square
-# Leave empty for this week's three AI-music headlines from the music press, or write your own:
-# "Title | one or two sentences | optional link".
 `,
   );
 }
-const notes = { releases: new Map(), world: [], ots: [] };
+const notes = { releases: new Map(), world: [] };
 let section = "";
 for (const raw of readFileSync(NOTES, "utf8").split("\n")) {
   const line = raw.trim();
@@ -191,9 +192,9 @@ for (const raw of readFileSync(NOTES, "utf8").split("\n")) {
   const kv = /^([^:|]{2,60}):\s*(.+)$/.exec(line);
   if (!section && kv) notes[kv[1].trim().toLowerCase()] = kv[2].trim();
   else if (section === "releases" && kv) notes.releases.set(kv[1].trim().toLowerCase(), kv[2].trim());
-  else if (section.startsWith("squaredrum world") || section.startsWith("off the square")) {
-    const [title, text, link] = line.split("|").map((x) => x.trim());
-    (section.startsWith("off") ? notes.ots : notes.world).push({ title, text: text ?? "", link: link ?? "" });
+  else if (section.startsWith("squaredrum world")) {
+    const [title, text, link, label] = line.split("|").map((x) => x.trim());
+    notes.world.push({ title, text: text ?? "", link: link ?? "", label: label ?? "" });
   }
 }
 for (const a of albums) a.line = notes.releases.get(a.title.toLowerCase()) ?? a.line;
@@ -256,32 +257,6 @@ if (canvasAlbum) {
 
 // ---------------------------------------------------------------- On air
 const station = stations.find((s) => s.related_imprint_id === lead.imprint?.imprint_id);
-
-// ---------------------------------------------------------------- Off the Square
-async function headlines() {
-  const feeds = [
-    ["Music Ally", "https://musically.com/feed/"],
-    ["Music Business Worldwide", "https://www.musicbusinessworldwide.com/tag/artificial-intelligence/feed/"],
-    ["Complete Music Update", "https://completemusicupdate.com/feed/"],
-  ];
-  const decode = (s) =>
-    s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]*>/g, "").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
-      .replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-  const tag = (x, n) => decode(new RegExp(`<${n}[^>]*>([\\s\\S]*?)</${n}>`, "i").exec(x)?.[1] ?? "");
-  const AI = /\b(AI|artificial intelligence|Suno|Udio|generative)\b/i;
-  const since = new Date(`${DATE}T09:00:00`).getTime() - 8 * 86400000;
-  const items = [];
-  for (const [source, url] of feeds) {
-    const xml = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SquaredrumBot/1.0)" } }).then((r) => r.text()).catch(() => "");
-    for (const [, it] of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
-      const title = tag(it, "title"), link = tag(it, "link"), date = Date.parse(tag(it, "pubDate"));
-      const text = tag(it, "description").replace(/\s*The post .*$/i, "");
-      if (title && link && date >= since && AI.test(`${title} ${text}`)) items.push({ title, link, source, date, text: sentences(text, 150) });
-    }
-  }
-  return items.sort((a, b) => b.date - a.date).filter((x, i, arr) => arr.findIndex((y) => y.title === x.title) === i).slice(0, 3);
-}
-const ots = notes.ots.length ? notes.ots.map((o) => ({ title: o.title, text: o.text, link: o.link, source: "" })) : await headlines();
 
 // ---------------------------------------------------------------- the email
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -349,7 +324,7 @@ ${
           (w) => `<div style="border-top:1px solid ${C.line};padding:16px 0;">
   <div style="${F.body}font-size:17px;font-weight:600;line-height:1.35;color:${C.ink};">${esc(w.title)}</div>
   ${w.text ? `<div style="${F.body}font-size:14px;line-height:1.6;color:${C.text};padding-top:6px;">${esc(w.text)}</div>` : ""}
-  ${w.link ? `<div style="padding-top:10px;">${link(w.link, "Read more")}</div>` : ""}
+  ${w.link ? `<div style="padding-top:10px;">${link(w.link, w.label || (/instagram\.com/.test(w.link) ? "Follow on Instagram" : "Read more"))}</div>` : ""}
 </div>`,
         )
         .join("")}</td></tr>`
@@ -378,8 +353,8 @@ ${
   <td class="col px" valign="middle" style="padding:32px 36px 32px 26px;">
     <div style="${F.mono}color:${C.gold};">${String(++n).padStart(2, "0")} &middot; Watch it move</div>
     <div style="${F.display}font-size:36px;line-height:1;color:#ffffff;padding-top:10px;">Every song has a Canvas.</div>
-    <div style="${F.body}font-size:14px;line-height:1.55;color:${C.soft};padding:12px 0 16px;">Play anything from ${esc(canvasGif.album.title)} in GoSquare and this moves behind it, with lyrics that light up line by line.</div>
-    ${link("https://gosquare.app", "Open in GoSquare", "#ffffff")}
+    <div style="${F.body}font-size:14px;line-height:1.55;color:${C.soft};padding:12px 0 16px;">${APP_LIVE ? `Play anything from ${esc(canvasGif.album.title)} in GoSquare and this moves behind it, with lyrics that light up line by line.` : `Open ${esc(canvasGif.album.title)} on squaredrum.com and this moves at the top of the page while the music plays.`}</div>
+    ${APP_LIVE ? link("https://gosquare.app", "Open in GoSquare", "#ffffff") : link(`${SITE}/releases/${canvasGif.album.slug}`, "See it move", "#ffffff")}
   </td></tr></table></td></tr>`
     : ""
 }
@@ -391,26 +366,8 @@ ${
   <div style="${F.mono}color:#c0392b;">&#9679; Live now</div>
   <div style="${F.display}font-size:34px;line-height:1;color:${C.ink};padding-top:8px;">${esc(station.station_name)}</div>
   <div style="${F.body}font-size:14px;line-height:1.6;color:${C.text};padding:10px 0 14px;">${esc(lead.name)} joins the rotation today. One of ${stations.length} channels that never stop: everyone hears the same song at the same moment, like real radio.</div>
-  ${link(`${SITE}/#onair`, "Tune in")}
+  ${link(`${SITE}/?channel=${encodeURIComponent(station.slug)}#onair`, `Tune in to ${station.station_name}`)}
 </td></tr>`
-    : ""
-}
-
-${
-  ots.length
-    ? `<tr><td style="padding-top:40px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ebe7dd;"><tr><td class="px" style="padding:30px 36px 18px;">
-  <div style="${F.mono}color:${C.goldDeep};padding-bottom:6px;">${String(++n).padStart(2, "0")} &middot; Off the Square</div>
-  ${ots
-    .map(
-      (o) => `<div style="border-top:1px solid #d9d4c7;padding:14px 0;">
-    ${o.source ? `<div style="${F.mono}font-size:10px;color:${C.goldDeep};padding-bottom:4px;">${esc(o.source)}</div>` : ""}
-    <div style="${F.body}font-size:16px;font-weight:600;line-height:1.35;"><a href="${esc(o.link || `${SITE}/news`)}" style="color:${C.ink};text-decoration:none;">${esc(o.title)}</a></div>
-    ${o.text ? `<div style="${F.body}font-size:13px;line-height:1.55;color:${C.text};padding-top:4px;">${esc(o.text)}</div>` : ""}
-  </div>`,
-    )
-    .join("")}
-  <div style="padding:6px 0 10px;">${link(`${SITE}/news`, "More on Off the Square")}</div>
-</td></tr></table></td></tr>`
     : ""
 }
 
@@ -420,8 +377,11 @@ ${
 </tr></table></td></tr>
 
 <tr><td align="center" style="padding:40px 36px 44px;">
-  <a href="https://gosquare.app" style="display:inline-block;background:${C.gold};color:${C.ink};${F.mono}font-size:13px;letter-spacing:.14em;text-decoration:none;padding:17px 34px;">Open GoSquare &rarr;</a>
-  <div style="${F.body}font-size:13px;color:${C.mute};padding-top:14px;">Free on the App Store and Google Play</div>
+  ${APP_LIVE
+    ? `<a href="https://gosquare.app" style="display:inline-block;background:${C.gold};color:${C.ink};${F.mono}font-size:13px;letter-spacing:.14em;text-decoration:none;padding:17px 34px;">Open GoSquare &rarr;</a>
+  <div style="${F.body}font-size:13px;color:${C.mute};padding-top:14px;">Free on the App Store and Google Play</div>`
+    : `<a href="${SITE}/releases" style="display:inline-block;background:${C.gold};color:${C.ink};${F.mono}font-size:13px;letter-spacing:.14em;text-decoration:none;padding:17px 34px;">Listen on squaredrum.com &rarr;</a>
+  <div style="${F.body}font-size:13px;color:${C.mute};padding-top:14px;">Every album, every channel. Free, no sign-up needed.</div>`}
 </td></tr>
 
 <tr><td class="px" style="background:${C.ink};padding:30px 36px 34px;${F.body}font-size:12px;line-height:1.7;color:#8f8b82;">
@@ -456,6 +416,5 @@ console.log(`  Releases:   ${albums.map((a) => `${a.name} – ${a.title} (${a.so
 console.log(`  Spotlight:  ${spot?.artist.artist_name ?? "none (no artist page available)"}`);
 console.log(`  Canvas:     ${canvasGif ? canvasGif.album.title : "none"}`);
 console.log(`  On air:     ${station?.station_name ?? "none"}`);
-console.log(`  Off the Square: ${ots.length} stories${notes.ots.length ? " (from notes)" : ""}`);
 console.log(`  World news: ${notes.world.length} items`);
 console.log(`\nEmail:   ${FILE}\nWords:   ${NOTES}\nPreview: ${join(OUT, "preview.png")}`);
