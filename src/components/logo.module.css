@@ -1,21 +1,17 @@
-/* The kit's two versions. Dark is for ink backgrounds and uses the site gold,
-   which was set to the logo's gold (#D4A24C) so the two always match. Light
-   is for paper: the kit's deeper #A97A25 and heavier outer brackets keep the
-   mark from washing out on white. */
+/* Dark is for ink backgrounds and uses the site gold (#D4A24C). Light is
+   for paper: a deeper #A97A25 keeps the gold from washing out on white. */
 .logo {
   --logo-gold: var(--color-gold);
-  --logo-middle: 0.65;
-  --logo-outer: 0.35;
   display: block;
   width: auto;
-  aspect-ratio: 855.33 / 137;
+  aspect-ratio: 1664 / 328;
   flex: none;
+  /* RADIO is a sixth of the height: below ~2.6rem it drops under 7px. */
+  height: 2.75rem;
 }
 
 .light {
   --logo-gold: #a97a25;
-  --logo-middle: 0.72;
-  --logo-outer: 0.45;
 }
 
 .gold,
@@ -31,57 +27,24 @@
   fill: currentColor;
 }
 
-/* The wordmark set bolder (Robert, Oct 2026): the kit's letters are traced
-   outlines, so the weight comes from a same-colour stroke around them —
-   2.5 units, the kit's "C · bold". */
-.word {
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-  transition: fill 0.5s var(--ease-out), stroke 0.5s var(--ease-out);
-}
-
-.name.word {
-  stroke: currentColor;
-}
-
-.gold.word {
-  stroke: var(--logo-gold);
-}
-
-.middle {
-  opacity: var(--logo-middle);
-}
-
-.outer {
-  opacity: var(--logo-outer);
-}
-
-/* Sized off the wordmark, not the mark: the capitals are only 28% of the
-   lockup's height and the strokes are hairline, so anything much smaller
-   than this stops reading as a name. */
-.logo {
-  height: 2.5rem;
-}
-
 .compact {
-  height: 2.1rem;
+  height: 2.5rem;
 }
 
 @media (max-width: 620px) {
   .logo {
-    height: 2.15rem;
+    height: 2.5rem;
   }
   .compact {
-    height: 1.9rem;
+    height: 2.3rem;
   }
 }
 
-/* Below 430px the header has ~110-200px left beside the listen button and
-   the burger — the wordmark would shrink to 5px capitals. A square box plus
-   preserveAspectRatio="xMinYMid slice" crops the lockup to the mark alone,
-   at full height, without a second set of paths. */
+/* Below 430px the header has ~110-200px beside the listen button and the
+   burger. A box the shape of the mark plus preserveAspectRatio="xMinYMid
+   slice" crops the lockup to the mark alone, without a second set of paths. */
 @media (max-width: 429px) {
   .collapsible {
-    aspect-ratio: 1;
+    aspect-ratio: 348 / 328;
   }
 }

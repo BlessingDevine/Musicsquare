@@ -3,8 +3,8 @@
 // the wall artwork; the output is committed, so nothing runs at build time.
 //
 // It is the hero, flattened: the station's own sleeves drained to black and
-// white, dimmed and thrown out of focus, with the brand kit's tagline lockup
-// on the centre seam and the gold hairline running down to meet it.
+// white, dimmed and thrown out of focus, with the logo on the centre seam
+// and the gold hairline running down to meet it.
 //
 // JPEG, not PNG: WhatsApp drops previews much over 300KB, and a blurred
 // photographic wall is exactly what PNG compresses worst. 4:4:4 chroma keeps
@@ -20,8 +20,8 @@ const W = 1200;
 const H = 630;
 const INK = "#0a0a0b";
 
-// The kit's horizontal lockup with tagline, dark version. Its paths are drawn
-// as-is: this runs once, so there is no reason to slim them.
+// The horizontal lockup, dark version (gold mark, white name) — a copy of
+// horizontal-on-dark.svg from MUSIC SQUARE RADIO/Logo - MS (2026-10-22).
 const LOGO = join(root, "scripts/og-logo.svg");
 
 const COLS = 6;
@@ -74,8 +74,9 @@ const wall = await sharp(mosaic)
   .toBuffer();
 
 const logoSvg = await readFile(LOGO, "utf8");
-const logoW = 900;
-const logoH = Math.round((logoW * 137) / 855.33);
+const [, , vbW, vbH] = logoSvg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number);
+const logoW = 760;
+const logoH = Math.round((logoW * vbH) / vbW);
 const logoX = (W - logoW) / 2;
 const logoY = (H - logoH) / 2;
 const seam = 30; // gap between the hairline and the lockup

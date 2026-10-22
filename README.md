@@ -184,42 +184,39 @@ they are on `ROSTER` and have music in the catalogue.
 
 ## Logo and icons
 
-The logo comes from the brand kit (`NEW LOGO/musicsquare-radio-logo-kit` in the
-station's project folder, Oct 2026): a square signal inside three widening gold
-brackets, then the wordmark. `src/components/logo.tsx` inlines the kit's
-`horizontal-dark.svg` paths rather than using an `<img>`, so one component
-covers every context:
+The logo (Oct 22 2026) is the "MS" mark — five rounded bars, the last two bent
+into an S — beside MUSICSQUARE over a spaced RADIO. It was redrawn as clean
+vectors from a concept image, with every bar the same width, in the site's
+colours. The source files live in the station's project folder,
+`SQUARE BUSINESS/MUSIC SQUARE RADIO/Logo - MS (2026-10-22)/`: the concept, every
+version as SVG (horizontal, stacked, on dark and light, app icons), a board, and
+`build-logo.mjs`, which draws the mark from its geometry and turns the
+lettering (Montserrat ExtraBold / SemiBold) into outlines. If the logo changes,
+edit and rerun that builder rather than hand-editing path strings; it also
+writes `out/logo-paths.json`, the data `src/components/logo.tsx` inlines.
 
-- **The wordmark follows `currentColor`**, and `tone="light"` switches the gold
-  and bracket opacities to the kit's light version (`#A97A25`, .72/.45 instead
-  of `#D4A24C`, .65/.35). The header uses dark over the hero and light once it
-  docks white on scroll.
-- **The site gold is the logo's gold.** `--color-gold` was moved to the kit's
-  `#D4A24C` (Oct 2026), with `--color-gold-deep` (`#886221`, text on paper)
-  and `--color-gold-hi` (`#EAD4AE`, hover) derived on the same hue. The logo's
-  dark version reads `var(--color-gold)`, so the two can't drift apart again.
-  Gold on paper is for fills only — it is 2.3:1, too light for text.
-- **Size it off the wordmark.** Its capitals are only 28% of the lockup height
-  and the strokes are hairline — below ~2rem tall it stops reading as a name.
+- **One inline component, two tones.** The name follows `currentColor`; the
+  mark and RADIO use the site gold `#D4A24C` (`var(--color-gold)`), or
+  `#A97A25` with `tone="light"` so they don't wash out on white. The header
+  uses dark over the hero and light once it docks white on scroll.
+- **The site gold is the logo's gold.** `--color-gold` is `#D4A24C`, with
+  `--color-gold-deep` (`#886221`, text on paper) and `--color-gold-hi`
+  (`#EAD4AE`, hover) on the same hue. Gold on paper is for fills only — it is
+  2.3:1, too light for text.
+- **Size it off RADIO.** RADIO's capitals are a sixth of the lockup height, so
+  the header logo is 2.75rem (2.5rem docked); much smaller and RADIO drops
+  under 7px.
 - **`collapsible`** (header only): under 430px there is not room beside the
-  listen button and burger, so the box goes square and
-  `preserveAspectRatio="xMinYMid slice"` crops the lockup to the mark alone. The
-  hero spells out the name directly beneath it.
-- The kit's paths sample every rounded corner as a polyline with 13-digit
-  coordinates. They were simplified (35KB → 13KB, under 0.1 unit of deviation)
-  before inlining. If the logo changes, regenerate from the kit rather than
-  hand-editing the path strings.
+  listen button and burger, so the box takes the mark's shape (348 x 328) and
+  `preserveAspectRatio="xMinYMid slice"` crops the lockup to the mark alone.
 
-`app/icon.svg` is the kit's `app-icon-small.svg` — the small-size variant, which
-drops the faint outer bracket so the mark survives at 16px. `app/apple-icon.png`
-is the kit's `apple-touch-icon-180.png`, copied as-is. The kit's `app-icons/`
-folder also holds Android, iOS and PWA sizes if a web manifest is ever added.
+`app/icon.svg` and `app/apple-icon.png` (180px) are the gold mark on ink.
 
 ### Link preview card
 
 `app/opengraph-image.jpg` is the card shown when a link is shared — the hero
 flattened: wall sleeves drained to black and white, dimmed to 30% and blurred,
-with the kit's tagline lockup (`scripts/og-logo.svg`) on the centre seam. It is
+with the logo (`scripts/og-logo.svg`, the horizontal lockup on dark) on the centre seam. It is
 **built by `node scripts/og-image.mjs` and committed**, not generated at build
 time; rerun it if the logo or `public/wall/` changes. JPEG at ~50KB, because
 WhatsApp drops previews much over 300KB. X uses the same image, and
