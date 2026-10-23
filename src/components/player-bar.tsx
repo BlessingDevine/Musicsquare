@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { clock, usePlayer } from "./player-provider";
+import { PlayerExtras } from "./player-extras";
 import styles from "./player-bar.module.css";
 
 /**
@@ -71,6 +72,8 @@ export function PlayerBar() {
           <span className={styles.title}>{title}</span>
           <span className={`mono ${styles.artist}`}>{artist}</span>
         </p>
+
+        <PlayerExtras tabbable={open} />
 
         <p className={`mono ${styles.right}`}>
           {status === "error" ? (

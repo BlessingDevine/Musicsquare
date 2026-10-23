@@ -1,6 +1,8 @@
 "use client";
 
 import { Wall } from "./wall";
+import { LevelMeter } from "./level-meter";
+import { PlayerExtras } from "./player-extras";
 import { clock, usePlayer } from "./player-provider";
 import type { ChannelSummary } from "@/lib/channel-summary";
 import { CATALOGUE, STATION } from "@/lib/station";
@@ -82,6 +84,9 @@ export function Hero({ channels }: { channels: ChannelSummary[] }) {
         </p>
       </div>
 
+      {/* The logo's bars as a faint gold level meter along the bottom of the hero. */}
+      <LevelMeter />
+
       <div className={styles.console}>
         <div className={`wrap ${styles.consoleInner}`}>
           <button
@@ -93,6 +98,8 @@ export function Hero({ channels }: { channels: ChannelSummary[] }) {
             <span aria-hidden="true">{liveOn ? "■" : "▶"}</span>
             <span>{liveOn ? "Stop the stream" : "Listen live"}</span>
           </button>
+
+          {(status === "playing" || status === "loading") && <PlayerExtras />}
 
           {/* Every channel, each one tunes straight in (scrolls sideways when they don't fit). */}
           <nav className={styles.channels} aria-label="Tune in to a channel">

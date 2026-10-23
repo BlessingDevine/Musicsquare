@@ -1,0 +1,48 @@
+/* Faint gold level meter along the bottom of the hero, behind the console (level-meter.tsx). */
+.meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(110px, 16svh, 170px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(4px, 0.45vw, 7px);
+  overflow: hidden;
+  opacity: 0.16;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.meter i {
+  display: block;
+  flex: none;
+  width: clamp(7px, 0.96vw, 14px);
+  height: 100%;
+  border-radius: 999px 999px 0 0;
+  background: var(--color-gold);
+  transform-origin: bottom;
+  transform: scaleY(var(--h));
+  animation: level var(--s) ease-in-out var(--d) infinite alternate;
+  animation-play-state: paused;
+}
+
+.on i {
+  animation-play-state: running;
+}
+
+@keyframes level {
+  from {
+    transform: scaleY(calc(var(--h) * 0.35));
+  }
+  to {
+    transform: scaleY(var(--h));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter i {
+    animation: none;
+  }
+}

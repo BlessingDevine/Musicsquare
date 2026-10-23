@@ -1,0 +1,32 @@
+/* Sleep timer and Share buttons beside the player (player-extras.tsx). */
+.extras {
+  display: flex;
+  gap: 0.4rem;
+  flex: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-ash-dark);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.btn:hover {
+  color: var(--color-paper);
+  border-color: var(--color-ash-dark);
+}
+
+.on {
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+}

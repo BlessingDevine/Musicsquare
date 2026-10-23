@@ -38,6 +38,9 @@ type PlayerValue = {
   stop: () => void;
   isPlaying: (url?: string) => boolean;
   isOnChannel: (slug: string) => boolean;
+  /** When the sleep timer stops playback (ms since epoch), or null. */
+  sleepAt: number | null;
+  setSleepTimer: (minutes: number | null) => void;
 };
 
 const ROTATION_TTL_MS = 5 * 60_000;
@@ -140,11 +143,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return audioRef.current;
   }, []);
 
+  // Sleep timer: stops whatever is playing at sleepAt (wall time), for people who fall asleep to
+  // the radio. Stopping by hand clears it.
+  const [sleepAt, setSleepAt] = useState<number | null>(null);
+  const setSleepTimer = useCallback((minutes: number | null) => {
+    setSleepAt(minutes ? Date.now() + minutes * 60_000 : null);
+  }, []);
+
   const stop = useCallback(() => {
     audioRef.current?.pause();
     mixerRef.current?.stop();
     setStatus("idle");
+    setSleepAt(null);
   }, []);
+
+  useEffect(() => {
+    if (!sleepAt) return;
+    const t = setTimeout(stop, Math.max(0, sleepAt - Date.now()));
+    return () => clearTimeout(t);
+  }, [sleepAt, stop]);
 
   // --- live channels ----------------------------------------------------------
 
@@ -275,8 +292,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       stop,
       isPlaying,
       isOnChannel,
+      sleepAt,
+      setSleepTimer,
     }),
-    [status, source, live, listening, toggleLive, playTrack, playChannel, stop, isPlaying, isOnChannel],
+    [status, source, live, listening, toggleLive, playTrack, playChannel, stop, isPlaying, isOnChannel, sleepAt, setSleepTimer],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
