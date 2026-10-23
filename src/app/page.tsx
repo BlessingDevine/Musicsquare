@@ -16,7 +16,7 @@ export default async function Home() {
   const [channels, drop] = await Promise.all([getChannelSummaries(), getTodaysDrop()]);
   return (
     <main>
-      <Hero />
+      <Hero channels={channels} />
       <OnNow />
       <Channels initial={channels} />
       <Drop drop={drop} />

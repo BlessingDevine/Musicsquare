@@ -231,14 +231,78 @@
   flex: none;
 }
 
+/* Every channel as a tune-in chip; scrolls sideways when they don't all fit. */
 .channels {
   flex: 1;
   min-width: 0;
-  margin: 0;
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 92%, transparent);
+}
+
+.channels::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 999px;
+  background: none;
   color: var(--color-ash-dark);
+  font-size: 0.68rem;
+  text-transform: uppercase;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.chip:hover {
+  color: var(--color-paper);
+  border-color: var(--color-ash-dark);
+}
+
+.chipOn {
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+/* GoSquare app card at the end of the console: QR on a white tile, tap or scan. */
+.app {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.35rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 0.6rem;
+  color: var(--color-ash-dark);
+  font-size: 0.62rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  transition: border-color 0.2s;
+}
+
+.app:hover {
+  border-color: var(--color-gold);
+}
+
+.app img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.app b {
+  display: block;
+  color: var(--color-paper);
+  font-weight: 600;
 }
 
 .scroll {
@@ -311,18 +375,18 @@
     flex-wrap: wrap;
     gap: 0.9rem;
   }
+  /* The channel chips sit above the button and scroll sideways; the app card goes full width below. */
   .channels {
     order: -1;
     width: 100%;
     flex: none;
-    /* Let the genre list wrap rather than truncate — the breadth is the point. */
-    white-space: normal;
-    overflow: visible;
-    line-height: 1.7;
   }
   .cta {
     width: 100%;
     justify-content: center;
+  }
+  .app {
+    width: 100%;
   }
 }
 
@@ -393,4 +457,21 @@
   .thesisLine {
     display: none;
   }
+}
+
+/* The on-air title opens its squaredrum.com page when it has one. */
+.trackLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(212, 162, 76, 0.5);
+  text-underline-offset: 0.2em;
+}
+
+.trackLink:hover {
+  color: var(--color-gold);
+}
+
+.trackLink span {
+  font-size: 0.75em;
+  color: var(--color-gold);
 }

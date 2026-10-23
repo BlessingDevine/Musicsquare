@@ -157,3 +157,19 @@ export async function getChannel(slug: string) {
 export async function getChannelSummaries() {
   return summarise(await getChannels(), Date.now());
 }
+
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Where a live-stream song has a page on squaredrum.com, or null. The main
+ * stream (RadioKing) carries some songs that were never imported, so only a
+ * title the catalogue knows gets a link; squaredrum.com/find resolves it to
+ * the album page (keeping the album-slug rules in one place).
+ */
+export async function songPage(title: string, artist: string): Promise<string | null> {
+  const known = new Set((await getChannels()).flatMap((c) => c.rotation.tracks.map((t) => norm(t.title))));
+  if (!known.has(norm(title))) return null;
+  const q = new URLSearchParams({ title, artist });
+  return `https://www.squaredrum.com/find?${q}`;
+}

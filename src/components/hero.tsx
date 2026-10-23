@@ -2,13 +2,15 @@
 
 import { Wall } from "./wall";
 import { clock, usePlayer } from "./player-provider";
+import type { ChannelSummary } from "@/lib/channel-summary";
 import { CATALOGUE, STATION } from "@/lib/station";
 import styles from "./hero.module.css";
 
 const WORD = "MUSICSQUARE".split("");
+const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=app.gosquare";
 
-export function Hero() {
-  const { status, source, now, listening, toggleLive } = usePlayer();
+export function Hero({ channels }: { channels: ChannelSummary[] }) {
+  const { status, source, now, listening, toggleLive, playChannel, isOnChannel } = usePlayer();
   const liveOn = source.kind === "live" && status === "playing";
 
   return (
@@ -44,9 +46,13 @@ export function Hero() {
           </div>
 
           <figcaption className={styles.caption}>
-            <span className={styles.trackTitle}>
-              {now?.title ?? "Musicsquare Radio"}
-            </span>
+            {now?.page ? (
+              <a className={`${styles.trackTitle} ${styles.trackLink}`} href={now.page} target="_blank" rel="noopener" title="Open on squaredrum.com">
+                {now.title} <span aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <span className={styles.trackTitle}>{now?.title ?? "Musicsquare Radio"}</span>
+            )}
             <span className={`mono ${styles.trackArtist}`}>
               {now?.artist ?? "Live stream"}
             </span>
@@ -88,14 +94,33 @@ export function Hero() {
             <span>{liveOn ? "Stop the stream" : "Listen live"}</span>
           </button>
 
-          <p className={`mono ${styles.channels}`}>
-            Pop · R&amp;B · Afrobeat · Country · Dancehall · Reggaeton · Amapiano ·
-            Kizomba · Lo-fi
-          </p>
+          {/* Every channel, each one tunes straight in (scrolls sideways when they don't fit). */}
+          <nav className={styles.channels} aria-label="Tune in to a channel">
+            {channels.map((c) => {
+              const on = isOnChannel(c.slug);
+              return (
+                <button
+                  key={c.slug}
+                  type="button"
+                  className={`mono ${styles.chip} ${on ? styles.chipOn : ""}`}
+                  onClick={() => playChannel(c.slug, c.name, c.now)}
+                  aria-pressed={on}
+                >
+                  {c.name}
+                </button>
+              );
+            })}
+          </nav>
 
-          <p className={`mono ${styles.scroll}`} aria-hidden="true">
-            Scroll
-          </p>
+          {/* The app, for listeners who want it on their phone: tap on a phone, scan from a computer. */}
+          <a className={styles.app} href={GOOGLE_PLAY_URL} target="_blank" rel="noopener">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/google-play-qr.svg" alt="" width={44} height={44} />
+            <span className="mono">
+              Take it with you
+              <b>GoSquare · Google Play</b>
+            </span>
+          </a>
         </div>
       </div>
     </section>

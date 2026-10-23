@@ -136,3 +136,22 @@
     border-top: 0;
   }
 }
+
+/* Titles with a squaredrum.com page (on-now.tsx SongTitle). */
+.songLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(212, 162, 76, 0.5);
+  text-underline-offset: 0.2em;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.songLink:hover {
+  color: var(--color-gold);
+  text-decoration-color: var(--color-gold);
+}
+
+.songLink span {
+  font-size: 0.7em;
+  color: var(--color-gold);
+}

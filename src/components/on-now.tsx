@@ -15,6 +15,16 @@ function at(iso: string | null) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+/** A song title that opens its squaredrum.com page when it has one. */
+function SongTitle({ title, page, className }: { title: string; page?: string | null; className?: string }) {
+  if (!page) return <span className={className}>{title}</span>;
+  return (
+    <a className={`${className ?? ""} ${styles.songLink}`} href={page} target="_blank" rel="noopener" title="Open on squaredrum.com">
+      {title} <span aria-hidden="true">↗</span>
+    </a>
+  );
+}
+
 /**
  * The seam between the dark station and the light archive — and the most
  * useful thing on the page: the three tracks either side of now, with the
@@ -46,7 +56,7 @@ export function OnNow() {
             <ol className={styles.history}>
               {live.history.map((track) => (
                 <li key={`${track.title}-${track.startedAt}`}>
-                  <span className={styles.pastTitle}>{track.title}</span>
+                  <SongTitle className={styles.pastTitle} title={track.title} page={track.page} />
                   <span className={`mono ${styles.pastMeta}`}>
                     {at(track.startedAt) ?? track.artist}
                   </span>
@@ -63,7 +73,9 @@ export function OnNow() {
             <span className="pip" aria-hidden="true" />
             On air
           </p>
-          <p className={styles.show}>{live.current?.title ?? "Musicsquare Radio"}</p>
+          <p className={styles.show}>
+            <SongTitle title={live.current?.title ?? "Musicsquare Radio"} page={live.current?.page} />
+          </p>
           <p className={`mono ${styles.detail}`}>
             {live.current?.artist ?? "Live stream"}
           </p>
@@ -78,7 +90,9 @@ export function OnNow() {
           <p className={`mono ${styles.tag} ${styles.tagQuiet}`}>Up next</p>
           {live.next ? (
             <>
-              <p className={styles.showNext}>{live.next.title}</p>
+              <p className={styles.showNext}>
+                <SongTitle title={live.next.title} page={live.next.page} />
+              </p>
               <p className={`mono ${styles.detail}`}>
                 {live.next.artist}
                 {at(live.next.startedAt) ? ` · ${at(live.next.startedAt)}` : ""}

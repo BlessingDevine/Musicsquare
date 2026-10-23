@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { songPage } from "@/lib/catalog";
 
 const BASE = "https://api.radioking.io/widget/radio/music-square-radio/track";
 
@@ -11,6 +12,8 @@ export type Track = {
   artwork: string | null;
   startedAt: string | null;
   endsAt: string | null;
+  /** The song's page on squaredrum.com, when the catalogue has it (see songPage). */
+  page?: string | null;
 };
 
 export type Live = {
@@ -91,7 +94,14 @@ export async function GET() {
           .slice(0, 3)
       : [];
 
-  const payload: Live = { current: nowPlaying, next: upNext, history: played };
+  // Link each title to its squaredrum.com page when the catalogue knows the song.
+  const linked = async (t: Track): Promise<Track> => ({ ...t, page: await songPage(t.title, t.artist).catch(() => null) });
+  const [cur, nxt, past] = await Promise.all([
+    nowPlaying && linked(nowPlaying),
+    upNext && linked(upNext),
+    Promise.all(played.map(linked)),
+  ]);
+  const payload: Live = { current: cur, next: nxt, history: past };
 
   return NextResponse.json(nowPlaying || upNext || played.length ? payload : EMPTY, {
     // Public now-playing data; the GoSquare app (incl. its web build) reads it too.
