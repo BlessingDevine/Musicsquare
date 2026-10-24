@@ -4,6 +4,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChannelSummary } from "@/lib/channel-summary";
 import { useChannelSummaries } from "./live-channels";
 import { usePlayer } from "./player-provider";
+import { flushSync } from "react-dom";
 import styles from "./stage-channels.module.css";
 
 // How far an element's centre is from the middle of its scrolling row, in pixels.
@@ -175,12 +176,36 @@ export function StageChannels({
   const squeeze = (r: DOMRect) =>
     `translate(${r.left}px, ${r.top}px) scale(${r.width / innerWidth}, ${r.height / innerHeight})`;
 
+  // Where the browser can morph between layouts (View Transitions: Safari 18+, Chrome), the card's
+  // frame and its cover each glide between their small and full-screen places, with the words
+  // crossfading, so nothing pops. Elsewhere the card is squeezed by hand (below).
+  const canMorph = () => "startViewTransition" in document && !still();
+  const morphing = useRef(false);
+  const morph = (slug: string, update: () => void) => {
+    const el = cards.current[slug];
+    const bg = el?.querySelector<HTMLElement>(`.${styles.bg}`);
+    if (!el) return update();
+    el.style.viewTransitionName = "chan-card";
+    if (bg) bg.style.viewTransitionName = "chan-cover";
+    morphing.current = true;
+    document.startViewTransition(() => flushSync(update)).finished.finally(() => {
+      el.style.viewTransitionName = "";
+      if (bg) bg.style.viewTransitionName = "";
+      morphing.current = false;
+    });
+  };
+
   const grow = (slug: string) => {
     const el = cards.current[slug];
     if (!el) return;
     from.current = el.getBoundingClientRect();
-    setPeek(null);
-    setOpen({ slug, height: from.current.height });
+    const height = from.current.height;
+    const update = () => {
+      setPeek(null);
+      setOpen({ slug, height });
+    };
+    if (canMorph()) morph(slug, update);
+    else update();
   };
 
   const shrink = () => {
@@ -190,6 +215,7 @@ export function StageChannels({
     if (slot.current && from.current) window.scrollBy(0, slot.current.getBoundingClientRect().top - from.current.top);
     const to = slot.current?.getBoundingClientRect();
     const done = () => setOpen(null);
+    if (open && canMorph()) return morph(open.slug, done);
     if (!el || !to || still()) return done();
     // Held on its last frame (fill) until the card is back in the grid, so no full-screen frame
     // flashes in between; it dims towards the end and fades back in at its spot (effect below), so
@@ -221,7 +247,7 @@ export function StageChannels({
   useLayoutEffect(() => {
     if (!open) return;
     const el = cards.current[open.slug];
-    if (el && from.current && !still()) {
+    if (el && from.current && !still() && !morphing.current) {
       el.animate([{ transform: squeeze(from.current), borderRadius: "14px" }, { transform: "none", borderRadius: "0px" }], {
         duration: 460,
         easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",

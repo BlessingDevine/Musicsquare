@@ -255,3 +255,16 @@ a {
     transform: none;
   }
 }
+
+/* Phones, home grid: the channel card's morph between its small and full-screen places
+   (stage-channels.tsx names the card and its cover for the transition). The page itself doesn't fade. */
+::view-transition-group(chan-card),
+::view-transition-group(chan-cover) {
+  animation-duration: 460ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
