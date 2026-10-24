@@ -166,19 +166,30 @@ function Star({ on, label, toggle }: { on: boolean; label: string; toggle: (l: s
   );
 }
 
+/** Touch screens (no hover): read as an external store so the server render and the browser agree. */
+const NO_HOVER = "(hover: none)";
+function subscribeNoHover(cb: () => void) {
+  const mq = matchMedia(NO_HOVER);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
 /** The record in the hero, with today's drop artist as its label; faster while the radio plays. */
 export function Record({ image }: { image: string | null }) {
   const { status } = usePlayer();
-  // The tonearm swings onto the record on hover (mouse) or tap (touch), and rests there while the radio plays.
-  const [lifted, setLifted] = useState(false);
-  const armDown = lifted || status === "playing";
+  // With a mouse the tonearm rests beside the record and swings on while hovered. On touch screens
+  // (no hover) it rests on the record, and a tap lifts it off or sets it back. Down while the radio plays.
+  const noHover = useSyncExternalStore(subscribeNoHover, () => matchMedia(NO_HOVER).matches, () => false);
+  const [hovered, setHovered] = useState(false);
+  const [tappedUp, setTappedUp] = useState(false);
+  const armDown = status === "playing" || (noHover ? !tappedUp : hovered);
   return (
     <div
       className={`${styles.recordWrap} ${armDown ? styles.armDown : ""}`}
       aria-hidden="true"
-      onPointerEnter={(e) => e.pointerType === "mouse" && setLifted(true)}
-      onPointerLeave={(e) => e.pointerType === "mouse" && setLifted(false)}
-      onClick={(e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setLifted((v) => !v)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
+      onClick={(e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setTappedUp((v) => !v)}
     >
       <div className={`${styles.record} ${status === "playing" ? styles.spinning : ""}`}>
         <div className={styles.label}>
