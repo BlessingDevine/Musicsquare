@@ -103,7 +103,7 @@ export const CHANNELS: Channel[] = [
  */
 export const CATALOGUE = {
   artists: "38",
-  songs: "3,300+",
+  songs: "3,200+",
 } as const;
 
 /**
