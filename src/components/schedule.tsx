@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DAYS, WEEK } from "@/lib/station";
+import { DAYS, WEEK, clock, localWeek } from "@/lib/station";
 import { Reveal } from "./reveal";
 import styles from "./schedule.module.css";
-
-const hh = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
 
 export function Schedule() {
   const [now, setNow] = useState<{ day: number; minutes: number } | null>(null);
@@ -24,8 +22,9 @@ export function Schedule() {
   // Before mount there is no listener clock, so fall back to Monday rather
   // than guessing — the full week is one click away either way.
   const day = now?.day ?? 1;
-  const hour = now ? Math.floor(now.minutes / 60) : null;
-  const blocks = WEEK[day];
+  const hour = now ? now.minutes / 60 : null;
+  // On the listener's clock once it is known; the station's own timetable before that.
+  const blocks = now ? localWeek()[day] : WEEK[day];
 
   return (
     <section id="schedule" className={styles.section}>
@@ -89,7 +88,7 @@ export function Schedule() {
               return (
                 <tr key={block.start} className={live ? styles.rowLive : ""}>
                   <td className="mono">
-                    {hh(block.start)} — {hh(block.end)}
+                    {clock(block.start)} — {clock(block.end)}
                   </td>
                   <th scope="row" className={`display ${styles.block}`}>
                     {block.label}

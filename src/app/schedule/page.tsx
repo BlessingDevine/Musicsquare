@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Lineup, Record } from "@/components/lineup";
+import { Lineup, Record, SundayTimes } from "@/components/lineup";
 import { getTodaysDrop } from "@/lib/drop";
-import { ALL_BLOCKS, ROSTER, WEEK } from "@/lib/station";
+import { ALL_BLOCKS, ROSTER } from "@/lib/station";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -9,8 +9,6 @@ export const metadata: Metadata = {
   description:
     "Your week on Musicsquare Radio: every programme, day by day, from Afro Mix at midnight to Sunday Church. Times are shown in your own timezone.",
 };
-
-const hhmm = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
 
 // Rebuilt every minute so the record's label (today's drop artist) turns over soon after midnight Pacific.
 export const revalidate = 60;
@@ -82,16 +80,7 @@ export default async function SchedulePage() {
               Explore Sunday <span aria-hidden="true">↗</span>
             </a>
           </div>
-          <ol className={styles.sundayList}>
-            {WEEK[0].map((b) => (
-              <li key={b.label}>
-                <b>{b.label}</b>
-                <span className="mono">
-                  {hhmm(b.start)}–{hhmm(b.end)}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <SundayTimes className={styles.sundayList} />
         </div>
       </section>
     </main>

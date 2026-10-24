@@ -322,6 +322,66 @@ export const ALL_BLOCKS = Array.from(
 
 export const HOURS_A_WEEK = WEEK.flat().reduce((sum, b) => sum + (b.end - b.start), 0);
 
+/** The timetable above runs on the station's clock (RadioKing's scheduler is set to Pacific). */
+export const STATION_TZ = "America/Los_Angeles";
+
+/** A block placed on the listener's own clock. `start`/`end` are clipped to that local day
+ *  (0–24); `from`/`to` are the whole block in the same day's hours, so `from` < 0 means it
+ *  began the day before and `to` > 24 means it runs past midnight. */
+export type LocalBlock = Block & { from: number; to: number };
+
+const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** The station's weekday and fractional hour at `date`. */
+export function stationClock(date = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: STATION_TZ,
+      weekday: "short",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  return {
+    day: SHORT_DAYS.indexOf(parts.weekday),
+    hour: Number(parts.hour) + Number(parts.minute) / 60 + Number(parts.second) / 3600,
+  };
+}
+
+/** One station block on the listener's clock: the local weekday it starts and its hours in that day. */
+export function toLocal(day: number, b: Block, date = new Date(), st = stationClock(date)) {
+  const ms = date.getTime() + ((day - st.day) * 24 + b.start - st.hour) * 3_600_000;
+  const t = new Date(Math.round(ms / 60_000) * 60_000);
+  const from = t.getHours() + t.getMinutes() / 60;
+  return { day: t.getDay(), from, to: from + (b.end - b.start) };
+}
+
+/** The week on the listener's own clock (the browser's time zone), indexed like `WEEK`.
+ *  A block crossing local midnight is split so every day runs 00:00–24:00. */
+export function localWeek(date = new Date()): LocalBlock[][] {
+  const st = stationClock(date);
+  const week: LocalBlock[][] = DAYS.map(() => []);
+  WEEK.forEach((blocks, d) =>
+    blocks.forEach((b) => {
+      const { day, from, to } = toLocal(d, b, date, st);
+      week[day].push({ label: b.label, from, to, start: from, end: Math.min(to, 24) });
+      if (to > 24) week[(day + 1) % 7].push({ label: b.label, from: from - 24, to: to - 24, start: 0, end: to - 24 });
+    }),
+  );
+  week.forEach((blocks) => blocks.sort((a, b) => a.start - b.start));
+  return week;
+}
+
+/** "07:00", or "07:30" in half-hour time zones; 24 reads as "00:00". */
+export function clock(h: number) {
+  const m = ((Math.round(h * 60) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
 /** What is on air on `day` at `hour`. */
 export function blockAt(day: number, hour: number) {
   return WEEK[day]?.find((b) => hour >= b.start && hour < b.end) ?? null;

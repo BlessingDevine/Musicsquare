@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { DAYS, WEEK, type Block } from "@/lib/station";
+import { DAYS, STATION_TZ, WEEK, clock, localWeek, stationClock, toLocal, type Block, type LocalBlock } from "@/lib/station";
 import { usePlayer } from "./player-provider";
 import styles from "./lineup.module.css";
 
-const hhmm = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
+/** The timetable as the station runs it, used until the listener's clock is known (server render). */
+const STATION_WEEK: LocalBlock[][] = WEEK.map((blocks) => blocks.map((b) => ({ ...b, from: b.start, to: b.end })));
 const SHORT = DAYS.map((d) => d.slice(0, 3));
 /** One line per day, shown on the day's card. */
 const MOODS = [
@@ -82,30 +83,59 @@ function useSaved() {
 
 /** Calendar text needs commas, semicolons and backslashes escaped. */
 const icsText = (s: string) => s.replace(/([,;\\])/g, "\\$1");
-/** Floating local time (no zone), matching the schedule, which is shown in the listener's own time. */
-function icsDate(d: Date) {
+/** Station wall-clock time as calendar text; the date parts are read in UTC so nothing shifts them. */
+function icsDate(ms: number) {
+  const d = new Date(ms);
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}0000`;
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}0000`;
 }
 
+/** Pacific time rules, so calendar apps place each show right on both sides of a clock change. */
+const VTIMEZONE = [
+  "BEGIN:VTIMEZONE",
+  `TZID:${STATION_TZ}`,
+  "BEGIN:DAYLIGHT",
+  "TZOFFSETFROM:-0800",
+  "TZOFFSETTO:-0700",
+  "TZNAME:PDT",
+  "DTSTART:19700308T020000",
+  "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
+  "END:DAYLIGHT",
+  "BEGIN:STANDARD",
+  "TZOFFSETFROM:-0700",
+  "TZOFFSETTO:-0800",
+  "TZNAME:PST",
+  "DTSTART:19701101T020000",
+  "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
+  "END:STANDARD",
+  "END:VTIMEZONE",
+];
+
 /** Downloads a calendar file with every weekly slot of the given shows, each repeating weekly with a
- *  10-minute reminder. Phones open it straight into their calendar app. */
+ *  10-minute reminder. Events are written on the station's clock with its time zone, and the
+ *  listener's calendar shows them in their own time. Phones open it straight into their calendar app. */
 function downloadCalendar(labels: string[], name: string) {
   const now = new Date();
   const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const st = stationClock(now);
+  const today = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: STATION_TZ, year: "numeric", month: "numeric", day: "numeric" })
+      .formatToParts(now)
+      .map((p) => [p.type, Number(p.value)]),
+  );
   const events = WEEK.flatMap((blocks, d) =>
     blocks
       .filter((b) => labels.includes(b.label))
       .map((b) => {
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((d - now.getDay() + 7) % 7), b.start);
-        const end = new Date(start);
-        end.setHours(start.getHours() + (b.end - b.start));
+        const date = today.day + ((d - st.day + 7) % 7);
+        const start = Date.UTC(today.year, today.month - 1, date, b.start);
+        const end = Date.UTC(today.year, today.month - 1, date, b.end);
         return [
           "BEGIN:VEVENT",
           `UID:${b.label.toLowerCase().replace(/\W+/g, "-")}-${d}-${b.start}@musicsquareradio.com`,
           `DTSTAMP:${stamp}`,
-          `DTSTART:${icsDate(start)}`,
-          `DTEND:${icsDate(end)}`,
+          `DTSTART;TZID=${STATION_TZ}:${icsDate(start)}`,
+          `DTEND;TZID=${STATION_TZ}:${icsDate(end)}`,
           "RRULE:FREQ=WEEKLY",
           `SUMMARY:${icsText(`${b.label} on Musicsquare Radio`)}`,
           "DESCRIPTION:Listen live at https://musicsquareradio.com",
@@ -119,7 +149,7 @@ function downloadCalendar(labels: string[], name: string) {
         ].join("\r\n");
       }),
   );
-  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Musicsquare Radio//Schedule//EN", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n");
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Musicsquare Radio//Schedule//EN", "CALSCALE:GREGORIAN", ...VTIMEZONE, ...events, "END:VCALENDAR", ""].join("\r\n");
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url;
@@ -184,6 +214,9 @@ export function Lineup() {
     return () => window.removeEventListener("hashchange", pick);
   }, []);
   const shown = day ?? now?.day ?? 0;
+  // The station's timetable moved onto the listener's clock, refreshed when their day turns over.
+  const nowDay = now?.day;
+  const week = useMemo(() => (nowDay === undefined ? STATION_WEEK : localWeek()), [nowDay]);
   const weekStart = now?.day ?? 0;
   const liveOn = source.kind === "live" && status === "playing";
 
@@ -244,19 +277,19 @@ export function Lineup() {
 
       {view === "day" ? (
         <ol key={`${shown}-${mood}`} className={styles.list}>
-          {WEEK[shown].map((b, i) => {
+          {week[shown].map((b, i) => {
             const on = isNow(shown, b);
             if (!keep(b) && !on) return null;
-            const pct = on && now ? Math.round(((now.hour - b.start) / (b.end - b.start)) * 100) : 0;
+            const pct = on && now ? Math.round(((now.hour - b.from) / (b.to - b.from)) * 100) : 0;
             return (
               <li key={`${b.start}-${b.label}`} className={`${styles.row} ${on ? styles.rowNow : ""}`}>
                 <span className={styles.time}>
-                  {hhmm(b.start)}
-                  <span>until {hhmm(b.end)}</span>
+                  {clock(b.start)}
+                  <span>until {clock(b.end)}</span>
                 </span>
                 <span className={styles.show}>
                   <span className="mono">
-                    {String(i + 1).padStart(2, "0")} / {String(WEEK[shown].length).padStart(2, "0")}
+                    {String(i + 1).padStart(2, "0")} / {String(week[shown].length).padStart(2, "0")}
                     {on ? " · on air now" : ""}
                   </span>
                   <b>{b.label}</b>
@@ -282,7 +315,7 @@ export function Lineup() {
               </li>
             );
           })}
-          {WEEK[shown].every((b) => !keep(b) && !isNow(shown, b)) && (
+          {week[shown].every((b) => !keep(b) && !isNow(shown, b)) && (
             <li className={styles.empty}>{mood === "saved" ? "Nothing saved on this day yet. Tap ☆ on any show to keep it here." : "Nothing in this mood on this day. Try another day."}</li>
           )}
         </ol>
@@ -305,7 +338,7 @@ export function Lineup() {
         {/* The week starts on the listener's today, which gets the big gold sleeve. */}
         <div key={`week-${weekStart}-${mood}`} className={styles.week}>
           {WEEK.map((_, i) => (weekStart + i) % 7).map((d, pos) => {
-            const blocks = WEEK[d];
+            const blocks = week[d];
             return (
             <article key={d} className={`${styles.card} ${pos === 0 ? styles.lead : ""} ${[2, 3, 5].includes(pos) ? styles.paper : ""}`}>
               <header>
@@ -320,7 +353,7 @@ export function Lineup() {
                 {blocks.filter((b) => keep(b) || isNow(d, b)).map((b) => (
                   <li key={`${b.start}-${b.label}`} className={isNow(d, b) ? styles.cardNow : ""}>
                     <span className="mono">
-                      {hhmm(b.start)}–{hhmm(b.end)}
+                      {clock(b.start)}–{clock(b.end)}
                     </span>
                     <b>{b.label}</b>
                     <Star on={saved.has(b.label)} label={b.label} toggle={toggle} />
@@ -356,5 +389,27 @@ export function Lineup() {
         </div>
       )}
     </section>
+  );
+}
+
+/** Sunday's programmes for the Sunday section, in the listener's own time; a show that lands on
+ *  another local day says which. Station times until the listener's clock is known. */
+export function SundayTimes({ className }: { className?: string }) {
+  const now = useNow();
+  return (
+    <ol className={className}>
+      {WEEK[0].map((b) => {
+        const local = now ? toLocal(0, b) : { day: 0, from: b.start, to: b.end };
+        return (
+          <li key={b.label}>
+            <b>{b.label}</b>
+            <span className="mono">
+              {local.day !== 0 ? `${SHORT[local.day]} ` : ""}
+              {clock(local.from)}–{clock(local.to)}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

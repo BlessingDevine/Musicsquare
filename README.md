@@ -108,7 +108,10 @@ Things that are easy to break if you edit the hero:
 - `buy_link` is deliberately not surfaced. The values RadioKing returns are
   mismatched — "No Longer Available" linked to an album called "This Was Their
   Finest Hour" — so they would send listeners to the wrong record.
-- The schedule, on-air strip and channel cards all read the visitor's own clock,
+- The timetable (`WEEK`) is on the station clock, Pacific (`STATION_TZ`); `localWeek()`
+  moves it onto the visitor's own clock for the schedule and on-air strip, splitting a block that
+  crosses their midnight. Calendar files carry the Pacific zone so calendar apps convert them.
+  Channel cards read the visitor's own clock,
   and track times are rendered in their timezone.
 
 ## Pages

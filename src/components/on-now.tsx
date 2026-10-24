@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DAYS, blockAt, familyOf, nextBlock } from "@/lib/station";
+import { DAYS, clock, familyOf, localWeek } from "@/lib/station";
 import { usePlayer } from "./player-provider";
 import styles from "./on-now.module.css";
-
-const hhmm = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
 
 /** Local clock time a track started or is due, e.g. "21:04". */
 function at(iso: string | null) {
@@ -37,15 +35,25 @@ export function OnNow() {
   useEffect(() => {
     const tick = () => {
       const d = new Date();
-      setNow({ day: d.getDay(), hour: d.getHours() });
+      setNow({ day: d.getDay(), hour: d.getHours() + d.getMinutes() / 60 });
     };
     tick();
     const id = setInterval(tick, 60_000);
     return () => clearInterval(id);
   }, []);
 
-  const block = now ? blockAt(now.day, now.hour) : null;
-  const upcoming = now ? nextBlock(now.day, now.hour) : null;
+  // The station's timetable on the listener's clock. A block split at local midnight continues
+  // into the next day with \`from\` < 0, so only pieces with \`from\` >= 0 count as a show starting.
+  const week = now ? localWeek() : null;
+  const today = now && week ? week[now.day] : [];
+  const block = now ? today.find((b) => now.hour >= b.start && now.hour < b.end) ?? null : null;
+  const laterToday = now ? today.find((b) => b.start > now.hour && b.from >= 0) : undefined;
+  const nextDay = now ? (now.day + 1) % 7 : 0;
+  const upcoming = !now || !week
+    ? null
+    : laterToday
+      ? { block: laterToday, day: now.day, tomorrow: false }
+      : { block: week[nextDay].find((b) => b.from >= 0)!, day: nextDay, tomorrow: true };
 
   return (
     <div className={`on-ink ${styles.strip}`}>
@@ -81,7 +89,7 @@ export function OnNow() {
           </p>
           <p className={`mono ${styles.block}`}>
             {block
-              ? `${block.label} · ${hhmm(block.start)}–${hhmm(block.end)} · ${familyOf(block.label) ?? ""}`
+              ? `${block.label} · ${clock(block.from)}–${clock(block.to)} · ${familyOf(block.label) ?? ""}`
               : "Streaming 24/7"}
           </p>
         </section>
@@ -105,7 +113,7 @@ export function OnNow() {
             <p className={`mono ${styles.block}`}>
               Then {upcoming.block.label}
               {upcoming.tomorrow ? `, ${DAYS[upcoming.day]}` : ""} from{" "}
-              {hhmm(upcoming.block.start)}
+              {clock(upcoming.block.from)}
             </p>
           )}
         </section>
