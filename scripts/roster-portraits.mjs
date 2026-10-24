@@ -28,6 +28,7 @@ const RT = "Riot Temple - Rock/Artists";
 const RW = "Redwood Records - Country/Artists";
 const PN = "Piano Nation - Afro-house, Amapiano/Artists";
 const C32 = "Cartel32 - Trap/Artists";
+const GD = "Gravedigger Music - Hip Hop, Rap/Artists";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
@@ -77,6 +78,8 @@ const PORTRAITS = [
   ["litha-flow", `${PN}/Litha Flow/Photos/hero 1.png`, 0.5, 0, 1],
   ["luv-tonez", `${V}/Luv Tonez/Photos/Luv Tonez.jpeg`, 0.5, 0, 1,
     [`${V}/Luv Tonez/Photos/Luv Tonez 1.jpg`, 0.5, 0, 1]],
+  // Every Apex photo has the name printed across the bottom: crop above it.
+  ["apex", `${GD}/Apex/Photos/Apex.jpg`, 0.5, 0.07, 0.6],
 ];
 
 // ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square

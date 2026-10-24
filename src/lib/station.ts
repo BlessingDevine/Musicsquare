@@ -137,6 +137,7 @@ export const ROSTER: Artist[] = [
   { slug: "yano-sky", name: "Yano Sky", lane: "Afro House / Jazz", portrait: "/roster/yano-sky.jpg", square: "/roster/yano-sky-square.jpg" },
   { slug: "elkana", name: "Elkana", lane: "Trap", portrait: "/roster/elkana.jpg", square: "/roster/elkana-square.jpg" },
   { slug: "vxnti", name: "VXNTI", lane: "Trap", portrait: "/roster/vxnti.jpg", square: "/roster/vxnti-square.jpg" },
+  { slug: "apex", name: "Apex", lane: "Hip Hop", portrait: "/roster/apex.jpg", square: "/roster/apex-square.jpg" },
   { slug: "lune-skylar", name: "Lune Skylar", lane: "Pop", portrait: "/roster/lune-skylar.jpg", square: "/roster/lune-skylar-square.jpg" },
   { slug: "riven-cole", name: "Riven Cole", lane: "Alt Pop", portrait: "/roster/riven-cole.jpg", square: "/roster/riven-cole-square.jpg" },
   { slug: "danni-blaze", name: "Danni Blaze", lane: "Afrobeat", portrait: "/roster/danni-blaze.jpg" },
