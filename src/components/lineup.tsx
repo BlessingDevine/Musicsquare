@@ -187,6 +187,7 @@ export function Record({ image }: { image: string | null }) {
           <i className={styles.spindle} />
         </div>
       </div>
+      <i className={styles.sheen} />
       {/* Drawn in the record's own units (100 = its width); the arm pivots at (96, 4), just off the edge. */}
       <svg className={styles.tonearm} viewBox="0 0 100 100">
         <circle cx="96" cy="4" r="6.2" className={styles.armBase} />
