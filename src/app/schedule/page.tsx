@@ -55,7 +55,7 @@ export default async function SchedulePage() {
               {ALL_BLOCKS.map((label) => (
                 <span key={label}>
                   {label}
-                  <i aria-hidden="true">✳</i>
+                  <i aria-hidden="true">✱</i>
                 </span>
               ))}
             </p>

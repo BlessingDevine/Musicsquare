@@ -274,7 +274,7 @@ export function Lineup() {
           ))}
         </div>
         <p className={`mono ${styles.festFoot}`}>
-          <span>✳ A whole week of &ldquo;where did you find this?&rdquo;</span>
+          <span>✱ A whole week of &ldquo;where did you find this?&rdquo;</span>
           <span>All times local to you · tap ☆ to keep your favourites</span>
         </p>
         </div>
