@@ -22,8 +22,75 @@
     inset 0 0 0 1px var(--rule-dark);
   display: grid;
   place-items: center;
+  transition: box-shadow 0.9s var(--ease-out);
   /* Always turning, like a deck left running; it speeds up while the radio plays. */
   animation: spin 22s linear infinite;
+}
+
+/* With the needle down the glow comes up by a fifth. */
+.armDown .record {
+  box-shadow:
+    0 0 0 1px rgba(212, 162, 76, 0.34),
+    0 0 2.5rem rgba(212, 162, 76, 0.19),
+    0 0 6rem rgba(212, 162, 76, 0.1),
+    0 2.5rem 5rem rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px var(--rule-dark);
+}
+
+/* ---------- the tonearm: rests beside the record, swings onto the grooves on hover/tap ---------- */
+.recordWrap {
+  cursor: pointer;
+}
+
+.tonearm {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.arm {
+  transform-box: view-box;
+  transform-origin: 96px 4px;
+  transform: rotate(-5deg);
+  transition: transform 0.9s var(--ease-out);
+}
+
+.armDown .arm {
+  transform: rotate(19deg);
+}
+
+.armBase {
+  fill: var(--color-ink-2);
+  stroke: rgba(212, 162, 76, 0.55);
+  stroke-width: 0.5;
+}
+
+.armPivot {
+  fill: var(--color-gold);
+}
+
+.armWeight {
+  fill: #2a2a2e;
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 0.3;
+}
+
+.armTube {
+  fill: none;
+  stroke: #c9c9cf;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0.6px 0.6px rgba(0, 0, 0, 0.6));
+}
+
+.headshell {
+  fill: var(--color-gold);
+}
+
+.stylus {
+  fill: #f2efe8;
 }
 
 .spinning {
@@ -101,7 +168,7 @@
 .sticker {
   position: absolute;
   top: 2%;
-  right: -2%;
+  left: -2%; /* top left, clear of the tonearm */
   width: 6.2rem;
   height: 6.2rem;
   border-radius: 50%;
@@ -161,6 +228,10 @@
   .row,
   .week .card {
     animation: none;
+  }
+  .arm,
+  .record {
+    transition: none;
   }
 }
 

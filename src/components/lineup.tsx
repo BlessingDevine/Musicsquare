@@ -169,8 +169,17 @@ function Star({ on, label, toggle }: { on: boolean; label: string; toggle: (l: s
 /** The record in the hero, with today's drop artist as its label; faster while the radio plays. */
 export function Record({ image }: { image: string | null }) {
   const { status } = usePlayer();
+  // The tonearm swings onto the record on hover (mouse) or tap (touch), and rests there while the radio plays.
+  const [lifted, setLifted] = useState(false);
+  const armDown = lifted || status === "playing";
   return (
-    <div className={styles.recordWrap} aria-hidden="true">
+    <div
+      className={`${styles.recordWrap} ${armDown ? styles.armDown : ""}`}
+      aria-hidden="true"
+      onPointerEnter={(e) => e.pointerType === "mouse" && setLifted(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setLifted(false)}
+      onClick={(e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setLifted((v) => !v)}
+    >
       <div className={`${styles.record} ${status === "playing" ? styles.spinning : ""}`}>
         <div className={styles.label}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -178,6 +187,19 @@ export function Record({ image }: { image: string | null }) {
           <i className={styles.spindle} />
         </div>
       </div>
+      {/* Drawn in the record's own units (100 = its width); the arm pivots at (96, 4), just off the edge. */}
+      <svg className={styles.tonearm} viewBox="0 0 100 100">
+        <circle cx="96" cy="4" r="6.2" className={styles.armBase} />
+        <g className={styles.arm}>
+          <rect x="93.4" y="-7.5" width="5.2" height="5.5" rx="1.2" className={styles.armWeight} />
+          <path d="M96 4 L95.2 66 L90.6 77" className={styles.armTube} />
+          <g transform="rotate(24 90.6 77)">
+            <rect x="87.6" y="76" width="6" height="9.5" rx="1" className={styles.headshell} />
+            <rect x="89.1" y="85" width="3" height="2.2" rx="0.4" className={styles.stylus} />
+          </g>
+        </g>
+        <circle cx="96" cy="4" r="2.4" className={styles.armPivot} />
+      </svg>
       <span className={`mono ${styles.sticker}`}>
         No skips.
         <br />
