@@ -692,3 +692,10 @@
 .grid .open .upCover {
   width: min(100%, 13dvh);
 }
+
+/* Full screen it needs no frame: drop the tuned card's gold outline (the grid card keeps it). */
+.grid .open,
+.grid .open.tuned {
+  border-color: transparent;
+  box-shadow: none;
+}
