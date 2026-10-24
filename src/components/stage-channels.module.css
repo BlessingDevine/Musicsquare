@@ -340,6 +340,60 @@
   font-size: clamp(2.2rem, 4vw, 3.8rem);
 }
 
+/* Home grid: a card lifts under the pointer (a tap on touch screens, or keyboard focus): a gold
+   hairline, a deeper shadow, and the cover easing closer with a hint of colour. Full colour
+   stays for the channel you're tuned to. */
+.grid .panel {
+  transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+}
+
+.grid .bg {
+  transition: filter 0.9s var(--ease-out), transform 1.4s var(--ease-out), background-image 0.8s var(--ease-out);
+}
+
+.grid .peek,
+.grid .panel:focus-within {
+  transform: translateY(-6px);
+  box-shadow: 0 0 0 1px rgba(212, 162, 76, 0.7), 0 30px 70px -28px rgba(212, 162, 76, 0.45);
+}
+
+.grid .peek .bg,
+.grid .panel:focus-within .bg {
+  transform: scale(1.06);
+  filter: grayscale(0.55) contrast(1.04);
+}
+
+@media (hover: hover) {
+  .grid .panel:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0 0 1px rgba(212, 162, 76, 0.7), 0 30px 70px -28px rgba(212, 162, 76, 0.45);
+  }
+  .grid .panel:hover .bg {
+    transform: scale(1.06);
+    filter: grayscale(0.55) contrast(1.04);
+  }
+}
+
+.grid .tuned .bg,
+.grid .tuned:hover .bg {
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid .panel,
+  .grid .bg {
+    transition: none;
+  }
+  .grid .peek,
+  .grid .panel:hover,
+  .grid .panel:focus-within,
+  .grid .peek .bg,
+  .grid .panel:hover .bg,
+  .grid .panel:focus-within .bg {
+    transform: none;
+  }
+}
+
 @media (max-width: 620px) {
   .arrows {
     display: none;

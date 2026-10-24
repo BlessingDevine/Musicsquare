@@ -163,6 +163,8 @@ export function StageChannels({
     return playing && now !== null && now < playing.endsAt ? playing : null;
   };
 
+  const [peek, setPeek] = useState<string | null>(null);
+
   return (
     <div className={`${styles.stage} ${grid ? styles.grid : ""}`}>
       {!grid && (
@@ -193,8 +195,10 @@ export function StageChannels({
             // keyboard get the middle one only.
             <li
               key={`${c.slug}:${copy}`}
-              className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""}`}
+              className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""} ${grid && peek === c.slug ? styles.peek : ""}`}
               aria-hidden={copy !== 1 && copies > 1 ? true : undefined}
+              // Touch screens have no hover: a tap lifts the card (and drops the one lifted before).
+              onClick={grid ? (e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
             >
               {cover && <span className={styles.bg} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
               <div className={styles.content}>
