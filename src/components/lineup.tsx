@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { DAYS, FAMILY_NAMES, WEEK, familyOf, type Block } from "@/lib/station";
+import { DAYS, WEEK, type Block } from "@/lib/station";
 import { usePlayer } from "./player-provider";
 import styles from "./lineup.module.css";
 
@@ -18,6 +18,19 @@ const MOODS = [
   "Stay out. Stay in. Press play.",
 ];
 const SAVED_KEY = "msr-saved-shows";
+
+/** Time-of-day filters, in the listener's own hours. Late night runs over midnight. */
+const PERIODS: { name: string; spans: [number, number][] }[] = [
+  { name: "Morning", spans: [[5, 12]] },
+  { name: "Afternoon", spans: [[12, 17]] },
+  { name: "Evening", spans: [[17, 21]] },
+  { name: "Late night", spans: [[21, 24], [0, 5]] },
+];
+/** A show belongs to every period it overlaps, so 18:00–24:00 is both Evening and Late night. */
+const inPeriod = (b: Block, name: string) =>
+  PERIODS.find((p) => p.name === name)!.spans.some(([s, e]) => b.start < e && b.end > s);
+/** The period a show starts in, for its tag. */
+const periodOf = (b: Block) => PERIODS.find((p) => p.spans.some(([s, e]) => b.start >= s && b.start < e))!.name;
 
 /** The listener's own clock: the schedule runs in local time, like the rest of the site. */
 function useNow() {
@@ -146,7 +159,7 @@ export function Record({ image }: { image: string | null }) {
 
 /**
  * "What's your day sounding like?": the week as a running order (By day) or as
- * seven cards (Full week), with mood filters, saved shows and what's on now.
+ * seven cards (Full week), with time-of-day filters, saved shows and what's on now.
  */
 export function Lineup() {
   const now = useNow();
@@ -175,7 +188,7 @@ export function Lineup() {
   const liveOn = source.kind === "live" && status === "playing";
 
   const keep = useMemo(
-    () => (b: Block) => (mood === "saved" ? saved.has(b.label) : !mood || familyOf(b.label) === mood),
+    () => (b: Block) => (mood === "saved" ? saved.has(b.label) : !mood || inPeriod(b, mood)),
     [mood, saved],
   );
   const isNow = (d: number, b: Block) => !!now && now.day === d && now.hour >= b.start && now.hour < b.end;
@@ -212,9 +225,9 @@ export function Lineup() {
       )}
 
       <div className={styles.moods}>
-        {[null, ...FAMILY_NAMES, "saved"].map((m) => (
+        {[null, ...PERIODS.map((p) => p.name), "saved"].map((m) => (
           <button key={m ?? "all"} type="button" className={`${styles.mood} ${mood === m ? styles.moodOn : ""}`} onClick={() => setMood(m)} aria-pressed={mood === m}>
-            {m === null ? "All sounds" : m === "saved" ? `★ Saved${saved.size ? ` · ${saved.size}` : ""}` : m}
+            {m === null ? "All day" : m === "saved" ? `★ Saved${saved.size ? ` · ${saved.size}` : ""}` : m}
           </button>
         ))}
         {saved.size > 0 && (
@@ -263,7 +276,7 @@ export function Lineup() {
                     <span aria-hidden="true">{liveOn ? "■" : "▶"}</span> {liveOn ? "Stop" : "Listen live"}
                   </button>
                 ) : (
-                  <span className={`mono ${styles.tag}`}>{familyOf(b.label)}</span>
+                  <span className={`mono ${styles.tag}`}>{periodOf(b)}</span>
                 )}
                 <Star on={saved.has(b.label)} label={b.label} toggle={toggle} />
               </li>
