@@ -328,6 +328,20 @@ export function StageChannels({
                   </button>
                   <span className={`mono ${styles.songs}`}>{c.tracks} songs</span>
                 </div>
+                {open?.slug === c.slug && !!c.upcoming?.length && (
+                  <div className={styles.upNext}>
+                    <p className="mono">Up next</p>
+                    <ol>
+                      {c.upcoming.map((u, k) => (
+                        <li key={`${k}-${u.title}`}>
+                          <span className={styles.upCover} style={u.cover ? { backgroundImage: `url(${u.cover})` } : undefined} aria-hidden="true" />
+                          <b>{u.title}</b>
+                          <span className="mono">{u.artist}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             </li>
             </Fragment>

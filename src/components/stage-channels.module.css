@@ -576,3 +576,54 @@
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
+
+/* The enlarged card's next three songs, under Stop. */
+.upNext {
+  margin-top: 1.6rem;
+}
+
+.upNext > p {
+  margin: 0 0 0.7rem;
+  font-size: 0.62rem;
+  color: var(--color-gold);
+}
+
+.upNext ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.upNext li {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.upCover {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--color-ink-2) center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.upNext b {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upNext li .mono {
+  font-size: 0.55rem;
+  color: var(--color-ash-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

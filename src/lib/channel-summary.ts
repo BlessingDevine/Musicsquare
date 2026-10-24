@@ -17,7 +17,22 @@ export type ChannelSummary = {
   art: string | null;
   cover: string | null;
   nextCover: string | null;
+  /** The three songs after the one on air, in play order (the enlarged card's "Up next"). */
+  upcoming?: { title: string; artist: string; cover: string | null }[];
 };
+
+/** The `count` songs after the one ending at `endsAt`, read off the same rotation the channel plays. */
+function upcomingAfter(c: Channel, endsAt: number, count: number) {
+  const out: NonNullable<ChannelSummary["upcoming"]> = [];
+  let t = endsAt;
+  for (let k = 0; k < count; k++) {
+    const air = onAirAt(c.rotation, t + 1);
+    if (!air) break;
+    out.push({ title: air.track.title, artist: air.track.artist, cover: c.covers[air.track.code] ?? null });
+    t = air.endsAt;
+  }
+  return out;
+}
 
 /** What every channel is playing at `at`. */
 export function summarise(channels: Channel[], at: number): ChannelSummary[] {
@@ -34,6 +49,7 @@ export function summarise(channels: Channel[], at: number): ChannelSummary[] {
       art: c.art,
       cover: (air && c.covers[air.track.code]) || null,
       nextCover: (air?.next && c.covers[air.next.code]) || null,
+      upcoming: air ? upcomingAfter(c, air.endsAt, 3) : [],
     };
   });
 }
