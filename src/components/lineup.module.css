@@ -468,8 +468,14 @@
     radial-gradient(circle, var(--color-gold) 0 16%, rgba(0, 0, 0, 0.55) 16.5% 18%, transparent 18.5%),
     repeating-radial-gradient(circle, #151518 0 2px, #0c0c0e 2px 4px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  transition: transform 0.8s var(--ease-out);
+  opacity: 0.16;
+  transition: transform 0.8s var(--ease-out), opacity 0.8s var(--ease-out);
   pointer-events: none;
+}
+
+/* A faint watermark: on the dark sleeves the grooves already sit close to the ink, so they get a little more. */
+.card:not(.lead):not(.paper) header::after {
+  opacity: 0.3;
 }
 
 .card:hover header::after {
@@ -506,13 +512,8 @@
   --sub: var(--color-ash-dark);
 }
 
-/* Text keeps to the left; the record sits in the corner, mostly off the sleeve, so it never covers words. */
 .card header {
-  padding: 1.1rem 34% 1rem 1.1rem;
-}
-
-.lead header {
-  padding-right: 30%;
+  padding: 1.1rem 1.1rem 1rem;
 }
 
 .card header h3 {
