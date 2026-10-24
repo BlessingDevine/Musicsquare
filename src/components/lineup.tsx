@@ -75,15 +75,15 @@ function Star({ on, label, toggle }: { on: boolean; label: string; toggle: (l: s
   );
 }
 
-/** The record in the hero: it only turns while the radio is playing. */
-export function Record() {
+/** The record in the hero, with today's drop artist as its label; faster while the radio plays. */
+export function Record({ image }: { image: string | null }) {
   const { status } = usePlayer();
   return (
     <div className={styles.recordWrap} aria-hidden="true">
       <div className={`${styles.record} ${status === "playing" ? styles.spinning : ""}`}>
         <div className={styles.label}>
-          <span className={styles.labelName}>MUSICSQUARE</span>
-          <span className={`mono ${styles.labelSub}`}>The weekly rotation · every day</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {image && <img src={image} alt="" />}
           <i className={styles.spindle} />
         </div>
       </div>

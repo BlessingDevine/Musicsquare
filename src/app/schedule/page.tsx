@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lineup, Record } from "@/components/lineup";
-import { ALL_BLOCKS, WEEK } from "@/lib/station";
+import { getTodaysDrop } from "@/lib/drop";
+import { ALL_BLOCKS, ROSTER, WEEK } from "@/lib/station";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,13 @@ export const metadata: Metadata = {
 
 const hhmm = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
 
-export default function SchedulePage() {
+// Rebuilt every minute so the record's label (today's drop artist) turns over soon after midnight Pacific.
+export const revalidate = 60;
+
+export default async function SchedulePage() {
+  const drop = await getTodaysDrop().catch(() => null);
+  const artist = drop ?? ROSTER[0];
+  const image = drop?.portrait ?? ROSTER[0].square ?? ROSTER[0].portrait;
   return (
     <main>
       <header className={`on-ink ${styles.header}`}>
@@ -29,8 +36,12 @@ export default function SchedulePage() {
             </a>
           </div>
           <div className={styles.recordCol}>
-            <Record />
-            <p className={`mono ${styles.caption}`}>The best music you&rsquo;ve never heard before</p>
+            <Record image={image} />
+            <p className={`mono ${styles.caption}`}>
+              {drop ? "Today’s drop" : "On the label"} · {"artist" in artist ? artist.artist : artist.name}
+              <br />
+              The best music you&rsquo;ve never heard before
+            </p>
           </div>
         </div>
       </header>
