@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Musicsquare Radio is a 24/7 station playing AI-made, human-assisted music across sixteen genres and several languages — over 2,000 songs from close to 300 artists. Operated by Squaredrum LLC, founded 2024.",
+    "Musicsquare Radio is a 24/7 station playing AI-made, human-assisted music across seventeen genres and several languages — over 3,300 songs from close to 300 artists. Operated by Squaredrum LLC, founded 2024.",
 };
 
 export default function AboutPage() {
@@ -22,7 +22,7 @@ export default function AboutPage() {
           <p className={styles.lede}>
             {STATION.name} runs twenty-four hours a day, playing music that was
             made by artificial intelligence and finished by people. One signal,
-            sixteen genres, several languages, and a catalogue of more than two
+            seventeen genres, several languages, and a catalogue of more than three
             thousand songs that exist nowhere else.
           </p>
 
@@ -75,7 +75,7 @@ export default function AboutPage() {
           <div className="wrap">
             <p className="mono eyebrow">What&rsquo;s in rotation</p>
             <h2 className={`display ${styles.h2}`}>
-              Sixteen genres, <em>several languages</em>
+              Seventeen genres, <em>several languages</em>
             </h2>
             <ul className={styles.genres}>
               {GENRES.map((genre) => (

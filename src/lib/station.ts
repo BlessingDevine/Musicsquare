@@ -32,6 +32,7 @@ export const GENRES = [
   "Reggaeton",
   "House",
   "Lo-fi",
+  "Piano",
   "Dance Remixes",
 ];
 
@@ -102,7 +103,7 @@ export const CHANNELS: Channel[] = [
  */
 export const CATALOGUE = {
   artists: "~300",
-  songs: "2,000+",
+  songs: "3,300+",
 } as const;
 
 /**
