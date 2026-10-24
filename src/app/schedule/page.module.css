@@ -47,20 +47,80 @@
   color: var(--color-ink);
 }
 
+/* Ticker: the programme list scrolls left on a loop and pauses under the pointer. */
+.strip {
+  overflow: hidden;
+}
+
+.ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker 60s linear infinite;
+}
+
+.strip:hover .ticker {
+  animation-play-state: paused;
+}
+
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .stripInner {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem 1rem;
-  margin: 0 auto;
+  flex: none;
+  margin: 0;
   padding-block: 1rem;
   font-size: 0.66rem;
+  white-space: nowrap;
 }
 
 .stripInner i {
   font-style: normal;
-  margin-right: 1rem;
+  margin-inline: 1.1rem;
   opacity: 0.6;
+}
+
+/* Hero entrance: eyebrow, headline, line and button rise in turn. */
+.heroGrid > div:first-child > * {
+  animation: rise 0.9s var(--ease-out) both;
+}
+
+.heroGrid > div:first-child > :nth-child(2) { animation-delay: 0.1s; }
+.heroGrid > div:first-child > :nth-child(3) { animation-delay: 0.25s; }
+.heroGrid > div:first-child > :nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.4rem);
+  }
+}
+
+/* Sunday list: each programme slides in as the section scrolls into view. */
+@supports (animation-timeline: view()) {
+  .sundayList li {
+    animation: slideIn linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 80%;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker,
+  .heroGrid > div:first-child > *,
+  .sundayList li {
+    animation: none;
+  }
 }
 
 /* The Sunday reset. */

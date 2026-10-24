@@ -176,7 +176,7 @@ export function Lineup() {
       </div>
 
       {view === "day" ? (
-        <ol className={styles.list}>
+        <ol key={`${shown}-${mood}`} className={styles.list}>
           {WEEK[shown].map((b, i) => {
             const on = isNow(shown, b);
             if (!keep(b) && !on) return null;
@@ -215,7 +215,7 @@ export function Lineup() {
           )}
         </ol>
       ) : (
-        <div className={styles.week}>
+        <div key={`week-${mood}`} className={styles.week}>
           {WEEK.map((blocks, d) => (
             <article key={d} className={`${styles.card} ${styles[`card${d}`]} ${now?.day === d ? styles.cardToday : ""}`}>
               <header>

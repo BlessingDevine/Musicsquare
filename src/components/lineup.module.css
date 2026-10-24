@@ -16,10 +16,34 @@
   box-shadow: 0 2.5rem 5rem rgba(0, 0, 0, 0.6), inset 0 0 0 1px var(--rule-dark);
   display: grid;
   place-items: center;
+  /* Always turning, like a deck left running; it speeds up while the radio plays. */
+  animation: spin 22s linear infinite;
 }
 
 .spinning {
-  animation: spin 8s linear infinite;
+  animation-duration: 3.6s;
+}
+
+.recordWrap {
+  animation: slideIn 1.2s 0.2s var(--ease-out) both;
+}
+
+.sticker {
+  animation: stickerIn 0.9s 1s var(--ease-out) both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(3rem) rotate(-20deg);
+  }
+}
+
+@keyframes stickerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-30deg);
+  }
 }
 
 @keyframes spin {
@@ -82,8 +106,50 @@
   box-shadow: 4px 4px 0 var(--color-gold);
 }
 
+/* Lists fade up when the day, view or mood changes (they remount), and rows rise in on scroll. */
+.list,
+.week {
+  animation: fadeUp 0.5s var(--ease-out) both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .row {
+    animation: fadeUp linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 70%;
+  }
+}
+
+.week .card {
+  animation: fadeUp 0.6s var(--ease-out) both;
+}
+
+.week .card:nth-child(2) { animation-delay: 0.06s; }
+.week .card:nth-child(3) { animation-delay: 0.12s; }
+.week .card:nth-child(4) { animation-delay: 0.18s; }
+.week .card:nth-child(5) { animation-delay: 0.24s; }
+.week .card:nth-child(6) { animation-delay: 0.3s; }
+.week .card:nth-child(7) { animation-delay: 0.36s; }
+
+.rowNow .progress i {
+  transition: width 1s var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .spinning {
+  .record,
+  .recordWrap,
+  .sticker,
+  .list,
+  .week,
+  .row,
+  .week .card {
     animation: none;
   }
 }

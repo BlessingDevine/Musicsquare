@@ -37,14 +37,19 @@ export default function SchedulePage() {
 
       {/* Every programme on the schedule, not a handful. */}
       <div className={styles.strip}>
-        <p className={`wrap mono ${styles.stripInner}`}>
-          {ALL_BLOCKS.map((label, i) => (
-            <span key={label}>
-              {i > 0 && <i aria-hidden="true">✳</i>}
-              {label}
-            </span>
+        {/* Two copies back to back so the ticker loops without a seam; the second is hidden from readers. */}
+        <div className={`mono ${styles.ticker}`}>
+          {[0, 1].map((copy) => (
+            <p key={copy} className={styles.stripInner} aria-hidden={copy === 1}>
+              {ALL_BLOCKS.map((label) => (
+                <span key={label}>
+                  {label}
+                  <i aria-hidden="true">✳</i>
+                </span>
+              ))}
+            </p>
           ))}
-        </p>
+        </div>
       </div>
 
       <Lineup />
