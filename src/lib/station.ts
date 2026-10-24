@@ -273,7 +273,9 @@ export const WEEK: Block[][] = [
     { start: 11, end: 13, label: "Pop" },
     { start: 13, end: 15, label: "Hip Hop" },
     { start: 15, end: 17, label: "Kizomba Mix" },
-    { start: 17, end: 24, label: "Rock Mix" }, // Friday rock night
+    { start: 17, end: 19, label: "Country" },
+    { start: 19, end: 21, label: "Amapiano" },
+    { start: 21, end: 24, label: "Rock Mix" },
   ],
   // Saturday
   [
