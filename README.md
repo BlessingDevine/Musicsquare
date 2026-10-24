@@ -160,9 +160,10 @@ Two things to check with the station:
 - The scheduler spells it **"Amampiano"**; the site says **"Amapiano"**, which
   is the standard spelling of the genre. Revert in `WEEK` if the original was
   deliberate.
-- **"Sunday Lofi" runs Mon–Thu at 23:00** and **"Sunday House" runs Saturday
-  afternoon**, per the scheduler. The names look like reused playlist titles
-  rather than mistakes, but they read oddly on a public timetable.
+- **"Sunday House" runs Saturday afternoon**, per the scheduler. The name looks
+  like a reused playlist title rather than a mistake, but it reads oddly on a
+  public timetable. (The lofi playlist, which also runs Mon–Thu at 23:00, was
+  renamed from "Sunday Lofi" to "Lofi" in RadioKing and here in Oct 2026.)
 
 There is also a real tension between the timetable and the "four channels"
 framing, which came from the old site. By airtime the station's backbone is

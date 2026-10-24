@@ -196,7 +196,7 @@ export const WEEK: Block[][] = [
   [
     { start: 0, end: 3, label: "Afro Mix" },
     { start: 3, end: 5, label: "French Mix" },
-    { start: 5, end: 9, label: "Sunday Lofi" },
+    { start: 5, end: 9, label: "Lofi" },
     { start: 9, end: 12, label: "Sunday Church" },
     { start: 12, end: 15, label: "Sunday House" },
     { start: 15, end: 18, label: "Amapiano" },
@@ -216,7 +216,7 @@ export const WEEK: Block[][] = [
     { start: 17, end: 19, label: "Rock Mix" },
     { start: 19, end: 21, label: "Kizomba Mix" },
     { start: 21, end: 23, label: "Trapsoul" },
-    { start: 23, end: 24, label: "Sunday Lofi" },
+    { start: 23, end: 24, label: "Lofi" },
   ],
   // Tuesday
   [
@@ -231,7 +231,7 @@ export const WEEK: Block[][] = [
     { start: 17, end: 19, label: "Rock Mix" },
     { start: 19, end: 21, label: "Pop" },
     { start: 21, end: 23, label: "R&B" },
-    { start: 23, end: 24, label: "Sunday Lofi" },
+    { start: 23, end: 24, label: "Lofi" },
   ],
   // Wednesday
   [
@@ -246,7 +246,7 @@ export const WEEK: Block[][] = [
     { start: 17, end: 19, label: "Rock Mix" },
     { start: 19, end: 21, label: "Hip Hop" },
     { start: 21, end: 23, label: "Pop & R&B" },
-    { start: 23, end: 24, label: "Sunday Lofi" },
+    { start: 23, end: 24, label: "Lofi" },
   ],
   // Thursday
   [
@@ -261,7 +261,7 @@ export const WEEK: Block[][] = [
     { start: 17, end: 19, label: "Rock Mix" },
     { start: 19, end: 21, label: "Reggaeton" },
     { start: 21, end: 23, label: "Dancehall & Reggae" },
-    { start: 23, end: 24, label: "Sunday Lofi" },
+    { start: 23, end: 24, label: "Lofi" },
   ],
   // Friday
   [
@@ -305,7 +305,7 @@ export const FAMILIES: Record<string, string[]> = {
   "Rock": ["Rock Mix"],
   "Late night & Sunday": [
     "French Mix",
-    "Sunday Lofi",
+    "Lofi",
     "Sunday Church",
     "Sunday House",
   ],

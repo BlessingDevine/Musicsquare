@@ -73,7 +73,7 @@ export default async function SchedulePage() {
               <em>Then turn it up.</em>
             </h2>
             <p className={styles.sundayLede}>
-              Ease in with Sunday Lofi, make space for Sunday Church, and let Sunday House carry you into the afternoon.
+              Ease in with Lofi, make space for Sunday Church, and let Sunday House carry you into the afternoon.
             </p>
             {/* #sunday opens Sunday in the lineup above (see Lineup). */}
             <a className="btn" href="#sunday">
