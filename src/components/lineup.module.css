@@ -481,7 +481,7 @@
   z-index: 1;
 }
 
-.card0 header::after {
+.lead header::after {
   width: 26%;
   top: -1.4rem;
   right: -1.4rem;
@@ -511,7 +511,7 @@
   padding: 1.1rem 34% 1rem 1.1rem;
 }
 
-.card0 header {
+.lead header {
   padding-right: 30%;
 }
 
@@ -538,7 +538,7 @@
   flex: 1;
 }
 
-.card0 ul {
+.lead ul {
   flex: none;
 }
 
@@ -595,8 +595,8 @@
   color: var(--color-gold);
 }
 
-/* Sunday gets the big gold sleeve; the rest alternate ink and paper. */
-.card0 {
+/* Today leads the week on the big gold sleeve; the rest alternate ink and paper by position. */
+.lead {
   grid-column: span 2;
   background: var(--color-gold);
   color: var(--color-ink);
@@ -604,15 +604,15 @@
   --sub: rgba(10, 10, 11, 0.62);
 }
 
-.card0 header h3 {
+.lead header h3 {
   font-size: clamp(4rem, 8vw, 7rem);
 }
 
-.card0 li .starOn {
+.lead li .starOn {
   color: var(--color-ink);
 }
 
-/* Sunday has fewer programmes; its slogan fills the sleeve. */
+/* Sunday has fewer programmes; its slogan fills its sleeve. */
 .slogan {
   margin: auto 1.1rem 1.2rem;
   padding-top: 1.5rem;
@@ -623,9 +623,7 @@
   letter-spacing: -0.02em;
 }
 
-.card2,
-.card3,
-.card5 {
+.paper {
   background: var(--color-paper);
   color: var(--color-ink);
   box-shadow: inset 0 0 0 1px var(--rule-light);
@@ -633,15 +631,8 @@
   --sub: var(--color-ash);
 }
 
-.card2 li .starOn,
-.card3 li .starOn,
-.card5 li .starOn {
+.paper li .starOn {
   color: var(--color-gold-deep);
-}
-
-.cardToday {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 3px;
 }
 
 @media (max-width: 1100px) {
@@ -664,11 +655,45 @@
   .week {
     grid-template-columns: minmax(0, 1fr);
   }
-  .card0 {
+  .lead {
     grid-column: auto;
     grid-row: auto;
   }
   .days {
     grid-template-columns: repeat(7, 4.2rem);
   }
+}
+
+/* Calendar: under a starred show in the day view, and beside the Saved filter. */
+.cal {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-gold-deep);
+  font-size: 0.58rem;
+  cursor: pointer;
+}
+
+.cal:hover {
+  text-decoration: underline;
+}
+
+.rowNow .cal {
+  color: var(--color-ink);
+}
+
+.calAll {
+  border-style: dashed;
+}
+
+/* Today is always the gold sleeve, so its on-air row flips to ink to stand out. */
+.lead .cardNow {
+  background: var(--color-ink);
+  color: var(--color-gold);
+}
+
+.lead .cardNow .mono,
+.lead .cardNow .star {
+  color: var(--color-gold) !important;
 }

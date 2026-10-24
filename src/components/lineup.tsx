@@ -67,6 +67,54 @@ function useSaved() {
   return { saved, toggle };
 }
 
+/** Calendar text needs commas, semicolons and backslashes escaped. */
+const icsText = (s: string) => s.replace(/([,;\\])/g, "\\$1");
+/** Floating local time (no zone), matching the schedule, which is shown in the listener's own time. */
+function icsDate(d: Date) {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}0000`;
+}
+
+/** Downloads a calendar file with every weekly slot of the given shows, each repeating weekly with a
+ *  10-minute reminder. Phones open it straight into their calendar app. */
+function downloadCalendar(labels: string[], name: string) {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const events = WEEK.flatMap((blocks, d) =>
+    blocks
+      .filter((b) => labels.includes(b.label))
+      .map((b) => {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((d - now.getDay() + 7) % 7), b.start);
+        const end = new Date(start);
+        end.setHours(start.getHours() + (b.end - b.start));
+        return [
+          "BEGIN:VEVENT",
+          `UID:${b.label.toLowerCase().replace(/\W+/g, "-")}-${d}-${b.start}@musicsquareradio.com`,
+          `DTSTAMP:${stamp}`,
+          `DTSTART:${icsDate(start)}`,
+          `DTEND:${icsDate(end)}`,
+          "RRULE:FREQ=WEEKLY",
+          `SUMMARY:${icsText(`${b.label} on Musicsquare Radio`)}`,
+          "DESCRIPTION:Listen live at https://musicsquareradio.com",
+          "URL:https://musicsquareradio.com",
+          "BEGIN:VALARM",
+          "ACTION:DISPLAY",
+          `DESCRIPTION:${icsText(`${b.label} starts in 10 minutes`)}`,
+          "TRIGGER:-PT10M",
+          "END:VALARM",
+          "END:VEVENT",
+        ].join("\r\n");
+      }),
+  );
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Musicsquare Radio//Schedule//EN", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n");
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name}.ics`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function Star({ on, label, toggle }: { on: boolean; label: string; toggle: (l: string) => void }) {
   return (
     <button type="button" className={`${styles.star} ${on ? styles.starOn : ""}`} onClick={() => toggle(label)} aria-pressed={on} aria-label={on ? `Remove ${label} from saved` : `Save ${label}`}>
@@ -123,6 +171,7 @@ export function Lineup() {
     return () => window.removeEventListener("hashchange", pick);
   }, []);
   const shown = day ?? now?.day ?? 0;
+  const weekStart = now?.day ?? 0;
   const liveOn = source.kind === "live" && status === "playing";
 
   const keep = useMemo(
@@ -168,6 +217,11 @@ export function Lineup() {
             {m === null ? "All sounds" : m === "saved" ? `★ Saved${saved.size ? ` · ${saved.size}` : ""}` : m}
           </button>
         ))}
+        {saved.size > 0 && (
+          <button type="button" className={`${styles.mood} ${styles.calAll}`} onClick={() => downloadCalendar([...saved], "musicsquare-radio-saved-shows")}>
+            + Add saved to calendar
+          </button>
+        )}
       </div>
 
       <div className={styles.meta}>
@@ -193,6 +247,11 @@ export function Lineup() {
                     {on ? " · on air now" : ""}
                   </span>
                   <b>{b.label}</b>
+                  {saved.has(b.label) && (
+                    <button type="button" className={`mono ${styles.cal}`} onClick={() => downloadCalendar([b.label], b.label.toLowerCase().replace(/\W+/g, "-"))}>
+                      + Add to calendar
+                    </button>
+                  )}
                   {on && (
                     <span className={styles.progress} aria-label={`${pct}% through`}>
                       <i style={{ width: `${pct}%` }} />
@@ -230,12 +289,15 @@ export function Lineup() {
             In good rotation
           </span>
         </div>
-        <div key={`week-${mood}`} className={styles.week}>
-          {WEEK.map((blocks, d) => (
-            <article key={d} className={`${styles.card} ${styles[`card${d}`]} ${now?.day === d ? styles.cardToday : ""}`}>
+        {/* The week starts on the listener's today, which gets the big gold sleeve. */}
+        <div key={`week-${weekStart}-${mood}`} className={styles.week}>
+          {WEEK.map((_, i) => (weekStart + i) % 7).map((d, pos) => {
+            const blocks = WEEK[d];
+            return (
+            <article key={d} className={`${styles.card} ${pos === 0 ? styles.lead : ""} ${[2, 3, 5].includes(pos) ? styles.paper : ""}`}>
               <header>
                 <span className="mono">
-                  Side {String(d + 1).padStart(2, "0")} · {blocks.length} programmes
+                  Side {String(pos + 1).padStart(2, "0")} · {blocks.length} programmes
                   {now?.day === d ? " · today" : ""}
                 </span>
                 <h3 className="display">{SHORT[d]}.</h3>
@@ -271,7 +333,8 @@ export function Lineup() {
                 {DAYS[d]} · day view ↗
               </button>
             </article>
-          ))}
+            );
+          })}
         </div>
         <p className={`mono ${styles.festFoot}`}>
           <span>✱ A whole week of &ldquo;where did you find this?&rdquo;</span>
