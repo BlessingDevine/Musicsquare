@@ -215,6 +215,21 @@ export function Lineup() {
           )}
         </ol>
       ) : (
+        <div className={styles.festival}>
+        <div className={styles.festHead}>
+          <div>
+            <p className="mono">The Musicsquare Weekender · all week</p>
+            <h3 className="display">
+              Seven days.
+              <br />
+              <em>So many good moods.</em>
+            </h3>
+          </div>
+          <span className={`mono ${styles.stamp}`}>
+            <b>24/7</b>
+            In good rotation
+          </span>
+        </div>
         <div key={`week-${mood}`} className={styles.week}>
           {WEEK.map((blocks, d) => (
             <article key={d} className={`${styles.card} ${styles[`card${d}`]} ${now?.day === d ? styles.cardToday : ""}`}>
@@ -257,6 +272,11 @@ export function Lineup() {
               </button>
             </article>
           ))}
+        </div>
+        <p className={`mono ${styles.festFoot}`}>
+          <span>✳ A whole week of &ldquo;where did you find this?&rdquo;</span>
+          <span>All times local to you · tap ☆ to keep your favourites</span>
+        </p>
         </div>
       )}
     </section>

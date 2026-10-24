@@ -387,7 +387,105 @@
   color: var(--color-ash);
 }
 
-/* ---------- full week: seven record sleeves ---------- */
+/* ---------- full week: a festival programme of seven record sleeves ---------- */
+.festival {
+  margin-top: 1.5rem;
+  padding: clamp(1.2rem, 3vw, 2.2rem);
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.festHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.festHead .mono {
+  margin: 0 0 1rem;
+  color: var(--color-gold);
+  font-size: 0.6rem;
+}
+
+.festHead h3 {
+  font-size: clamp(2rem, 4.5vw, 3.6rem);
+}
+
+.festHead h3 em {
+  color: var(--color-gold);
+}
+
+.stamp {
+  flex: none;
+  display: grid;
+  place-items: center;
+  gap: 0.2rem;
+  padding: 0.9rem 1.1rem;
+  border: 1.5px solid var(--color-gold);
+  color: var(--color-gold);
+  font-size: 0.55rem;
+  text-align: center;
+  transform: rotate(6deg);
+}
+
+.stamp b {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.festFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1.4rem 0 0;
+  color: var(--color-ash-dark);
+  font-size: 0.55rem;
+}
+
+/* Each sleeve has its record sliding out of the top corner, gold label and all. */
+.card header {
+  position: relative;
+  overflow: hidden;
+}
+
+.card header::after {
+  content: "";
+  position: absolute;
+  top: -42%;
+  right: -18%;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--color-gold) 0 16%, rgba(0, 0, 0, 0.55) 16.5% 18%, transparent 18.5%),
+    repeating-radial-gradient(circle, #151518 0 2px, #0c0c0e 2px 4px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.8s var(--ease-out);
+  pointer-events: none;
+}
+
+.card:hover header::after {
+  transform: translateX(-6%) rotate(40deg);
+}
+
+.card header > * {
+  position: relative;
+  z-index: 1;
+}
+
+.card0 header::after {
+  width: 46%;
+  top: -30%;
+  right: -8%;
+}
+
+.festival .week {
+  margin-top: 1.6rem;
+}
 .week {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
