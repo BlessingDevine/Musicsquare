@@ -266,7 +266,20 @@ export function StageChannels({
               // and a swipe that scrolls the page ends in pointercancel, so it doesn't count.
               onPointerUp={grid && open?.slug !== c.slug ? (e) => e.pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
             >
-              {cover && <span className={styles.bg} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
+              {cover && (
+                <span
+                  className={styles.bg}
+                  // Cards use the 600px cover. Filling a phone screen, the full 1000px one is layered on
+                  // top: the 600 shows at once and the sharp one takes over as soon as it has loaded.
+                  style={{
+                    backgroundImage:
+                      open?.slug === c.slug && /-600\.jpg$/.test(cover)
+                        ? `url(${cover.replace(/-600\.jpg$/, ".jpg")}), url(${cover})`
+                        : `url(${cover})`,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
               <div className={styles.content}>
                 {open?.slug === c.slug && (
                   <button type="button" className={styles.shrink} onClick={shrink} aria-label="Back to the channels (keeps playing)">
