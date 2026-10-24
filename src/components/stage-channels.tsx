@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChannelSummary } from "@/lib/channel-summary";
 import { useChannelSummaries } from "./live-channels";
 import { usePlayer } from "./player-provider";
@@ -165,6 +165,66 @@ export function StageChannels({
 
   const [peek, setPeek] = useState<string | null>(null);
 
+  // Phones, home grid: tuning in from a card grows it to fill the screen; Stop (or "↓") shrinks it
+  // back into its place. A placeholder keeps its slot in the grid while it's out.
+  const [open, setOpen] = useState<{ slug: string; height: number } | null>(null);
+  const cards = useRef<Record<string, HTMLLIElement | null>>({});
+  const slot = useRef<HTMLLIElement>(null);
+  const from = useRef<DOMRect | null>(null);
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const squeeze = (r: DOMRect) =>
+    `translate(${r.left}px, ${r.top}px) scale(${r.width / innerWidth}, ${r.height / innerHeight})`;
+
+  const grow = (slug: string) => {
+    const el = cards.current[slug];
+    if (!el) return;
+    from.current = el.getBoundingClientRect();
+    setPeek(null);
+    setOpen({ slug, height: from.current.height });
+  };
+
+  const shrink = () => {
+    const el = open && cards.current[open.slug];
+    // Content above can change height while it's open (the hero's player controls come and go), so
+    // first line the page up to put the card's slot back where it was tapped, then shrink into it.
+    if (slot.current && from.current) window.scrollBy(0, slot.current.getBoundingClientRect().top - from.current.top);
+    const to = slot.current?.getBoundingClientRect();
+    const done = () => setOpen(null);
+    if (!el || !to || still()) return done();
+    el.animate([{ transform: "none", borderRadius: "0px" }, { transform: squeeze(to), borderRadius: "14px" }], {
+      duration: 420,
+      easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+    }).onfinish = done;
+  };
+
+  // Grow from the card's own spot to the full screen, and hold the page still behind it.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const el = cards.current[open.slug];
+    if (el && from.current && !still()) {
+      el.animate([{ transform: squeeze(from.current), borderRadius: "14px" }, { transform: "none", borderRadius: "0px" }], {
+        duration: 460,
+        easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      });
+    }
+    document.documentElement.setAttribute("data-channel-open", "");
+    return () => document.documentElement.removeAttribute("data-channel-open");
+  }, [open]);
+
+  // Stopped from anywhere (this card, the player bar, another channel): shrink it back.
+  const openSlug = open?.slug;
+  const openPlaying = openSlug ? isOnChannel(openSlug) : false;
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    if (!openSlug) {
+      wasPlaying.current = false;
+      return;
+    }
+    if (openPlaying) wasPlaying.current = true;
+    else if (wasPlaying.current) shrink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSlug, openPlaying]);
+
   return (
     <div className={`${styles.stage} ${grid ? styles.grid : ""}`}>
       {!grid && (
@@ -193,17 +253,26 @@ export function StageChannels({
           return (
             // The outer copies are there to look at and tap; screen readers and the
             // keyboard get the middle one only.
+            <Fragment key={`${c.slug}:${copy}`}>
+            {open?.slug === c.slug && <li ref={slot} className={styles.slot} style={{ height: open.height }} aria-hidden="true" />}
             <li
-              key={`${c.slug}:${copy}`}
-              className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""} ${grid && peek === c.slug ? styles.peek : ""}`}
+              ref={(el) => {
+                cards.current[c.slug] = el;
+              }}
+              className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""} ${grid && peek === c.slug ? styles.peek : ""} ${open?.slug === c.slug ? styles.open : ""}`}
               aria-hidden={copy !== 1 && copies > 1 ? true : undefined}
               // Touch screens have no hover: a tap lifts the card (and drops the one lifted before).
               // Read on finger-up: iPhone Safari's click events don't say whether a finger made them,
               // and a swipe that scrolls the page ends in pointercancel, so it doesn't count.
-              onPointerUp={grid ? (e) => e.pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
+              onPointerUp={grid && open?.slug !== c.slug ? (e) => e.pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
             >
               {cover && <span className={styles.bg} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
               <div className={styles.content}>
+                {open?.slug === c.slug && (
+                  <button type="button" className={styles.shrink} onClick={shrink} aria-label="Back to the channels (keeps playing)">
+                    ↓
+                  </button>
+                )}
                 <p className={`mono ${styles.kicker}`}>
                   <span className="pip" aria-hidden="true" />
                   <span className={styles.kickText}>
@@ -231,6 +300,8 @@ export function StageChannels({
                     type="button"
                     className={`btn ${tuned ? "btn-ghost" : ""}`}
                     onClick={() => {
+                      // Phones, home grid: tuning in grows the card to fill the screen.
+                      if (grid && !tuned && matchMedia("(max-width: 620px)").matches) grow(c.slug);
                       playChannel(c.slug, c.name, c.now);
                       // Bring the card you've just tuned in to into the middle.
                       if (!grid && !tuned) go(i, i);
@@ -246,6 +317,7 @@ export function StageChannels({
                 </div>
               </div>
             </li>
+            </Fragment>
           );
         })}
       </ol>
