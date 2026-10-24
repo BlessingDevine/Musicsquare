@@ -4,6 +4,7 @@ import { seededShuffle } from "@/lib/seeded";
 import socials from "../../scripts/catalog/socials.json";
 import { CATALOGUE, ROSTER } from "@/lib/station";
 import { Reveal } from "./reveal";
+import { RosterRail } from "./roster-rail";
 import styles from "./roster.module.css";
 
 /**
@@ -58,8 +59,8 @@ export async function Roster({ featured }: { featured?: string }) {
         </Reveal>
       </div>
 
-      {/* Two copies back to back drift right on a loop; the second is hidden from readers and the keyboard. */}
-      <div className={styles.viewport} style={{ "--cards": roster.length } as React.CSSProperties}>
+      {/* Two copies back to back drift right to left on a loop; the second is hidden from readers and the keyboard. */}
+      <RosterRail className={styles.viewport}>
         <div className={styles.track}>
           {[false, true].map((hidden) => (
             <ul key={String(hidden)} className={styles.rail} aria-hidden={hidden || undefined}>
@@ -119,10 +120,10 @@ export async function Roster({ featured }: { featured?: string }) {
             </ul>
           ))}
         </div>
-      </div>
+      </RosterRail>
 
       <div className="wrap">
-        <p className={`mono ${styles.drag}`}>The whole roster, on a loop &rarr; hover or hold to pause</p>
+        <p className={`mono ${styles.drag}`}>The whole roster, on a loop &larr; hover or hold to pause</p>
       </div>
     </section>
   );

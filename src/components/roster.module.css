@@ -18,32 +18,21 @@
   color: var(--color-gold);
 }
 
-/* The roster drifts right on a loop: two copies of the list side by side, the track sliding from
-   the second copy's start to the first's, so the seam never shows. Hover or hold to pause. */
+/* The roster drifts right to left on a loop (roster-rail.tsx scrolls this row; two copies of the
+   list side by side let it jump back by one copy with no seam). It can be swiped by hand too. */
 .viewport {
-  overflow: hidden;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.viewport::-webkit-scrollbar {
+  display: none;
 }
 
 .track {
   display: flex;
   width: max-content;
-  /* About 8 seconds per artist, so the pace stays the same as the roster grows. */
-  animation: drift calc(var(--cards, 20) * 8s) linear infinite;
-}
-
-.viewport:hover .track,
-.viewport:active .track,
-.viewport:focus-within .track {
-  animation-play-state: paused;
-}
-
-@keyframes drift {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 
 .rail {
@@ -55,15 +44,13 @@
   gap: clamp(1rem, 2vw, 2rem);
 }
 
-/* Without motion it's the old swipeable rail, one copy only. */
+/* Without motion it's a plain swipeable rail with one copy and a scrollbar. */
 @media (prefers-reduced-motion: reduce) {
   .viewport {
-    overflow-x: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--color-gold) transparent;
   }
   .track {
-    animation: none;
     padding-left: var(--gutter);
   }
   .rail[aria-hidden] {
