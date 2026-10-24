@@ -698,3 +698,14 @@
 .lead .cardNow .star {
   color: var(--color-gold) !important;
 }
+
+/* The genres a show plays, under its name in the day view. */
+.genre {
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: var(--color-ash);
+}
+
+.rowNow .genre {
+  color: var(--color-ink);
+}

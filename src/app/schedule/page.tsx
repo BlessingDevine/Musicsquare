@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Lineup, Record, SundayTimes } from "@/components/lineup";
 import { getTodaysDrop } from "@/lib/drop";
-import { ALL_BLOCKS, ROSTER } from "@/lib/station";
+import { ALL_BLOCKS, ROSTER, showName } from "@/lib/station";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -52,7 +52,7 @@ export default async function SchedulePage() {
             <p key={copy} className={styles.stripInner} aria-hidden={copy === 1}>
               {ALL_BLOCKS.map((label) => (
                 <span key={label}>
-                  {label}
+                  {showName(label)}
                   <i aria-hidden="true">✱</i>
                 </span>
               ))}
@@ -73,7 +73,7 @@ export default async function SchedulePage() {
               <em>Then turn it up.</em>
             </h2>
             <p className={styles.sundayLede}>
-              Ease in with Lofi, make space for Sunday Church, and let Sunday House carry you into the afternoon.
+              Ease in with Soft Focus, make space for Sunday Church, let Weekend House carry you into the afternoon, and wind down with Quiet Keys.
             </p>
             {/* #sunday opens Sunday in the lineup above (see Lineup). */}
             <a className="btn" href="#sunday">

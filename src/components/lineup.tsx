@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { DAYS, STATION_TZ, WEEK, clock, localWeek, stationClock, toLocal, type Block, type LocalBlock } from "@/lib/station";
+import { DAYS, STATION_TZ, WEEK, clock, localWeek, showGenre, showName, stationClock, toLocal, type Block, type LocalBlock } from "@/lib/station";
 import { usePlayer } from "./player-provider";
 import styles from "./lineup.module.css";
 
@@ -137,12 +137,12 @@ function downloadCalendar(labels: string[], name: string) {
           `DTSTART;TZID=${STATION_TZ}:${icsDate(start)}`,
           `DTEND;TZID=${STATION_TZ}:${icsDate(end)}`,
           "RRULE:FREQ=WEEKLY",
-          `SUMMARY:${icsText(`${b.label} on Musicsquare Radio`)}`,
+          `SUMMARY:${icsText(`${showName(b.label)} on Musicsquare Radio`)}`,
           "DESCRIPTION:Listen live at https://musicsquareradio.com",
           "URL:https://musicsquareradio.com",
           "BEGIN:VALARM",
           "ACTION:DISPLAY",
-          `DESCRIPTION:${icsText(`${b.label} starts in 10 minutes`)}`,
+          `DESCRIPTION:${icsText(`${showName(b.label)} starts in 10 minutes`)}`,
           "TRIGGER:-PT10M",
           "END:VALARM",
           "END:VEVENT",
@@ -160,7 +160,7 @@ function downloadCalendar(labels: string[], name: string) {
 
 function Star({ on, label, toggle }: { on: boolean; label: string; toggle: (l: string) => void }) {
   return (
-    <button type="button" className={`${styles.star} ${on ? styles.starOn : ""}`} onClick={() => toggle(label)} aria-pressed={on} aria-label={on ? `Remove ${label} from saved` : `Save ${label}`}>
+    <button type="button" className={`${styles.star} ${on ? styles.starOn : ""}`} onClick={() => toggle(label)} aria-pressed={on} aria-label={on ? `Remove ${showName(label)} from saved` : `Save ${showName(label)}`}>
       {on ? "★" : "☆"}
     </button>
   );
@@ -292,9 +292,10 @@ export function Lineup() {
                     {String(i + 1).padStart(2, "0")} / {String(week[shown].length).padStart(2, "0")}
                     {on ? " · on air now" : ""}
                   </span>
-                  <b>{b.label}</b>
+                  <b>{showName(b.label)}</b>
+                  {showGenre(b.label) && <span className={`mono ${styles.genre}`}>{showGenre(b.label)}</span>}
                   {saved.has(b.label) && (
-                    <button type="button" className={`mono ${styles.cal}`} onClick={() => downloadCalendar([b.label], b.label.toLowerCase().replace(/\W+/g, "-"))}>
+                    <button type="button" className={`mono ${styles.cal}`} onClick={() => downloadCalendar([b.label], showName(b.label).toLowerCase().replace(/\W+/g, "-"))}>
                       + Add to calendar
                     </button>
                   )}
@@ -355,7 +356,7 @@ export function Lineup() {
                     <span className="mono">
                       {clock(b.start)}–{clock(b.end)}
                     </span>
-                    <b>{b.label}</b>
+                    <b>{showName(b.label)}</b>
                     <Star on={saved.has(b.label)} label={b.label} toggle={toggle} />
                   </li>
                 ))}
@@ -402,7 +403,7 @@ export function SundayTimes({ className }: { className?: string }) {
         const local = now ? toLocal(0, b) : { day: 0, from: b.start, to: b.end };
         return (
           <li key={b.label}>
-            <b>{b.label}</b>
+            <b>{showName(b.label)}</b>
             <span className="mono">
               {local.day !== 0 ? `${SHORT[local.day]} ` : ""}
               {clock(local.from)}–{clock(local.to)}

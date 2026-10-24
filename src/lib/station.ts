@@ -201,7 +201,7 @@ export const WEEK: Block[][] = [
     { start: 12, end: 15, label: "Sunday House" },
     { start: 15, end: 18, label: "Amapiano" },
     { start: 18, end: 20, label: "Rock Mix" },
-    { start: 20, end: 24, label: "Pop & R&B" },
+    { start: 20, end: 24, label: "Piano" },
   ],
   // Monday
   [
@@ -306,12 +306,45 @@ export const FAMILIES: Record<string, string[]> = {
   "Late night & Sunday": [
     "French Mix",
     "Lofi",
+    "Piano",
     "Sunday Church",
     "Sunday House",
   ],
 };
 
 export const FAMILY_NAMES = Object.keys(FAMILIES);
+
+/**
+ * What listeners see for each block: a show name and the genres underneath. The keys are the
+ * RadioKing playlist names used in WEEK (and in saved stars), so RadioKing stays plainly named.
+ * No time-of-day words: listeners see every slot in their own time zone.
+ */
+export const SHOWS: Record<string, { name: string; genre: string }> = {
+  "Afro Mix": { name: "Afro Heat", genre: "Afrobeats · Amapiano" },
+  "Afrobeat": { name: "Afro Pulse", genre: "Afrobeats" },
+  "Amapiano": { name: "Log Drum Sessions", genre: "Amapiano" },
+  "Kizomba Mix": { name: "Kizomba Close", genre: "Kizomba" },
+  "French Mix": { name: "Le Mix", genre: "French R&B · Zouk" },
+  "Dancehall & Reggae": { name: "Yard Vibes", genre: "Dancehall · Reggae" },
+  "Reggaeton": { name: "Latin Fire", genre: "Reggaeton · Latin" },
+  "Hip Hop": { name: "Bars", genre: "Hip Hop" },
+  "Trapsoul": { name: "Trapsoul", genre: "Trap · Soul" },
+  "R&B": { name: "Slow Burn", genre: "R&B" },
+  "Pop & R&B": { name: "Pop & Soul", genre: "Pop · R&B" },
+  "Pop": { name: "Pop Rotation", genre: "Pop" },
+  "Country": { name: "Back Roads", genre: "Country" },
+  "Rock Mix": { name: "Riot Hour", genre: "Rock" },
+  "Lofi": { name: "Soft Focus", genre: "Lofi · Piano" },
+  "Piano": { name: "Quiet Keys", genre: "Piano · Relaxing" },
+  "Sunday House": { name: "Weekend House", genre: "House" },
+  "Sunday Church": { name: "Sunday Church", genre: "Gospel" },
+  "Dance Remixes": { name: "Remix Club", genre: "Dance" },
+};
+
+/** The show name for a WEEK label (the label itself if it has none). */
+export const showName = (label: string) => SHOWS[label]?.name ?? label;
+/** The genres a show plays, for the line under its name. */
+export const showGenre = (label: string) => SHOWS[label]?.genre ?? null;
 
 export function familyOf(label: string) {
   return FAMILY_NAMES.find((name) => FAMILIES[name].includes(label)) ?? null;

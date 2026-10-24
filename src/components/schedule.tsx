@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DAYS, WEEK, clock, localWeek } from "@/lib/station";
+import { DAYS, WEEK, clock, localWeek, showName } from "@/lib/station";
 import { Reveal } from "./reveal";
 import styles from "./schedule.module.css";
 
@@ -91,7 +91,7 @@ export function Schedule() {
                     {clock(block.start)} — {clock(block.end)}
                   </td>
                   <th scope="row" className={`display ${styles.block}`}>
-                    {block.label}
+                    {showName(block.label)}
                     {live && (
                       <span className={`mono ${styles.badge}`}>
                         <span className="pip" aria-hidden="true" />

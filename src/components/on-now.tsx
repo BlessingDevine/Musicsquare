@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DAYS, clock, familyOf, localWeek } from "@/lib/station";
+import { DAYS, clock, localWeek, showGenre, showName } from "@/lib/station";
 import { usePlayer } from "./player-provider";
 import styles from "./on-now.module.css";
 
@@ -89,7 +89,7 @@ export function OnNow() {
           </p>
           <p className={`mono ${styles.block}`}>
             {block
-              ? `${block.label} · ${clock(block.from)}–${clock(block.to)} · ${familyOf(block.label) ?? ""}`
+              ? `${showName(block.label)} · ${clock(block.from)}–${clock(block.to)} · ${showGenre(block.label) ?? ""}`
               : "Streaming 24/7"}
           </p>
         </section>
@@ -111,7 +111,7 @@ export function OnNow() {
           )}
           {upcoming && (
             <p className={`mono ${styles.block}`}>
-              Then {upcoming.block.label}
+              Then {showName(upcoming.block.label)}
               {upcoming.tomorrow ? `, ${DAYS[upcoming.day]}` : ""} from{" "}
               {clock(upcoming.block.from)}
             </p>
