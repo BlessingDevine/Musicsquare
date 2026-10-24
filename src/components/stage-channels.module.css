@@ -345,6 +345,9 @@
    stays for the channel you're tuned to. */
 .grid .panel {
   transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+  /* iPhone Safari only reliably sends taps to plain elements marked as pointable. */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .grid .bg {

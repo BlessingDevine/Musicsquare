@@ -198,7 +198,9 @@ export function StageChannels({
               className={`${styles.panel} ${tuned ? styles.tuned : ""} ${i === index ? styles.current : ""} ${grid && peek === c.slug ? styles.peek : ""}`}
               aria-hidden={copy !== 1 && copies > 1 ? true : undefined}
               // Touch screens have no hover: a tap lifts the card (and drops the one lifted before).
-              onClick={grid ? (e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
+              // Read on finger-up: iPhone Safari's click events don't say whether a finger made them,
+              // and a swipe that scrolls the page ends in pointercancel, so it doesn't count.
+              onPointerUp={grid ? (e) => e.pointerType !== "mouse" && setPeek((p) => (p === c.slug ? null : c.slug)) : undefined}
             >
               {cover && <span className={styles.bg} style={{ backgroundImage: `url(${cover})` }} aria-hidden="true" />}
               <div className={styles.content}>

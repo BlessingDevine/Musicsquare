@@ -189,7 +189,8 @@ export function Record({ image }: { image: string | null }) {
       aria-hidden="true"
       onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
-      onClick={(e) => (e.nativeEvent as PointerEvent).pointerType !== "mouse" && setTappedUp((v) => !v)}
+      // Finger-up, not click: iPhone Safari's clicks don't say whether a finger made them.
+      onPointerUp={(e) => e.pointerType !== "mouse" && setTappedUp((v) => !v)}
     >
       <div className={`${styles.record} ${status === "playing" ? styles.spinning : ""}`}>
         <div className={styles.label}>
