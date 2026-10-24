@@ -191,11 +191,31 @@ export function StageChannels({
     const to = slot.current?.getBoundingClientRect();
     const done = () => setOpen(null);
     if (!el || !to || still()) return done();
-    el.animate([{ transform: "none", borderRadius: "0px" }, { transform: squeeze(to), borderRadius: "14px" }], {
-      duration: 420,
-      easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-    }).onfinish = done;
+    // Held on its last frame (fill) until the card is back in the grid, so no full-screen frame
+    // flashes in between; it dims towards the end and fades back in at its spot (effect below), so
+    // the swap from the full-screen layout to the card's own happens under a short dissolve.
+    const anim = el.animate(
+      [
+        { transform: "none", borderRadius: "0px", opacity: 1 },
+        { transform: squeeze(to), borderRadius: "14px", opacity: 1, offset: 0.65 },
+        { transform: squeeze(to), borderRadius: "14px", opacity: 0.2 },
+      ],
+      { duration: 480, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" },
+    );
+    shrinking.current = anim;
+    anim.onfinish = done;
   };
+
+  // Back in the grid: drop the held frame before paint and fade the card in where it belongs.
+  const shrinking = useRef<Animation | null>(null);
+  useLayoutEffect(() => {
+    if (open || !shrinking.current) return;
+    const anim = shrinking.current;
+    shrinking.current = null;
+    const el = anim.effect instanceof KeyframeEffect ? (anim.effect.target as HTMLElement | null) : null;
+    anim.cancel();
+    el?.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+  }, [open]);
 
   // Grow from the card's own spot to the full screen, and hold the page still behind it.
   useLayoutEffect(() => {
