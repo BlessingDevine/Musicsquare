@@ -102,7 +102,7 @@ export const CHANNELS: Channel[] = [
  * headline numbers, not an inventory.
  */
 export const CATALOGUE = {
-  artists: "~300",
+  artists: "38",
   songs: "3,300+",
 } as const;
 
