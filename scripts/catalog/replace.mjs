@@ -18,6 +18,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
 import { analyse } from "./cues.mjs";
+import { levelMp3 } from "./loudness.mjs";
 import { abs, relOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -49,13 +50,15 @@ const meta = (await parseBuffer(bytes, { mimeType: "audio/mpeg" }, { duration: t
 const durationMs = Math.round(meta.duration * 1000);
 const cues = await analyse(file).catch(() => null);
 
+// The stream is levelled to TARGET_LUFS (loudness.mjs); checksum stays the source file's.
+const { bytes: stream } = await levelMp3(bytes);
 const key = `audio/${song.song_code}-${checksum.slice(0, 8)}.mp3`;
 await s3.send(new PutObjectCommand({
-  Bucket: process.env.AUDIO_BUCKET, Key: key, Body: bytes, ContentType: "audio/mpeg",
+  Bucket: process.env.AUDIO_BUCKET, Key: key, Body: stream, ContentType: "audio/mpeg",
   CacheControl: "public, max-age=31536000, immutable",
 }));
 const fileRow = {
-  storage_key: key, checksum, byte_size: bytes.length,
+  storage_key: key, checksum, byte_size: stream.length,
   bitrate: meta.bitrate ? Math.round(meta.bitrate / 1000) : null,
 };
 const { error: fe } = current

@@ -34,6 +34,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { parseBuffer } from "music-metadata";
 import { analyse } from "./cues.mjs";
+import { levelMp3 } from "./loudness.mjs";
 import { abs, parseImprint, scan, slugify } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -253,8 +254,13 @@ async function createSong(entry, { imprints, artists }, durationSeconds, trackNo
   }).select("song_id, song_code").single());
 }
 
-/** The public streaming file. Checksum defaults to the bytes uploaded. */
-async function uploadStream(song, bytes, ext, mime, bitrate, checksum) {
+/**
+ * The public streaming file, levelled to TARGET_LUFS first (loudness.mjs).
+ * Checksum defaults to the bytes before levelling, so it still matches the source.
+ */
+async function uploadStream(song, source, ext, mime, bitrate, checksum) {
+  const bytes = ext === "mp3" ? (await levelMp3(source)).bytes : source;
+  checksum ??= createHash("sha256").update(source).digest("hex");
   const key = `audio/${song.song_code}.${ext}`;
   await s3.send(new PutObjectCommand({
     Bucket: BUCKET, Key: key, Body: bytes, ContentType: mime,
@@ -262,7 +268,7 @@ async function uploadStream(song, bytes, ext, mime, bitrate, checksum) {
   }));
   must(await db.from("song_files").insert({
     song_id: song.song_id, file_type: "mp3", storage_key: key,
-    checksum: checksum ?? createHash("sha256").update(bytes).digest("hex"),
+    checksum,
     byte_size: bytes.length,
     bitrate: bitrate ? Math.round(bitrate / 1000) : null,
     is_public: true,
