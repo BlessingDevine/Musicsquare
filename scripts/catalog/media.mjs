@@ -86,9 +86,13 @@ function songsInDoc(path) {
   // A clock time sung as a line ("2:17 AM") is not a header.
   let marks = [...text.matchAll(header)].filter((m) => !/^\s*\d{1,2}:\d{2}\b/.test(m[0]));
   if (marks.length < 2) marks = [];
-  // Drop separator rules and table/genre scaffolding ("Section", "Lyrical Content", "(Genre: …)").
+  // Drop separator rules and table/genre scaffolding ("Section", "Lyrical Content", "(Genre: …)"),
+  // and the songwriter sheets' studio notes (Oct 2026): a header line "Thando Keys | Format A |
+  // Male lead | isiZulu and English" and everything from "Suno prompt" on (style, key, BPM).
   const clean = (t) =>
     t
+      .replace(/^\s*Suno prompt\s*$[\s\S]*/im, "")
+      .replace(/^[^\n|]+\|\s*Format [A-Z]\b[^\n]*$/gm, "")
       .replace(/^\s*[=\-_]{3,}\s*$/gm, "")
       .replace(/^\s*(section|lyrical content)\s*$/gim, "")
       .replace(/^\s*\(genre:[^)]*\)\s*$/gim, "")
