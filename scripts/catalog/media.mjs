@@ -54,7 +54,7 @@ const s3 = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
 // Every song, grouped by artist folder (the part of source_path before /MUSIC/).
 const songs = [];
 for (let from = 0; ; from += 1000) {
-  const { data, error } = await db.from("songs").select("song_id, title, source_path").order("song_code").range(from, from + 999);
+  const { data, error } = await db.from("songs").select("song_id, title, source_path, release_status").order("song_code").range(from, from + 999);
   if (error) throw new Error(error.message);
   songs.push(...data);
   if (data.length < 1000) break;
@@ -64,6 +64,9 @@ for (const s of songs) {
   const owner = ownerOf(s.source_path);
   if (!owner) continue;
   if (!byArtist.has(owner)) byArtist.set(owner, new Map());
+  // Two songs with one title (an archived old copy, say): the lyrics go to the live one.
+  const prior = byArtist.get(owner).get(norm(s.title));
+  if (prior && prior.release_status !== "archived" && s.release_status === "archived") continue;
   byArtist.get(owner).set(norm(s.title), s);
 }
 
