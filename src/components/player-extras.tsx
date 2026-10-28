@@ -15,6 +15,9 @@ const FOLD_AFTER = 3000;
  * Sleep timer and "share what's playing", shown beside the player while
  * something plays (hero console and the docked player bar).
  *
+ * With `icons` (the hero's Listen live button) they're just the two icons,
+ * sitting on the right end of the gold button.
+ *
  * With `fold` on (the docked bar while it shows), phones fold the two pills
  * into a small tab at the side 3 s after play starts, so the song title has
  * room; tapping the tab brings them back for another 3 s. Wider screens
@@ -23,9 +26,11 @@ const FOLD_AFTER = 3000;
 export function PlayerExtras({
   tabbable = true,
   fold = false,
+  icons = false,
 }: {
   tabbable?: boolean;
   fold?: boolean;
+  icons?: boolean;
 }) {
   const { source, now, sleepAt, setSleepTimer } = usePlayer();
   const [left, setLeft] = useState<number | null>(null);
@@ -100,6 +105,36 @@ export function PlayerExtras({
   }
 
   const tab = tabbable ? 0 : -1;
+  const sleepLabel = sleepAt
+    ? `Sleep timer: ${left} minutes left. Tap to change`
+    : "Set a sleep timer";
+  if (icons) {
+    return (
+      <div className={styles.icons}>
+        <button
+          type="button"
+          className={`${styles.icon} ${sleepAt ? styles.iconOn : ""}`}
+          onClick={cycleSleep}
+          tabIndex={tab}
+          aria-label={sleepLabel}
+          title={sleepAt ? `${left} min` : "Sleep timer"}
+        >
+          <span aria-hidden="true">☾</span>
+          {sleepAt && <small aria-hidden="true">{left}</small>}
+        </button>
+        <button
+          type="button"
+          className={styles.icon}
+          onClick={share}
+          tabIndex={tab}
+          aria-label={shared ? "Link copied" : "Share what's playing"}
+          title={shared ? "Link copied" : "Share"}
+        >
+          <span aria-hidden="true">{shared ? "✓" : "↗"}</span>
+        </button>
+      </div>
+    );
+  }
   const pill = folded ? -1 : tab;
   return (
     <div className={`${styles.extras} ${folded ? styles.folded : ""}`}>

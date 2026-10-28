@@ -39,6 +39,25 @@
   background: var(--color-gold-hi);
 }
 
+/* With the song's cover: the stop mark sits on a small dark disc in the middle. */
+.stopCover,
+.stopCover:hover {
+  background-color: var(--color-ink-2);
+  background-size: cover;
+  background-position: center;
+  color: var(--color-paper);
+}
+
+.stopCover span {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: rgba(10, 10, 11, 0.62);
+  font-size: 0.6rem;
+}
+
 /* Four bars keeping time — the only ornament down here. */
 .meter {
   display: flex;

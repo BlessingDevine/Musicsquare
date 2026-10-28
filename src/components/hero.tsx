@@ -42,6 +42,7 @@ const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=app.gosqu
 export function Hero({ channels }: { channels: ChannelSummary[] }) {
   const { status, source, now, listening, toggleLive, playChannel, isOnChannel } = usePlayer();
   const liveOn = source.kind === "live" && status === "playing";
+  const playing = status === "playing" || status === "loading";
   const onAir = useSyncExternalStore(subscribeMinute, blockNow, () => null);
   const cover = useLoadedCover(now?.artwork);
 
@@ -124,17 +125,19 @@ export function Hero({ channels }: { channels: ChannelSummary[] }) {
 
       <div className={styles.console}>
         <div className={`wrap ${styles.consoleInner}`}>
-          <button
-            type="button"
-            className={`btn ${styles.cta}`}
-            onClick={toggleLive}
-            aria-pressed={liveOn}
-          >
-            <span aria-hidden="true">{liveOn ? "■" : "▶"}</span>
-            <span>{liveOn ? "Stop the stream" : "Listen live"}</span>
-          </button>
-
-          {(status === "playing" || status === "loading") && <PlayerExtras />}
+          {/* While something plays, Sleep and Share sit as two icons on the button's right end. */}
+          <div className={styles.ctaWrap}>
+            <button
+              type="button"
+              className={`btn ${styles.cta} ${playing ? styles.ctaWithIcons : ""}`}
+              onClick={toggleLive}
+              aria-pressed={liveOn}
+            >
+              <span aria-hidden="true">{liveOn ? "■" : "▶"}</span>
+              <span>{liveOn ? "Stop the stream" : "Listen live"}</span>
+            </button>
+            {playing && <PlayerExtras icons />}
+          </div>
 
           {/* Every channel, each one tunes straight in (scrolls sideways when they don't fit). */}
           <nav className={styles.channels} aria-label="Tune in to a channel">

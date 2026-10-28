@@ -263,8 +263,14 @@
   padding-bottom: calc(1.1rem + env(safe-area-inset-bottom));
 }
 
-.cta {
+.ctaWrap {
+  position: relative;
   flex: none;
+}
+
+/* Room on the right for the Sleep and Share icons (player-extras.tsx, icons). */
+.ctaWithIcons {
+  padding-right: 6.4rem;
 }
 
 /* Every channel as a tune-in chip; scrolls sideways when they don't all fit. */
@@ -416,6 +422,9 @@
     order: -1;
     width: 100%;
     flex: none;
+  }
+  .ctaWrap {
+    width: 100%;
   }
   .cta {
     width: 100%;

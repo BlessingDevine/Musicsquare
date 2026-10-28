@@ -109,3 +109,62 @@
     animation: none;
   }
 }
+
+/* Icons only, on the right end of the hero's gold Listen live button (player-extras.tsx, icons). */
+.icons {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.35rem;
+}
+
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border: 1px solid rgba(10, 10, 11, 0.28);
+  border-radius: 50%;
+  background: none;
+  color: var(--color-ink);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.icon:hover {
+  background: rgba(10, 10, 11, 0.1);
+  border-color: rgba(10, 10, 11, 0.5);
+}
+
+/* A sleep timer is running: dark disc, minutes left in small type. */
+.iconOn {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-gold);
+}
+
+.iconOn:hover {
+  background: var(--color-ink-2);
+}
+
+.icon small {
+  position: absolute;
+  bottom: -0.15rem;
+  right: -0.25rem;
+  min-width: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.1rem;
+  text-align: center;
+}

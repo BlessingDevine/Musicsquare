@@ -38,6 +38,8 @@ type PlayerValue = {
   stop: () => void;
   isPlaying: (url?: string) => boolean;
   isOnChannel: (slug: string) => boolean;
+  /** The playing song's album cover, when known (live stream and channels). */
+  cover: string | null;
   /** When the sleep timer stops playback (ms since epoch), or null. */
   sleepAt: number | null;
   setSleepTimer: (minutes: number | null) => void;
@@ -113,6 +115,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // to know about the current source goes through refs.
   const sourceRef = useRef<Source>(source);
   const rotations = useRef(new Map<string, { at: number; pending: Promise<ChannelRotation | null> }>());
+  // Album covers by song code, per channel, from the rotations as they arrive.
+  const [channelCovers, setChannelCovers] = useState<Record<string, Record<string, string>>>({});
   const mixerRef = useRef<ChannelMixer | null>(null);
 
   const changeSource = useCallback((next: Source) => {
@@ -175,6 +179,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       .then((r) => (r.ok ? (r.json() as Promise<ChannelRotation>) : null))
       .catch(() => null);
     rotations.current.set(slug, { at: Date.now(), pending });
+    pending.then((r) => r?.covers && setChannelCovers((all) => ({ ...all, [slug]: r.covers })));
     // Don't keep a failure; the next song change or tune-in tries again.
     pending.then((r) => r ?? rotations.current.delete(slug));
     // Until the fresh copy arrives, an older one is better than nothing.
@@ -279,12 +284,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     mixerRef.current?.stop();
   }, []);
 
+  const cover =
+    source.kind === "live"
+      ? (live.current?.artwork ?? null)
+      : source.kind === "channel" && source.track
+        ? (channelCovers[source.slug]?.[source.track.code] ?? null)
+        : null;
+
   const value = useMemo(
     () => ({
       status,
       source,
       live,
       now: live.current,
+      cover,
       listening,
       toggleLive,
       playTrack,
@@ -295,7 +308,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       sleepAt,
       setSleepTimer,
     }),
-    [status, source, live, listening, toggleLive, playTrack, playChannel, stop, isPlaying, isOnChannel, sleepAt, setSleepTimer],
+    [status, source, live, cover, listening, toggleLive, playTrack, playChannel, stop, isPlaying, isOnChannel, sleepAt, setSleepTimer],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;

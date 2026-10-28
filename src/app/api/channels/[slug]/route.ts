@@ -1,7 +1,8 @@
 import { getChannel } from "@/lib/catalog";
 import type { Rotation } from "@/lib/live-channel";
 
-export type ChannelRotation = Rotation & { name: string };
+/** The rotation, plus each song's album cover by song code (the player bar shows it). */
+export type ChannelRotation = Rotation & { name: string; covers: Record<string, string> };
 
 /**
  * One channel's full rotation, fetched by the player when a listener tunes
@@ -12,7 +13,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/channels/[slug]
   const { slug } = await ctx.params;
   const channel = await getChannel(slug);
   if (!channel) return Response.json({ error: "No such channel" }, { status: 404 });
-  const body: ChannelRotation = { ...channel.rotation, name: channel.name };
+  const body: ChannelRotation = { ...channel.rotation, name: channel.name, covers: channel.covers };
   return Response.json(body, {
     headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
   });

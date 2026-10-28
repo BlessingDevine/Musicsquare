@@ -10,7 +10,7 @@ import styles from "./player-bar.module.css";
  * scrolled away — the two never show at the same time.
  */
 export function PlayerBar() {
-  const { status, source, now, listening, stop, toggleLive, playChannel } = usePlayer();
+  const { status, source, now, cover, listening, stop, toggleLive, playChannel } = usePlayer();
   const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
@@ -51,9 +51,11 @@ export function PlayerBar() {
   return (
     <div className={`${styles.bar} ${open ? styles.open : ""}`} aria-hidden={!open}>
       <div className={`wrap ${styles.inner}`}>
+        {/* The playing song's cover, with the stop mark on it; the gold square when there's no cover. */}
         <button
           type="button"
-          className={styles.stop}
+          className={`${styles.stop} ${cover ? styles.stopCover : ""}`}
+          style={cover ? { backgroundImage: `url(${cover})` } : undefined}
           onClick={stop}
           tabIndex={open ? 0 : -1}
           aria-label="Stop playback"
