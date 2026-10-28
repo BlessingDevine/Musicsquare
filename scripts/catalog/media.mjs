@@ -92,7 +92,7 @@ function songsInDoc(path) {
   const clean = (t) =>
     t
       .replace(/^\s*Suno prompt\s*$[\s\S]*/im, "")
-      .replace(/^[^\n|]+\|\s*Format [A-Z]\b[^\n]*$/gm, "")
+      .replace(/^(?:[^\n|]+\|\s*)?Format [A-Z]\b[^\n]*\|[^\n]*$/gm, "")
       .replace(/^\s*[=\-_]{3,}\s*$/gm, "")
       .replace(/^\s*(section|lyrical content)\s*$/gim, "")
       .replace(/^\s*\(genre:[^)]*\)\s*$/gim, "")
