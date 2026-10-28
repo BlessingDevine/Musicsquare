@@ -99,10 +99,19 @@ function songsInDoc(path) {
       .replace(/\n{3,}/g, "\n\n")
       .replace(/^\s+|\s+$/g, "");
   if (!marks.length) return [{ title: null, text: clean(text) }];
-  const parts = marks.map((m, i) => ({
+  const split = marks.map((m, i) => ({
     title: m[1],
     text: clean(text.slice(m.index + m[0].length, i + 1 < marks.length ? marks[i + 1].index : undefined)),
   }));
+  // A song carried over a page break ("GATE SEVENTEEN continued", Cedar Line's sheet) is
+  // joined back onto the song it continues.
+  const parts = [];
+  for (const p of split) {
+    const base = p.title.match(/^(.*?)\s*\(?continued\)?$/i)?.[1];
+    const prior = base && parts.findLast((q) => norm(q.title) === norm(base));
+    if (prior) prior.text = `${prior.text}\n\n${p.text}`;
+    else parts.push(p);
+  }
   // A contents list at the top (1. Song, 2. Song …, with section headings between) splits
   // into near-empty "songs": a real lyric has a few lines. When a title appears twice,
   // keep its longest text.
