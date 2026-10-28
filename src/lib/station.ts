@@ -102,7 +102,7 @@ export const CHANNELS: Channel[] = [
  * headline numbers, not an inventory.
  */
 export const CATALOGUE = {
-  artists: "38",
+  artists: "39",
   songs: "3,200+",
 } as const;
 
@@ -134,6 +134,7 @@ export const ROSTER: Artist[] = [
   { slug: "sadie-colton", name: "Sadie Colton", lane: "Country", portrait: "/roster/sadie-colton.jpg", square: "/roster/sadie-colton-square.jpg" },
   { slug: "cedar-line", name: "Cedar Line", lane: "Country", portrait: "/roster/cedar-line.jpg", square: "/roster/cedar-line-square.jpg" },
   { slug: "deejay-zethu", name: "Deejay Zethu", lane: "Amapiano", portrait: "/roster/deejay-zethu.jpg", square: "/roster/deejay-zethu-square.jpg" },
+  { slug: "thando-keys", name: "Thando Keys", lane: "Amapiano", portrait: "/roster/thando-keys.jpg", square: "/roster/thando-keys-square.jpg" },
   { slug: "yano-sky", name: "Yano Sky", lane: "Afro House / Jazz", portrait: "/roster/yano-sky.jpg", square: "/roster/yano-sky-square.jpg" },
   { slug: "elkana", name: "Elkana", lane: "Trap", portrait: "/roster/elkana.jpg", square: "/roster/elkana-square.jpg" },
   { slug: "vxnti", name: "VXNTI", lane: "Trap", portrait: "/roster/vxnti.jpg", square: "/roster/vxnti-square.jpg" },
@@ -145,7 +146,7 @@ export const ROSTER: Artist[] = [
   { slug: "virgo-dunstan", name: "Virgo Dunstan", lane: "R&B / Pop", portrait: "/roster/virgo-dunstan.jpg", square: "/roster/virgo-dunstan-square.jpg" },
   { slug: "j-cruz", name: "J Cruz", lane: "Pop", portrait: "/roster/j-cruz.jpg", square: "/roster/j-cruz-square.jpg" },
   { slug: "lunah", name: "Lunah", lane: "R&B / Pop", portrait: "/roster/lunah.jpg", square: "/roster/lunah-square.jpg" },
-  { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alt Pop", portrait: "/roster/neilly-storm.jpg" },
+  { slug: "neilly-storm", name: "Neilly Storm", lane: "Pop / Alt Pop", portrait: "/roster/neilly-storm.jpg", square: "/roster/neilly-storm-square.jpg" },
   { slug: "lucas-meno", name: "Lucas Meno", lane: "R&B", portrait: "/roster/lucas-meno.jpg", square: "/roster/lucas-meno-square.jpg" },
   // Added Oct 2026 from the catalogue's IMAGES folders (scripts/roster-portraits.mjs).
   // Lanes are their imprints' genres.

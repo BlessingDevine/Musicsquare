@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Musicsquare Radio is a 24/7 station playing AI-made, human-assisted music across seventeen genres and several languages — over 3,200 songs from 38 artists. Operated by Squaredrum LLC, founded 2024.",
+    "Musicsquare Radio is a 24/7 station playing AI-made, human-assisted music across seventeen genres and several languages — over 3,200 songs from 39 artists. Operated by Squaredrum LLC, founded 2024.",
 };
 
 export default function AboutPage() {

@@ -80,6 +80,10 @@ const PORTRAITS = [
     [`${V}/Luv Tonez/Photos/Luv Tonez 1.jpg`, 0.5, 0, 1]],
   // Every Apex photo has the name printed across the bottom: crop above it.
   ["apex", `${GD}/Apex/Photos/Apex.jpg`, 0.5, 0.07, 0.6],
+  // Oct 28 2026, matching their squaredrum.com cards: Thando at the white piano,
+  // Neilly's pink close portrait.
+  ["thando-keys", `${PN}/Thando Keys/Photos/09.png`, 0.56, 0, 1],
+  ["neilly-storm", `${W}/Neilly Storm/Photos/12.png`, 0.5, 0.025, 0.93],
 ];
 
 // ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square
