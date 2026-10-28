@@ -34,9 +34,12 @@ const UPLOAD = process.argv.includes("--upload");
 // --only "<text>": load only files whose path contains the text (one artist's folder, say), leaving the rest as they are.
 const ONLY = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
 const LINKS = JSON.parse(readFileSync(join(here, "media-links.json"), "utf8"));
-// Songs whose lyric sheet doesn't match the recording (timing heard too little of it): their
-// sheet entry is skipped until the sheet is fixed and the path taken off this list.
-const LYRICS_OFF = new Set(JSON.parse(readFileSync(join(here, "lyrics-off.json"), "utf8")));
+// Lyric sheets that don't match the recording (timing heard too little of them), skipped until
+// fixed: a song path (every sheet for it) or { song, sheet } (only that sheet, e.g. an old album
+// document when a corrected one-song file sits beside it).
+const LYRICS_OFF = JSON.parse(readFileSync(join(here, "lyrics-off.json"), "utf8"));
+const lyricsOff = (song, sheet) =>
+  LYRICS_OFF.some((e) => (typeof e === "string" ? e === song.source_path : e.song === song.source_path && e.sheet === sheet));
 const DOCS = new Set([".rtf", ".docx", ".doc", ".txt", ".md", ".pdf"]);
 const VIDEOS = new Set([".mp4", ".mov", ".m4v"]);
 
@@ -192,7 +195,7 @@ for (const owner of byArtist.keys()) {
       for (const p of parts) {
         const song = p.title ? titles.get(norm(p.title)) : find(rel, stemKey(f));
         if (ONLY && !rel.includes(ONLY)) continue;
-        if (song && LYRICS_OFF.has(song.source_path)) unmatched.push(`${rel} → "${p.title ?? song.title}" (lyrics-off.json: sheet doesn't match the recording)`);
+        if (song && lyricsOff(song, rel)) unmatched.push(`${rel} → "${p.title ?? song.title}" (lyrics-off.json: sheet doesn't match the recording)`);
         else if (song && p.text) lyrics.push({ song, text: p.text, source: rel });
         else unmatched.push(p.title ? `${rel} → "${p.title}"` : rel);
       }
