@@ -73,7 +73,7 @@ export function PlayerBar() {
           <span className={`mono ${styles.artist}`}>{artist}</span>
         </p>
 
-        <PlayerExtras tabbable={open} />
+        <PlayerExtras tabbable={open} fold={open} />
 
         <p className={`mono ${styles.right}`}>
           {status === "error" ? (

@@ -30,3 +30,82 @@
   color: var(--color-gold);
   border-color: var(--color-gold);
 }
+
+/* Folding (docked bar on phones, player-extras.tsx): the pills slide off to the right and shrink
+   away, leaving a small round tab; a gold dot on it means a sleep timer is running. */
+.tab {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .extras {
+    align-items: center;
+  }
+
+  .btn {
+    max-width: 10rem;
+    overflow: hidden;
+    transition:
+      color 0.2s,
+      border-color 0.2s,
+      max-width 0.45s var(--ease-out),
+      padding 0.45s var(--ease-out),
+      opacity 0.3s,
+      transform 0.45s var(--ease-out);
+  }
+
+  .folded {
+    gap: 0;
+  }
+
+  .folded .btn {
+    max-width: 0;
+    padding-inline: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: translateX(1.5rem);
+    pointer-events: none;
+  }
+
+  .folded .tab {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border: 1px solid var(--rule-dark);
+    border-radius: 999px;
+    background: none;
+    color: var(--color-ash-dark);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    animation: tab-in 0.35s var(--ease-out) 0.15s both;
+  }
+
+  .tabOn::after {
+    content: "";
+    position: absolute;
+    top: 0.2rem;
+    right: 0.2rem;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-gold);
+  }
+}
+
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .folded .tab {
+    transition: none;
+    animation: none;
+  }
+}
