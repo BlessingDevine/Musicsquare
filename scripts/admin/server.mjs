@@ -11,11 +11,12 @@
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { LABELS_ROOT, parseImprint } from "../catalog/scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
@@ -40,8 +41,19 @@ const job = (f) => join(HERE, "jobs", f);
  */
 const JOBS = {
   newfiles: ({ label }) => [[job("newfiles.mjs"), need(label, SLUG)]],
-  import: ({ label }, apply) => (apply ? [[cat("ingest.mjs"), "--only", need(label, SLUG)], [cat("covers.mjs"), "--upload"]] : [[job("newfiles.mjs"), need(label, SLUG)]]),
-  covers: (_, apply) => [[cat("covers.mjs"), ...(apply ? ["--upload"] : [])]],
+  // Covers for the imported label only: a full covers run reads every album in the catalogue.
+  import: ({ label }, apply) => {
+    const slug = need(label, SLUG);
+    if (!apply) return [[job("newfiles.mjs"), slug]];
+    const folder = labelFolder(slug);
+    return [[cat("ingest.mjs"), "--only", slug], [cat("covers.mjs"), ...(folder ? ["--only", folder] : []), "--upload"]];
+  },
+  // An album name looks at that album's folder only; empty checks every album, label and single cover.
+  covers: async ({ album }, apply) => {
+    const upload = apply ? ["--upload"] : [];
+    if (!album?.trim()) return [[cat("covers.mjs"), ...upload]];
+    return (await albumFolders(need(album.trim(), /^[^\n]{1,120}$/))).map((f) => [cat("covers.mjs"), "--only", f, ...upload]);
+  },
   lyrics: (_, apply) => [[cat("media.mjs"), ...(apply ? ["--upload"] : [])]],
   sync: ({ who, lang }, apply) => [
     [cat("sync-lyrics.mjs"), "--only", need(who, /^[^\n]{1,80}$/), "--lang", LANGS.includes(lang) ? lang : "en", ...(apply ? ["--upload"] : [])],
@@ -84,6 +96,19 @@ async function songRow(id) {
   const { data, error } = await db.from("songs").select("song_id, song_code, title, source_path").eq("song_id", id).maybeSingle();
   if (error || !data) throw new Error("Song not found.");
   return data;
+}
+/** The LABELS folder for a label slug ("piano-nation" → "LABELS/Piano Nation - Afro-house, Amapiano"), or null. */
+function labelFolder(slug) {
+  const name = readdirSync(LABELS_ROOT).find((n) => !n.startsWith(".") && parseImprint(n).slug === slug);
+  return name ? join(LABELS_ROOT, name) : null;
+}
+/** Every folder holding songs of the album with this name (any capitals). */
+async function albumFolders(album) {
+  const { data, error } = await db.from("songs").select("source_path").ilike("album_title", album.replace(/[%_\\]/g, "\\$&"));
+  if (error) throw new Error(error.message);
+  const folders = [...new Set(data.map((r) => posix.dirname(r.source_path)))];
+  if (!folders.length) throw new Error(`No album called "${album}" in the catalogue.`);
+  return folders;
 }
 async function artistRow(slug) {
   const { data, error } = await db.from("artists").select("artist_name").eq("slug", slug).maybeSingle();
