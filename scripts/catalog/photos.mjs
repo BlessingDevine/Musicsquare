@@ -41,9 +41,9 @@ if (!slugs.length) throw new Error("Name an artist slug, e.g. node scripts/catal
 const IMAGES = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const DOCS = new Set([".txt", ".md", ".rtf", ".docx", ".doc", ".pdf"]);
 const WIDTHS = [480, 960, 1600];
-// Album covers, Canvas artwork, collages and face references live in Photos/ too but aren't gallery photos
+// Album covers, Canvas artwork, collages and face or character references live in Photos/ too but aren't gallery photos
 // (Robert, Oct 2026: skip those by name; every numbered photo goes in, even a grid of poses).
-const NOT_PHOTOS = /cover|canvas|collage|face ?ref/i;
+const NOT_PHOTOS = /cover|canvas|collage|(face|character)[ _-]?ref/i;
 // Hero photos fill the screen, so sharp (retina) desktops need up to ~2880 px.
 const HERO_WIDTHS = [480, 960, 1600, 2400, 2880];
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
@@ -135,6 +135,12 @@ for (const slug of slugs) {
     const src = join(photoDir, f);
     const buf = readFileSync(src);
     const id = createHash("sha256").update(buf).digest("hex").slice(0, 16);
+    // The same picture saved twice under two names shows once.
+    const twin = photos.find((p) => p.id === id);
+    if (twin) {
+      console.log(`  =  ${f} is the same file as ${twin.file}, skipped`);
+      continue;
+    }
     // .rotate() applies the camera's orientation before measuring.
     const img = sharp(buf).rotate();
     const { width, height } = await img.metadata().then((m) => (m.orientation >= 5 ? { width: m.height, height: m.width } : m));
