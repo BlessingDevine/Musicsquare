@@ -5,6 +5,9 @@
 //   node scripts/catalog/covers.mjs            report only: which albums have a cover
 //   node scripts/catalog/covers.mjs --upload   upload new or changed covers
 //   node scripts/catalog/covers.mjs --thumbs   make any missing smaller sizes
+//   add --only "<folder>" to look at one album (or one artist/collection) only:
+//   its path as stored ("LABELS/…/Songs/VOL 1") or the full path on disk.
+//   Labels and song covers are skipped then, so one new release takes seconds.
 //
 // Every image is stored at three sizes: <key>.jpg (1000px) for big views,
 // <key>-600.jpg for cards and <key>-300.jpg for lists, where the 1000px file
@@ -51,13 +54,19 @@ import { fileURLToPath } from "node:url";
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import { DEFAULT_ROOT, LABELS_ROOT, assetDir, ownerOf, parseImprint, relOf } from "./scan.mjs";
+import { DEFAULT_ROOT, LABELS_ROOT, abs, assetDir, ownerOf, parseImprint, relOf } from "./scan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(join(here, "../../.env.local"));
 
 const UPLOAD = process.argv.includes("--upload");
 const THUMBS = process.argv.includes("--thumbs");
+const onlyArg = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
+const ONLY = onlyArg && (onlyArg.startsWith("/") ? onlyArg.replace(/\/+$/, "") : abs(onlyArg.replace(/\/+$/, "")));
+if (ONLY && !(ONLY.startsWith(LABELS_ROOT + "/") || ONLY.startsWith(DEFAULT_ROOT + "/"))) {
+  throw new Error(`--only must be a folder inside LABELS or IMPRINT: ${onlyArg}`);
+}
+if (ONLY && !existsSync(ONLY)) throw new Error(`--only folder not found: ${ONLY}`);
 const SIZES = [300, 600];
 const sizedKey = (key, px) => key.replace(/\.jpg$/, `-${px}.jpg`);
 const AUDIO = new Set([".mp3", ".wav", ".m4a"]);
@@ -239,8 +248,11 @@ const hasLabels = existsSync(LABELS_ROOT);
 const labelMap = new Map();
 for (const l of existsSync(DEFAULT_ROOT) ? await labelArt(DEFAULT_ROOT) : []) labelMap.set(l.slug, l);
 for (const l of hasLabels ? await labelArt(LABELS_ROOT, "Artwork") : []) if (l.cover || l.logo || !labelMap.has(l.slug)) labelMap.set(l.slug, l);
-const labels = [...labelMap.values()].sort((a, b) => a.slug.localeCompare(b.slug));
-const all = [...(existsSync(DEFAULT_ROOT) ? await albums(DEFAULT_ROOT) : []), ...(hasLabels ? await albums(LABELS_ROOT) : [])];
+const labels = ONLY ? [] : [...labelMap.values()].sort((a, b) => a.slug.localeCompare(b.slug));
+const all = ONLY
+  ? await albums(ONLY)
+  : [...(existsSync(DEFAULT_ROOT) ? await albums(DEFAULT_ROOT) : []), ...(hasLabels ? await albums(LABELS_ROOT) : [])];
+if (ONLY && !all.length) throw new Error(`No songs under ${ONLY} — point --only at an album folder (or one above it)`);
 const ready = all.filter((a) => a.covers.length === 1);
 const missing = all.filter((a) => a.covers.length === 0);
 const unclear = all.filter((a) => a.covers.length > 1);
@@ -260,7 +272,7 @@ if (unclear.length) {
   console.log("\nTwo possible covers (rename or remove one; skipped until then):");
   for (const a of unclear) console.log(`  ${a.folderPath}  →  ${a.covers.join(", ")}`);
 }
-console.log(`\nLabels: ${labels.filter((l) => l.cover).length} of ${labels.length} with a cover, ${labels.filter((l) => l.logo).length} with a logo`);
+if (!ONLY) console.log(`\nLabels: ${labels.filter((l) => l.cover).length} of ${labels.length} with a cover, ${labels.filter((l) => l.logo).length} with a logo`);
 for (const l of labels.filter((l) => !l.cover || !l.logo)) {
   console.log(`  ${l.folder}: ${[!l.cover && "no Cover", !l.logo && "no Logo"].filter(Boolean).join(", ")}`);
 }
@@ -368,6 +380,7 @@ for (const a of ready) {
 }
 
 console.log(`\n${uploaded} uploaded · ${unchanged} unchanged · ${failed} failed · ${missing.length} albums still need a cover`);
+if (ONLY) process.exit(failed ? 1 : 0); // labels and song covers only on a full run
 
 // --- label artwork -------------------------------------------------------------
 
