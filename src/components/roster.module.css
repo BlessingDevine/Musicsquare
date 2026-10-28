@@ -60,6 +60,11 @@
 
 .card {
   flex: 0 0 clamp(15rem, 22vw, 22rem);
+  /* Each card on its own layer: Safari then moves finished cards as the row scrolls, instead of
+     repainting tiles of the very wide row, which came out of step (names printed over each other,
+     photos doubled). */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .frame {
