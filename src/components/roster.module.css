@@ -30,41 +30,48 @@
   display: none;
 }
 
-.track {
-  display: flex;
-  width: max-content;
-}
-
+/* Without JavaScript or with Reduce motion: a plain row you scroll sideways. */
 .rail {
   list-style: none;
   margin: 0;
-  /* The trailing gap matches the gap between cards, so the two copies join evenly. */
-  padding: 0 clamp(1rem, 2vw, 2rem) 1.5rem 0;
+  padding: 0 var(--gutter) 1.5rem;
   display: flex;
   gap: clamp(1rem, 2vw, 2rem);
+  width: max-content;
 }
 
-/* Without motion it's a plain swipeable rail with one copy and a scrollbar. */
 @media (prefers-reduced-motion: reduce) {
   .viewport {
     scrollbar-width: thin;
     scrollbar-color: var(--color-gold) transparent;
   }
-  .track {
-    padding-left: var(--gutter);
-  }
-  .rail[aria-hidden] {
-    display: none;
-  }
+}
+
+/* Drifting (roster-rail.tsx sets data-drift): each card sits at the left and is moved on its own,
+   so nothing is wider than the screen. The gap is still read from .rail to space them. */
+.viewport[data-drift] {
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.viewport[data-drift] .rail {
+  position: relative;
+  display: block;
+  width: auto;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.viewport[data-drift] .card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(15rem, 22vw, 22rem);
+  will-change: transform;
 }
 
 .card {
   flex: 0 0 clamp(15rem, 22vw, 22rem);
-  /* Each card on its own layer: Safari then moves finished cards as the row scrolls, instead of
-     repainting tiles of the very wide row, which came out of step (names printed over each other,
-     photos doubled). */
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .frame {
