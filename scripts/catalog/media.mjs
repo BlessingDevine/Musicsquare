@@ -72,7 +72,9 @@ for (const s of songs) {
 // Other takes of one song share its lyric sheet: an ALT take, "(Alternate Version)",
 // "(Dance Mix)", "(Extended)", or the same title on another album (Luv Tonez II/III).
 // sync-lyrics then checks each take against its own recording.
-const baseTitle = (t) => norm(t.replace(/\s*\((?:alt|alternate version(?: \d+)?|dance mix|extended|remix)\)\s*$/i, "").replace(/\s+dance mix$/i, ""));
+// A trailing " I"/" II"/" III" is another take too ("Pillow Princess II"), but not "You and I".
+const baseTitle = (t) =>
+  norm(t.replace(/\s*\((?:alt|alternate version(?: \d+)?|dance mix|extended|remix|female cover)\)\s*$/i, "").replace(/\s+dance mix$/i, "").replace(/(?<!\band)\s+I{1,3}$/, ""));
 const takes = new Map(); // owner → base title → live songs
 for (const s of songs) {
   const owner = ownerOf(s.source_path);

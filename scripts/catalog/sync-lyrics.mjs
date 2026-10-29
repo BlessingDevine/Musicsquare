@@ -58,14 +58,14 @@ const matches = (q) => (s) => norm(s).includes(norm(q));
 const rows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await db.from("song_lyrics")
-    .select("song_id, lyrics, checksum, synced_checksum, songs(title, source_path, artists(artist_name), song_files(storage_key))")
+    .select("song_id, lyrics, checksum, synced_checksum, songs(title, source_path, artists(artist_name), song_files(storage_key, file_type, is_public))")
     .range(from, from + 999);
   if (error) throw new Error(`${error.message} (has migration 20261009000000 been run?)`);
   rows.push(...data);
   if (data.length < 1000) break;
 }
 const songs = rows
-  .map((r) => ({ ...r, title: r.songs?.title, artist: r.songs?.artists?.artist_name ?? "", path: r.songs?.source_path, stream: r.songs?.song_files?.[0]?.storage_key }))
+  .map((r) => ({ ...r, title: r.songs?.title, artist: r.songs?.artists?.artist_name ?? "", path: r.songs?.source_path, stream: r.songs?.song_files?.find((f) => f.file_type === "mp3" && f.is_public)?.storage_key }))
   .filter((r) => r.path && (!ONLY || matches(ONLY)(r.artist) || matches(ONLY)(r.title)))
   .sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title));
 
