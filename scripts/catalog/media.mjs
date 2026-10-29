@@ -69,6 +69,18 @@ for (const s of songs) {
   if (prior && prior.release_status !== "archived" && s.release_status === "archived") continue;
   byArtist.get(owner).set(norm(s.title), s);
 }
+// Other takes of one song share its lyric sheet: an ALT take, "(Alternate Version)",
+// "(Dance Mix)", "(Extended)", or the same title on another album (Luv Tonez II/III).
+// sync-lyrics then checks each take against its own recording.
+const baseTitle = (t) => norm(t.replace(/\s*\((?:alt|alternate version(?: \d+)?|dance mix|extended|remix)\)\s*$/i, "").replace(/\s+dance mix$/i, ""));
+const takes = new Map(); // owner → base title → live songs
+for (const s of songs) {
+  const owner = ownerOf(s.source_path);
+  if (!owner || s.release_status === "archived") continue;
+  if (!takes.has(owner)) takes.set(owner, new Map());
+  const k = baseTitle(s.title);
+  takes.get(owner).set(k, [...(takes.get(owner).get(k) ?? []), s]);
+}
 
 /** Plain text of a lyrics document. */
 function readDoc(path) {
@@ -92,8 +104,9 @@ function songsInDoc(path) {
   // Song headers seen in Robert's sheets: SONG 7: "DÉJÀ VU" · 1. The Undisputed
   // Algorithm · Title 1: Snow Day Signal · 01  Ngibheke Kahle. A sheet needs at least two to be split.
   const header = /^\s*(?:SONG|TITLE|TRACK)?\s*\d{1,3}(?:\s*[:.)\-–]|[ \t]{2,})\s*["“”']?([^\n]{2,80}?)["“”']?\s*$/gim;
-  // A clock time sung as a line ("2:17 AM") is not a header.
-  let marks = [...text.matchAll(header)].filter((m) => !/^\s*\d{1,2}:\d{2}\b/.test(m[0]));
+  // A clock time sung as a line ("2:17 AM") is not a header, nor is a hyphenated
+  // number word ("24-hour diner dates").
+  let marks = [...text.matchAll(header)].filter((m) => !/^\s*(?:\d{1,2}:\d{2}\b|\d{1,3}-\S)/.test(m[0]));
   if (marks.length < 2) marks = [];
   // Drop separator rules and table/genre scaffolding ("Section", "Lyrical Content", "(Genre: …)"),
   // and the songwriter sheets' studio notes (Oct 2026): a header line "Thando Keys | Format A |
@@ -201,6 +214,10 @@ for (const owner of byArtist.keys()) {
         if (song && lyricsOff(song, rel)) unmatched.push(`${rel} → "${p.title ?? song.title}" (lyrics-off.json: sheet doesn't match the recording)`);
         else if (song && p.text) lyrics.push({ song, text: p.text, source: rel });
         else unmatched.push(p.title ? `${rel} → "${p.title}"` : rel);
+        if (song && p.title && p.text)
+          for (const t of takes.get(owner)?.get(baseTitle(p.title)) ?? [])
+            if (t.song_id !== song.song_id && !lyricsOff(t, rel) && !lyrics.some((l) => l.song.song_id === t.song_id))
+              lyrics.push({ song: t, text: p.text, source: rel });
       }
     }
   }
