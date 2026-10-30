@@ -197,7 +197,7 @@ export const DAYS = [
 export const WEEK: Block[][] = [
   // Sunday — the one day with its own shape.
   [
-    { start: 0, end: 3, label: "Afro Mix" },
+    { start: 0, end: 3, label: "Lounge" },
     { start: 3, end: 5, label: "French Mix" },
     { start: 5, end: 9, label: "Lofi" },
     { start: 9, end: 12, label: "Sunday Church" },
@@ -308,6 +308,7 @@ export const FAMILIES: Record<string, string[]> = {
   "Rock": ["Rock Mix"],
   "Late night & Sunday": [
     "French Mix",
+    "Lounge",
     "Lofi",
     "Piano",
     "Sunday Church",
@@ -337,6 +338,7 @@ export const SHOWS: Record<string, { name: string; genre: string }> = {
   "Pop": { name: "Pop Rotation", genre: "Pop" },
   "Country": { name: "Back Roads", genre: "Country" },
   "Rock Mix": { name: "Riot Hour", genre: "Rock" },
+  "Lounge": { name: "Passport Lounge", genre: "Lounge · World" },
   "Lofi": { name: "Soft Focus", genre: "Lofi · Piano" },
   "Piano": { name: "Quiet Keys", genre: "Piano · Relaxing" },
   "Sunday House": { name: "Weekend House", genre: "House" },
