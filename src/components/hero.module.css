@@ -234,6 +234,20 @@
   color: var(--color-gold);
 }
 
+/* The show on the schedule, while nobody is listening: information, not a control. */
+.show {
+  color: var(--color-ash-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.details,
+.show,
+.counter {
+  margin: 0;
+}
+
 /* ---------- headline ---------- */
 
 .copy {
@@ -442,6 +456,13 @@
     font-size: 0.5625rem;
     letter-spacing: 0.16em;
     white-space: nowrap;
+  }
+  /* No room for both on a phone: the show (or the listening counter) takes the line. */
+  .details {
+    display: none;
+  }
+  .top {
+    justify-content: flex-start;
   }
   .sub {
     margin-top: 1rem;

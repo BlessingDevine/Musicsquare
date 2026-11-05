@@ -5,8 +5,8 @@ import { PlayerExtras } from "./player-extras";
 import { clock, usePlayer } from "./player-provider";
 import type { ChannelSummary } from "@/lib/channel-summary";
 import type { WallArtist } from "@/lib/canvas-wall";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CATALOGUE, STATION } from "@/lib/station";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { CATALOGUE, STATION, blockAt, clock as hourClock, showName, stationClock, toLocal } from "@/lib/station";
 import styles from "./hero.module.css";
 
 const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=app.gosquare";
@@ -17,6 +17,18 @@ const HOLD_MS = 5500;
 const LEAD = 3;
 /** Phones show five strips; these two drop out. */
 const DESKTOP_ONLY = new Set([1, 5]);
+
+/** The show on air by the schedule and when it ends on the listener's clock, re-read every
+ *  minute: "Afro Mix · until 15:00". Null on the server, so the first paint matches. */
+function subscribeMinute(cb: () => void) {
+  const id = setInterval(cb, 60_000);
+  return () => clearInterval(id);
+}
+function showNow() {
+  const st = stationClock();
+  const b = blockAt(st.day, st.hour);
+  return b ? `${showName(b.label)} · until ${hourClock(toLocal(st.day, b, new Date(), st).to)}` : null;
+}
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -215,6 +227,7 @@ export function Hero({
   const { status, source, listening, toggleLive, playChannel, isOnChannel } = usePlayer();
   const liveOn = source.kind === "live" && status === "playing";
   const playing = status === "playing" || status === "loading";
+  const onShow = useSyncExternalStore(subscribeMinute, showNow, () => null);
 
   return (
     <section id="top" className={`on-ink ${styles.hero}`}>
@@ -224,13 +237,19 @@ export function Hero({
       <div className={styles.scrimLeft} aria-hidden="true" />
 
       <div className={`wrap ${styles.top}`}>
-        <p className="mono">
+        <p className={`mono ${styles.details}`}>
           {STATION.frequency} · {STATION.city} · Est. {STATION.founded}
         </p>
-        <p className={`mono ${styles.counter}`}>
-          <span className="pip" aria-hidden="true" />
-          {liveOn ? `On air ${clock(listening)}` : "On air now"}
-        </p>
+        {/* Listening: "On air now" and how long for. Otherwise, plain information (no dot, not
+            gold, so it doesn't read as a second Listen live button): the show on the schedule. */}
+        {liveOn ? (
+          <p className={`mono ${styles.counter}`}>
+            <span className="pip" aria-hidden="true" />
+            On air now · {clock(listening)}
+          </p>
+        ) : (
+          onShow && <p className={`mono ${styles.show}`}>Now · {onShow}</p>
+        )}
       </div>
 
       <div className={`wrap ${styles.copy}`}>
