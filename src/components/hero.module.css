@@ -1,17 +1,10 @@
 .hero {
-  /* The font tokens, set again where the next/font variables they point to
-     exist: layout.tsx puts those on <body>, but the theme defines the tokens
-     on <html>, where they resolve to nothing and fall back to system fonts. */
-  --font-display: var(--font-bodoni), "Bodoni MT", Didot, serif;
-  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, "SF Mono", monospace;
   position: relative;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   background: var(--color-ink);
   color: var(--color-paper);
-  font-family: var(--font-sans);
   overflow: hidden;
   isolation: isolate;
 }
@@ -252,23 +245,20 @@
   pointer-events: none;
 }
 
+/* The site's headline style (.display) at the About and Channels pages' size. */
 .title {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(3.25rem, 7vw, 7.5rem);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.8rem, 8vw, 7rem);
 }
 
 .title em {
   color: var(--color-gold);
 }
 
-/* Each line rises out of its own slot. */
+/* Each line rises out of its own slot (padded so the tight line height doesn't clip descenders). */
 .line {
   display: block;
   overflow: hidden;
-  padding-bottom: 0.06em;
+  padding-bottom: 0.1em;
 }
 
 .line > span {
@@ -452,9 +442,6 @@
     font-size: 0.5625rem;
     letter-spacing: 0.16em;
     white-space: nowrap;
-  }
-  .title {
-    font-size: clamp(2.9rem, 13.5vw, 4.25rem);
   }
   .sub {
     margin-top: 1rem;
