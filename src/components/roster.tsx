@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { artistsWithPages } from "@/lib/canvas-wall";
 import { pacificDay } from "@/lib/drop";
 import { seededShuffle } from "@/lib/seeded";
 import socials from "../../scripts/catalog/socials.json";
@@ -19,38 +20,12 @@ function todaysOrder(featured?: string) {
   return order;
 }
 
-/**
- * Slugs of roster artists whose page on squaredrum.com is built. That site
- * shows an artist page once photos.mjs has published the artist's photo index,
- * so the same file decides here; a page published later links on its own.
- */
-async function artistsWithPages(): Promise<Set<string>> {
-  const audioBase = process.env.NEXT_PUBLIC_AUDIO_BASE_URL?.trim().replace(
-    /\/$/,
-    "",
-  );
-  if (!audioBase) return new Set();
-  const built = await Promise.all(
-    ROSTER.map(async ({ slug }) => {
-      try {
-        const r = await fetch(`${audioBase}/audio/photos/${slug}/index.json`, {
-          next: { revalidate: 300 },
-        });
-        return r.ok ? slug : null;
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return new Set(built.filter((s): s is string => s !== null));
-}
-
 /** Instagram handles (no @), the same list the catalogue uses for squaredrum.com and GoSquare. */
 const INSTAGRAM: Record<string, string> = socials;
 
 export async function Roster({ featured }: { featured?: string }) {
   const roster = todaysOrder(featured);
-  const pages = await artistsWithPages();
+  const pages = await artistsWithPages(ROSTER.map((a) => a.slug));
   return (
     <section id="roster" className={`on-ink ${styles.section}`}>
       <div className="wrap">
