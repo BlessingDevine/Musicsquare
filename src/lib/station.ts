@@ -112,11 +112,6 @@ export const CATALOGUE = {
  */
 export const CHANNEL_TRACKS = CHANNELS.reduce((sum, c) => sum + c.tracks, 0);
 
-/** Sleeves from the station's own catalogue, for the hero wall. */
-export const WALL = Array.from(
-  { length: 30 },
-  (_, i) => `/wall/${String(i + 1).padStart(2, "0")}.jpg`,
-);
 
 export type Artist = {
   slug: string;

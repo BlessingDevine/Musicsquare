@@ -145,6 +145,7 @@
   z-index: -2;
   background-size: cover;
   background-position: center;
+  background-image: var(--cover);
   /* Black and white until you tune in; then the colour comes up. */
   filter: grayscale(1) contrast(1.04);
   transition: filter 0.9s var(--ease-out), background-image 0.8s var(--ease-out);
@@ -152,6 +153,18 @@
 
 .tuned .bg {
   filter: none;
+}
+
+/* Big cards get the sharp 1000px cover over the 600px one (which stays underneath until it loads):
+   every card wider than a phone, and a card opened to fill a phone screen. */
+.open .bg {
+  background-image: var(--cover-hi, var(--cover)), var(--cover);
+}
+
+@media (min-width: 621px) {
+  .bg {
+    background-image: var(--cover-hi, var(--cover)), var(--cover);
+  }
 }
 
 .panel::after {

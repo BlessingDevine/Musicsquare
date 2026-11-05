@@ -315,14 +315,15 @@ export function StageChannels({
               {cover && (
                 <span
                   className={styles.bg}
-                  // Cards use the 600px cover. Filling a phone screen, the full 1000px one is layered on
-                  // top: the 600 shows at once and the sharp one takes over as soon as it has loaded.
-                  style={{
-                    backgroundImage:
-                      open?.slug === c.slug && /-600\.jpg$/.test(cover)
-                        ? `url(${cover.replace(/-600\.jpg$/, ".jpg")}), url(${cover})`
-                        : `url(${cover})`,
-                  }}
+                  // The 600px cover shows at once. Where a card is big (any screen wider than a phone,
+                  // and a card opened to fill a phone screen) the full 1000px one is layered on top and
+                  // takes over as soon as it has loaded; see .bg in the CSS.
+                  style={
+                    {
+                      "--cover": `url(${cover})`,
+                      "--cover-hi": /-600\.jpg$/.test(cover) ? `url(${cover.replace(/-600\.jpg$/, ".jpg")})` : undefined,
+                    } as React.CSSProperties
+                  }
                   aria-hidden="true"
                 />
               )}
