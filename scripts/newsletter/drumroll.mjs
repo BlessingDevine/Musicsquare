@@ -409,7 +409,7 @@ ${
 <tr><td class="px" style="padding:0 36px;">
   <div style="${F.mono}color:#c0392b;">&#9679; Live now</div>
   <div style="${F.display}font-size:34px;line-height:1;color:${C.ink};padding-top:8px;">${esc(station.station_name)}</div>
-  <div style="${F.body}font-size:14px;line-height:1.6;color:${C.text};padding:10px 0 14px;">${esc(lead.name)} joins the rotation today. One of ${stations.length} channels that never stop: everyone hears the same song at the same moment, like real radio.</div>
+  <div style="${F.body}font-size:14px;line-height:1.6;color:${C.text};padding:10px 0 14px;">${esc(lead.name)} ${waiting ? "joins the rotation today" : "is in the rotation now"}. One of ${stations.length} channels that never stop: everyone hears the same song at the same moment, like real radio.</div>
   ${link(`${SITE}/?channel=${encodeURIComponent(station.slug)}#onair`, `Tune in to ${station.station_name}`)}
 </td></tr>`
     : ""
