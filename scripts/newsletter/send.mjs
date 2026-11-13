@@ -5,6 +5,7 @@
 //   node scripts/newsletter/send.mjs --schedule             schedule it for Friday 9:00 AM Pacific to the whole list
 //   node scripts/newsletter/send.mjs --update               replace the scheduled broadcast with a rebuilt issue (same time)
 //   add --date 2026-10-30 for another Friday's issue
+//   add --at 13:00 to schedule (or reschedule) at another Pacific time that day, e.g. a late issue
 //
 // Needs two lines in .env.local, added by Robert (never by Claude):
 //   RESEND_API_KEY=re_…            a Resend API key with full access (Resend → API Keys)
@@ -22,6 +23,8 @@ const DATE = flag("--date") ?? nextFriday();
 const TEST = flag("--test");
 const SCHEDULE = args.includes("--schedule");
 const UPDATE = args.includes("--update");
+const AT = flag("--at") ?? "09:00";
+if (!/^\d{2}:\d{2}$/.test(AT)) throw new Error("--at must look like 13:00 (Pacific time).");
 
 function nextFriday() {
   const d = new Date();
@@ -29,12 +32,12 @@ function nextFriday() {
   return d.toLocaleDateString("en-CA");
 }
 
-/** 9:00 AM in Los Angeles on DATE, as an exact moment (PDT or PST, whichever applies that day). */
+/** AT (9:00 AM unless --at) in Los Angeles on DATE, as an exact moment (PDT or PST, whichever applies that day). */
 function nineAmPacific(date) {
   for (const offset of ["-07:00", "-08:00"]) {
-    const t = new Date(`${date}T09:00:00${offset}`);
-    const hour = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false }).format(t);
-    if (Number(hour) === 9) return t;
+    const t = new Date(`${date}T${AT}:00${offset}`);
+    const hour = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hourCycle: "h23" }).format(t);
+    if (Number(hour) === Number(AT.slice(0, 2))) return t;
   }
   throw new Error("Couldn't work out 9 AM Pacific for " + date);
 }
@@ -81,7 +84,7 @@ if (SCHEDULE) {
   if (send.broadcast) throw new Error("This issue is already scheduled; cancel it in Resend first if you need to change it.");
   const SEGMENT = process.env.RESEND_SEGMENT_ID;
   if (!SEGMENT) throw new Error("RESEND_SEGMENT_ID isn't in .env.local yet (see the top of this file).");
-  if (when.getTime() < Date.now()) throw new Error("Friday 9 AM has already passed for this issue.");
+  if (when.getTime() < Date.now()) throw new Error(`${AT} Pacific has already passed for this issue: pick a later time with --at.`);
   const r = await api("/broadcasts", {
     segment_id: SEGMENT,
     from: send.from,
@@ -94,7 +97,7 @@ if (SCHEDULE) {
   });
   send.broadcast = r.id;
   writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
-  console.log(`\nScheduled for Friday 9 AM Pacific (broadcast ${r.id}). You can see or cancel it in Resend → Broadcasts.`);
+  console.log(`\nScheduled for ${AT} Pacific on ${DATE} (broadcast ${r.id}). You can see or cancel it in Resend → Broadcasts.`);
 }
 
 if (UPDATE) {
@@ -112,5 +115,5 @@ if (UPDATE) {
   const r = await api("/broadcasts", { segment_id: SEGMENT, from: send.from, reply_to: REPLY_TO, subject: send.subject, html, name: `Drumroll ${DATE}`, send: true, scheduled_at: when.toISOString() });
   send.broadcast = r.id;
   writeFileSync(meta, JSON.stringify(send, null, 2) + "\n");
-  console.log(`\nReplaced: cancelled ${old}, scheduled the new version as ${r.id} for Friday 9 AM Pacific.`);
+  console.log(`\nReplaced: cancelled ${old}, scheduled the new version as ${r.id} for ${AT} Pacific on ${DATE}.`);
 }

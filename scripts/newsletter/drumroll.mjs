@@ -15,6 +15,10 @@
 //   Spotlight      a roster artist with an artist page who wasn't in the last 8 issues (history.json)
 //   Watch it move  the lead album's Canvas as an animated picture (uploaded to the CDN under audio/newsletter/)
 //   On air         the lead album's radio channel
+//
+// A week with no new album builds a NEWS ISSUE instead: no New releases section; the hero picture comes from
+// "Hero:" in notes.md (a file or web address) or the spotlight artist's wide photo, and the spotlight artist's
+// Canvas and radio channel fill "Watch it move" and "On air". The words live in notes.md as usual.
 //   (Off the Square, the music-press headlines, stays on squaredrum.com/news and is not in the email.)
 
 import { execFileSync } from "node:child_process";
@@ -80,9 +84,7 @@ if (!week.length) {
   const since = new Date(new Date(`${DATE}T09:00:00`).getTime() - 7 * 86400000).toISOString();
   week = await all(() => db.from("songs").select(cols).eq("release_status", "released_radio").gte("created_at", since));
 }
-if (!week.length) throw new Error(`No new albums for ${DATE}: import this week's release first (it waits for Friday by itself).`);
-
-const coverRows = await all(() => db.from("song_covers").select("song_id, cover_key, canvas_key").in("song_id", week.map((s) => s.song_id)));
+const coverRows = week.length ? await all(() => db.from("song_covers").select("song_id, cover_key, canvas_key").in("song_id", week.map((s) => s.song_id))) : [];
 const coverBy = new Map(coverRows.map((c) => [c.song_id, c]));
 
 const albumMap = new Map();
@@ -119,7 +121,8 @@ for (const a of albumMap.values()) {
   a.isNew = !count && a.songs.length >= 3;
 }
 const albums = [...albumMap.values()].filter((a) => a.isNew).sort((x, y) => y.songs.length - x.songs.length);
-if (!albums.length) throw new Error(`No new albums for ${DATE} (only songs added to albums that are already out).`);
+// No new album this week: a news issue (see the top of this file).
+const NEWS = !albums.length;
 
 // Artist pages on the CDN: bio, hero and gallery photos (photos.mjs).
 const pages = new Map();
@@ -150,9 +153,9 @@ for (const a of albums) {
   a.line = sentences(a.page?.bio, 170) || `${a.songs.length} new songs of ${a.artist?.genre ?? "music"} from ${a.name}.`;
 }
 // The lead album: the biggest release with an artist page (for the big photo), else the biggest.
-const lead = albums.find((a) => a.page?.photos?.some((p) => p.role === "hero")) ?? albums[0];
-const heroPhoto = lead.page?.photos?.find((p) => p.role === "hero" && p.shape === "wide") ?? lead.page?.photos?.find((p) => p.role === "hero");
-const heroUrl = heroPhoto ? photoUrl(lead.artist.slug, heroPhoto, 1200) : `${CDN}/${lead.cover}`;
+let lead = albums.find((a) => a.page?.photos?.some((p) => p.role === "hero")) ?? albums[0];
+const heroPhoto = lead?.page?.photos?.find((p) => p.role === "hero" && p.shape === "wide") ?? lead?.page?.photos?.find((p) => p.role === "hero");
+let heroUrl = heroPhoto ? photoUrl(lead.artist.slug, heroPhoto, 1200) : lead ? `${CDN}/${lead.cover}` : null;
 
 // ---------------------------------------------------------------- notes (the editable words)
 const words = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
@@ -160,6 +163,25 @@ const count = `${words[albums.length] ?? albums.length} new album${albums.length
 const names = [...new Set(albums.map((a) => a.name))];
 const nameList = names.length > 2 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names.join(" and ");
 const NOTES = join(OUT, "notes.md");
+if (!existsSync(NOTES) && NEWS) {
+  writeFileSync(
+    NOTES,
+    `# Drumroll · News issue · ${longDate}
+# No new album this week, so this issue is news only. Edit the words after each colon, then run the builder again.
+# Lines starting with # are ignored. Hero: a picture for the top (file path from SQUARE BUSINESS, or a web address);
+# leave it out to use the spotlight artist's photo.
+
+Subject: Drumroll: news from Squaredrum
+Preview: What's happening at Squaredrum this week.
+Headline: Between releases. | Here's what's new.
+Intro: No new album this Friday, so here's what's been happening around Squaredrum.
+Hero:
+
+## Squaredrum world
+# One per line: "Title | one or two sentences | optional link | optional button words | optional picture".
+`,
+  );
+}
 if (!existsSync(NOTES)) {
   writeFileSync(
     NOTES,
@@ -241,11 +263,45 @@ if (spot) {
   spot.quote = sentences(spot.page.bio, 200);
 }
 
+// ---------------------------------------------------------------- news issue: the spotlight artist leads
+if (NEWS) {
+  if (!spot) throw new Error(`No new albums for ${DATE} and no spotlight artist available for a news issue.`);
+  const songs = await all(() =>
+    db.from("songs").select("song_id, album_title, primary_imprint_id").eq("primary_artist_id", spot.artist.artist_id).eq("release_status", "released_radio"),
+  );
+  const covers = songs.length ? await all(() => db.from("song_covers").select("song_id, canvas_key").in("song_id", songs.map((s) => s.song_id)).not("canvas_key", "is", null)) : [];
+  const withCanvas = songs.find((s) => covers.some((c) => c.song_id === s.song_id));
+  const name = spot.artist.artist_name;
+  const album = withCanvas?.album_title?.trim() || "Singles";
+  lead = {
+    name, artist: spot.artist, title: album,
+    imprint: imprintById.get((withCanvas ?? songs[0])?.primary_imprint_id),
+    canvas: covers.find((c) => c.song_id === withCanvas?.song_id)?.canvas_key,
+    slug: slugify(album === name ? album : `${album} ${name}`),
+    href: `${SITE}/artists/${spot.artist.slug}`,
+  };
+  const wide = spot.page.photos.find((p) => p.role === "hero" && p.shape === "wide") ?? spot.page.photos.find((p) => p.shape === "wide");
+  heroUrl = wide ? photoUrl(spot.artist.slug, wide, 1200) : spot.photo;
+}
+
 // ---------------------------------------------------------------- Canvas as an animated picture
 const s3 = new S3Client({ region: process.env.AWS_REGION ?? "us-west-1" });
 async function upload(file, key, type) {
   await s3.send(new PutObjectCommand({ Bucket: process.env.AUDIO_BUCKET, Key: key, Body: readFileSync(file), ContentType: type, CacheControl: "public, max-age=31536000" }));
   return `${CDN}/${key}`;
+}
+if (notes.hero) {
+  if (/^https?:\/\//.test(notes.hero)) heroUrl = notes.hero;
+  else {
+    const file = notes.hero.startsWith("/") ? notes.hero : join(OUT_ROOT, "..", notes.hero);
+    if (!existsSync(file)) console.warn(`  ! Hero picture not found: ${notes.hero}`);
+    else {
+      const jpg = await sharp(file).rotate().resize({ width: 1200, height: 750, fit: "cover", position: "attention" }).jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+      const out = join(tmpdir(), "drumroll-hero.jpg");
+      writeFileSync(out, jpg);
+      heroUrl = await upload(out, `audio/newsletter/${DATE}/hero-${createHash("sha256").update(jpg).digest("hex").slice(0, 10)}.jpg`, "image/jpeg");
+    }
+  }
 }
 let canvasGif = null;
 const canvasAlbum = lead.canvas ? lead : albums.find((a) => a.canvas);
@@ -336,19 +392,19 @@ const html = `<!doctype html>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
     <td valign="middle"><a href="${SITE}"><img src="${CDN}/audio/newsletter/brand/squaredrum-horizontal-dark.png" width="150" alt="SQUAREDRUM" style="display:block;border:0;width:150px;height:auto;"></a></td>
     <td valign="middle" align="right"><div style="${F.display}font-size:30px;line-height:1;color:${C.gold};">Drumroll</div>
-      <div style="${F.mono}font-size:10px;color:${C.soft};padding-top:6px;">New Music Friday &middot; ${esc(longDate)}</div></td>
+      <div style="${F.mono}font-size:10px;color:${C.soft};padding-top:6px;">${NEWS ? "Friday edition" : "New Music Friday"} &middot; ${esc(longDate)}</div></td>
   </tr></table>
 </td></tr>
 
-<tr><td style="background:${C.ink};"><a href="${SITE}/releases/${lead.slug}"><img src="${esc(heroUrl)}" width="600" alt="${esc(lead.name)}" style="display:block;width:100%;height:auto;border:0;"></a></td></tr>
+<tr><td style="background:${C.ink};"><a href="${lead.href ?? `${SITE}/releases/${lead.slug}`}"><img src="${esc(heroUrl)}" width="600" alt="${esc(lead.name)}" style="display:block;width:100%;height:auto;border:0;"></a></td></tr>
 <tr><td class="px" style="background:${C.ink};padding:24px 36px 34px;">
-  <div style="${F.mono}color:${C.gold};padding-bottom:12px;">New Music Friday &middot; ${waiting ? "Out today" : "New this week"}</div>
+  <div style="${F.mono}color:${C.gold};padding-bottom:12px;">${NEWS ? "Drumroll &middot; Between releases" : `New Music Friday &middot; ${waiting ? "Out today" : "New this week"}`}</div>
   <div class="hero-h" style="${F.display}font-size:56px;line-height:.95;color:#ffffff;">${esc(head1)}${head2 ? `<br><span style="color:${C.gold};">${esc(head2)}</span>` : ""}</div>
   <div style="${F.body}font-size:16px;line-height:1.55;color:${C.soft};padding-top:14px;">${esc(notes.intro ?? "")}</div>
 </td></tr>
 
-${eyebrow(++n, "New releases")}
-<tr><td class="px" style="padding:0 26px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${releaseRows.join("")}</table></td></tr>
+${albums.length ? `${eyebrow(++n, "New releases")}
+<tr><td class="px" style="padding:0 26px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${releaseRows.join("")}</table></td></tr>` : ""}
 
 ${
   notes.world.length
@@ -460,7 +516,7 @@ if (existsSync(CHROME)) {
 }
 
 const issue = readdirSync(OUT_ROOT).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= DATE).length;
-console.log(`Drumroll No. ${issue} · ${longDate}${waiting ? "" : " (nothing waiting for Friday, so this uses the past week's albums)"}`);
+console.log(`Drumroll No. ${issue} · ${longDate}${NEWS ? " (NEWS ISSUE: no new album this week)" : waiting ? "" : " (nothing waiting for Friday, so this uses the past week's albums)"}`);
 console.log(`  Releases:   ${albums.map((a) => `${a.name} – ${a.title} (${a.songs.length})`).join("; ")}`);
 console.log(`  Spotlight:  ${spot?.artist.artist_name ?? "none (no artist page available)"}`);
 console.log(`  Canvas:     ${canvasGif ? canvasGif.album.title : "none"}`);
