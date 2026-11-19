@@ -397,6 +397,16 @@
   border-color: var(--color-gold);
 }
 
+/* Each store's QR with its platform underneath (on a phone, tap the one for yours). */
+.appQr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+}
+
 .app img {
   display: block;
   width: 44px;

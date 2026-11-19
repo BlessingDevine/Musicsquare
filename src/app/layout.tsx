@@ -56,6 +56,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // iPhone Safari shows its "GoSquare Music · Get" bar (Smart App Banner) at the top.
+  itunes: { appId: "6822128252" },
 };
 
 export const viewport: Viewport = {

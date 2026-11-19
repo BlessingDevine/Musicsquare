@@ -10,6 +10,7 @@ import { CATALOGUE, STATION, blockAt, clock as hourClock, showName, stationClock
 import styles from "./hero.module.css";
 
 const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=app.gosquare";
+const APP_STORE_URL = "https://apps.apple.com/app/id6822128252";
 
 /** How long each artist holds the wall before the next cut, while nothing is on air. */
 const HOLD_MS = 5500;
@@ -306,15 +307,23 @@ export function Hero({
             })}
           </nav>
 
-          {/* The app, for listeners who want it on their phone: tap on a phone, scan from a computer. */}
-          <a className={styles.app} href={GOOGLE_PLAY_URL} target="_blank" rel="noopener">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/google-play-qr.svg" alt="" width={44} height={44} />
+          {/* The app, for listeners who want it on their phone: scan a code from a computer, tap a store on a phone. */}
+          <div className={styles.app}>
+            <a className={styles.appQr} href={APP_STORE_URL} target="_blank" rel="noopener" aria-label="GoSquare on the App Store (QR code)">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/app-store-qr.svg" alt="" width={44} height={44} />
+              <span className="mono">iPhone</span>
+            </a>
+            <a className={styles.appQr} href={GOOGLE_PLAY_URL} target="_blank" rel="noopener" aria-label="GoSquare on Google Play (QR code)">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/google-play-qr.svg" alt="" width={44} height={44} />
+              <span className="mono">Android</span>
+            </a>
             <span className="mono">
               Take it with you
-              <b>GoSquare · Google Play</b>
+              <b>GoSquare app</b>
             </span>
-          </a>
+          </div>
         </div>
       </div>
     </section>
