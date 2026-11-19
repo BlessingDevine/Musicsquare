@@ -34,9 +34,9 @@ const OUT_ROOT = "/Users/robertsimenya/Desktop/SQUARE MUSIC PROJECTS/SQUARE BUSI
 const CDN = (process.env.NEXT_PUBLIC_AUDIO_BASE_URL ?? "https://d1j1hqrpj9spbo.cloudfront.net").replace(/\/$/, "");
 const SITE = "https://www.squaredrum.com";
 const FROM = "Drumroll by Squaredrum <drumroll@gosquare.app>";
-// GoSquare links stay out of Drumroll until the app is in the stores (Robert, Oct 2026: gosquare.app is
-// only a GoDaddy placeholder). Set GOSQUARE_LIVE=1 in .env.local on launch day to bring them back.
-const APP_LIVE = process.env.GOSQUARE_LIVE === "1";
+// GoSquare is in both stores (Google Play Oct 22, App Store Nov 19, 2026), so Drumroll links the app:
+// gosquare.app forwards to squaredrum.com/app, which has both store links. GOSQUARE_LIVE=0 turns them off.
+const APP_LIVE = process.env.GOSQUARE_LIVE !== "0";
 const LISTEN = APP_LIVE ? "GoSquare" : "squaredrum.com";
 const ADDRESS = "SQUAREDRUM LLC · 9350 Wilshire Blvd, Suite 203-C23, Beverly Hills, CA 90212";
 const SOCIAL = { Instagram: "https://www.instagram.com/squaredrumla/", TikTok: "https://www.tiktok.com/@squaredrumla", YouTube: "https://www.youtube.com/@squaredrum" };
@@ -452,7 +452,7 @@ ${
   <td class="col" valign="middle" width="220" style="padding:32px 0 32px 36px;"><img src="${esc(canvasGif.url)}" width="200" alt="The Canvas for ${esc(canvasGif.album.title)}" style="display:block;width:200px;height:auto;border:0;"></td>
   <td class="col px" valign="middle" style="padding:32px 36px 32px 26px;">
     <div style="${F.mono}color:${C.gold};">${String(++n).padStart(2, "0")} &middot; Watch it move</div>
-    <div style="${F.display}font-size:36px;line-height:1;color:#ffffff;padding-top:10px;">Every song has a Canvas.</div>
+    <div style="${F.display}font-size:36px;line-height:1;color:#ffffff;padding-top:10px;">Music that moves.</div>
     <div style="${F.body}font-size:14px;line-height:1.55;color:${C.soft};padding:12px 0 16px;">${APP_LIVE ? `Play anything from ${esc(canvasGif.album.title)} in GoSquare and this moves behind it, with lyrics that light up line by line.` : `Open ${esc(canvasGif.album.title)} on squaredrum.com and this moves at the top of the page while the music plays.`}</div>
     ${APP_LIVE ? link("https://gosquare.app", "Open in GoSquare", "#ffffff") : link(`${SITE}/releases/${canvasGif.album.slug}`, "See it move", "#ffffff")}
   </td></tr></table></td></tr>`
