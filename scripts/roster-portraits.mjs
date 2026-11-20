@@ -29,6 +29,7 @@ const RW = "Redwood Records - Country/Artists";
 const PN = "Piano Nation - Afro-house, Amapiano/Artists";
 const C32 = "Cartel32 - Trap/Artists";
 const GD = "Gravedigger Music - Hip Hop, Rap/Artists";
+const SDO = "Sol De Oro Music - Latin Pop/Artists";
 
 // slug, source image, crop centre x, crop top, crop height — all as fractions
 // of the source. Width is always 4:5 of the height.
@@ -84,6 +85,8 @@ const PORTRAITS = [
   // Neilly's pink close portrait.
   ["thando-keys", `${PN}/Thando Keys/Photos/09.png`, 0.56, 0, 1],
   ["neilly-storm", `${W}/Neilly Storm/Photos/12.png`, 0.5, 0.025, 0.93],
+  // Nov 2026: Alina dancing on the leather sofa, headphones on (Coqueteo launch).
+  ["alina-carisma", `${SDO}/Alina Carisma/Photos/23.png`, 0.55, 0, 0.72],
 ];
 
 // ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square

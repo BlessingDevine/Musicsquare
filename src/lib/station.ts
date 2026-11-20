@@ -102,7 +102,7 @@ export const CHANNELS: Channel[] = [
  * headline numbers, not an inventory.
  */
 export const CATALOGUE = {
-  artists: "39",
+  artists: "40",
   songs: "3,700+",
 } as const;
 
@@ -165,6 +165,7 @@ export const ROSTER: Artist[] = [
   { slug: "lucid-arrows", name: "Lucid Arrows", lane: "Rock", portrait: "/roster/lucid-arrows.jpg", square: "/roster/lucid-arrows-square.jpg" },
   { slug: "steel-vandal", name: "Steel Vandal", lane: "Rock", portrait: "/roster/steel-vandal.jpg", square: "/roster/steel-vandal-square.jpg" },
   { slug: "throne-static", name: "Throne Static", lane: "Rock", portrait: "/roster/throne-static.jpg", square: "/roster/throne-static-square.jpg" },
+  { slug: "alina-carisma", name: "Alina Carisma", lane: "Latin Pop", portrait: "/roster/alina-carisma.jpg", square: "/roster/alina-carisma-square.jpg" },
 ];
 
 /* ------------------------------------------------------------- the week */
