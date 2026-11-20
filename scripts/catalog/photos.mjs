@@ -41,9 +41,9 @@ if (!slugs.length) throw new Error("Name an artist slug, e.g. node scripts/catal
 const IMAGES = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const DOCS = new Set([".txt", ".md", ".rtf", ".docx", ".doc", ".pdf"]);
 const WIDTHS = [480, 960, 1600];
-// Album covers, Canvas artwork, collages and face or character references live in Photos/ too but aren't gallery photos
+// Album covers, Canvas artwork, roster images, collages and face or character references live in Photos/ too but aren't gallery photos
 // (Robert, Oct 2026: skip those by name; every numbered photo goes in, even a grid of poses).
-const NOT_PHOTOS = /cover|canvas|collage|(face|character)[ _-]?ref/i;
+const NOT_PHOTOS = /cover|canvas|collage|roster|(face|character)[ _-]?ref/i;
 // Hero photos fill the screen, so sharp (retina) desktops need up to ~2880 px.
 const HERO_WIDTHS = [480, 960, 1600, 2400, 2880];
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
