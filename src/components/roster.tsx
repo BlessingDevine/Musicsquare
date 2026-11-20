@@ -46,8 +46,9 @@ export async function Roster({ featured }: { featured?: string }) {
             const card = (
               <>
                 <div className={styles.frame}>
+                  {/* Square cards (Robert, Nov 2026): the purpose-cut square photo; the 4:5 one, cropped from the top, if an artist has none yet. */}
                   <Image
-                    src={artist.portrait}
+                    src={artist.square ?? artist.portrait}
                     alt={artist.name}
                     fill
                     sizes="(max-width: 760px) 62vw, 22vw"

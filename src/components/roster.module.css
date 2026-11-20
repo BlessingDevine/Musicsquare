@@ -76,7 +76,7 @@
 
 .frame {
   position: relative;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
   overflow: hidden;
   background: var(--color-ink-2);
   margin-bottom: 1.1rem;
@@ -84,6 +84,7 @@
 
 .img {
   object-fit: cover;
+  object-position: 50% 0;
   filter: grayscale(1) brightness(0.8) contrast(1.12);
   transition: filter 0.7s var(--ease-out), transform 1s var(--ease-out);
 }
