@@ -113,6 +113,8 @@ for (const slug of slugs) {
         .filter((f) => IMAGES.has(extname(f).toLowerCase()) && !f.startsWith(".") && !NOT_PHOTOS.test(f))
         .filter((f) => !albums.has(key(f.slice(0, -extname(f).length))))
         .sort(byName)
+        // Heroes first: when a hero is also saved under a gallery number, the hero keeps it.
+        .sort((a, b) => /^hero/i.test(b) - /^hero/i.test(a))
     : [];
 
   const press = join(folder, "Press Kit");
