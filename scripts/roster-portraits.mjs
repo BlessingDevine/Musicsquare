@@ -72,7 +72,7 @@ const PORTRAITS = [
   // Duos: the 4:5 crop keeps both faces.
   ["steel-vandal", `${RT}/Steel Vandal/Photos/Steel 1.png`, 0.5, 0, 1],
   ["throne-static", `${RT}/Throne Static/Photos/Throne 1.png`, 0.5, 0, 1],
-  ["lunah", `${V}/Lunah/Photos/Roster Image.png`, 0.5, 0, 1], // Nov 20: Lunah 1 with the backdrop extended 10% on top, for headroom (Robert)
+  ["lunah", `${V}/Lunah/Photos/Roster Image.png`, 0.5, 0.04, 1], // Nov 20: Lunah 1 with the backdrop extended 10% on top, for headroom (Robert)
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
   // uses the head-and-shoulders close-up, which only fits all three square.
   // Both of them, full length; the square drop crop keeps their faces.
