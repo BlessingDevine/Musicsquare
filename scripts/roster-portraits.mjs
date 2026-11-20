@@ -54,7 +54,7 @@ const PORTRAITS = [
   ["saka", `${W}/Saka/Photos/1.jpg`, 0.45, 0.12, 0.85, [`${W}/Saka/Photos/1.jpg`, 0.42, 0.14, 0.64]],
   ["sadie-colton", `${RW}/Sadie Colton/Photos/Sadie 1.jpg`, 0.42, 0, 1],
   // Six-piece band: the 4:5 studio shot keeps everyone in frame.
-  ["cedar-line", `${RW}/Cedar Line/Photos/5.png`, 0.5, 0, 1],
+  ["cedar-line", `${RW}/Cedar Line/Photos/5.png`, 0.5, 0.11, 1], // Nov 20: crop lower, less headroom (Robert)
   ["deejay-zethu", `${PN}/Deejay Zethu/Photos/11.png`, 0.5, 0, 1],
   ["yano-sky", `${PN}/Yano Sky/Photos/Hero 2.png`, 0.5, 0.1, 0.78],
   ["elkana", `${C32}/Elkana/Photos/8.jpeg`, 0.5, 0, 1],
@@ -72,13 +72,13 @@ const PORTRAITS = [
   // Duos: the 4:5 crop keeps both faces.
   ["steel-vandal", `${RT}/Steel Vandal/Photos/Steel 1.png`, 0.5, 0, 1],
   ["throne-static", `${RT}/Throne Static/Photos/Throne 1.png`, 0.5, 0, 1],
-  ["lunah", `${V}/Lunah/Photos/Lunah 1.jpg`, 0.5, 0.03, 1],
+  ["lunah", `${V}/Lunah/Photos/Roster Image.png`, 0.5, 0, 1], // Nov 20: Lunah 1 with the backdrop extended 10% on top, for headroom (Robert)
   // The group shot keeps all three faces in a 4:5 card; today's drop (square)
   // uses the head-and-shoulders close-up, which only fits all three square.
   // Both of them, full length; the square drop crop keeps their faces.
   ["litha-flow", `${PN}/Litha Flow/Photos/hero 1.png`, 0.5, 0, 1],
-  ["luv-tonez", `${V}/Luv Tonez/Photos/Luv Tonez.jpeg`, 0.5, 0, 1,
-    [`${V}/Luv Tonez/Photos/Luv Tonez 1.jpg`, 0.5, 0, 1]],
+  // Nov 20 2026: photo 19 (square) for both the card and the square (Robert).
+  ["luv-tonez", `${V}/Luv Tonez/Photos/19.png`, 0.5, 0, 1],
   // Every Apex photo has the name printed across the bottom: crop above it.
   ["apex", `${GD}/Apex/Photos/Apex.jpg`, 0.5, 0.07, 0.6],
   // Oct 28 2026, matching their squaredrum.com cards: Thando at the white piano,
