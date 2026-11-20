@@ -85,8 +85,8 @@ const PORTRAITS = [
   // Neilly's pink close portrait.
   ["thando-keys", `${PN}/Thando Keys/Photos/09.png`, 0.56, 0, 1],
   ["neilly-storm", `${W}/Neilly Storm/Photos/12.png`, 0.5, 0.025, 0.93],
-  // Nov 2026: Alina dancing on the leather sofa, headphones on (Coqueteo launch).
-  ["alina-carisma", `${SDO}/Alina Carisma/Photos/23.png`, 0.55, 0, 0.72],
+  // Nov 20 2026: Robert's own square roster image (pink satin, hair up).
+  ["alina-carisma", `${SDO}/Alina Carisma/Photos/Roster Image.png`, 0.5, 0, 1],
 ];
 
 // ratio is width / height: 0.8 for the 4:5 roster cards, 1 for the square
