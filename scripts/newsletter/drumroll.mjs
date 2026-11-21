@@ -78,6 +78,30 @@ const imprintById = new Map(imprints.map((i) => [i.imprint_id, i]));
 const cols = "song_id, title, album_title, track_number, created_at, release_status, primary_artist_id, primary_imprint_id";
 let week = await all(() => db.from("songs").select(cols).eq("release_status", "ready"));
 let waiting = true;
+// Albums released early (release.mjs --apply mid-week) since the last issue, which that issue didn't announce:
+// they always go in, so an early release is never skipped (Robert, Nov 2026: "mention them in the next Drumroll").
+const early = new Set(); // "artist name::album"
+{
+  const hist = existsSync(join(OUT_ROOT, "history.json")) ? JSON.parse(readFileSync(join(OUT_ROOT, "history.json"), "utf8")) : {};
+  const prev = Object.keys(hist).filter((d) => d < DATE).sort().at(-1);
+  const LOG = join(OUT_ROOT, "..", "Friday releases log.tsv");
+  if (prev && existsSync(LOG)) {
+    const announced = new Set((hist[prev].releases ?? []).map((r) => r.replace(" – ", "::")));
+    for (const line of readFileSync(LOG, "utf8").trim().split("\n").slice(1)) {
+      const [date, , artist, album] = line.split("\t");
+      if (date >= prev && date < DATE && !announced.has(`${artist}::${album}`)) early.add(`${artist}::${album}`);
+    }
+  }
+  if (early.size) {
+    const titles = [...new Set([...early].map((k) => k.split("::")[1]))];
+    const rows = await all(() => db.from("songs").select(cols).eq("release_status", "released_radio").in("album_title", titles));
+    const seen = new Set(week.map((s) => s.song_id));
+    for (const s of rows) {
+      const name = artistById.get(s.primary_artist_id)?.artist_name ?? imprintById.get(s.primary_imprint_id)?.imprint_name;
+      if (early.has(`${name}::${s.album_title}`) && !seen.has(s.song_id)) week.push(s);
+    }
+  }
+}
 if (!week.length) {
   // Nothing queued (or it already went out early): the albums added in the 7 days before this Friday.
   waiting = false;
@@ -118,7 +142,7 @@ for (const a of albumMap.values()) {
     .eq("album_title", a.title)
     .eq("release_status", "released_radio")
     .lt("created_at", waiting ? new Date().toISOString() : weekStart);
-  a.isNew = !count && a.songs.length >= 3;
+  a.isNew = (early.has(`${a.name}::${a.title}`) || !count) && a.songs.length >= 3;
 }
 const albums = [...albumMap.values()].filter((a) => a.isNew).sort((x, y) => y.songs.length - x.songs.length);
 // No new album this week: a news issue (see the top of this file).
