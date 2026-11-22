@@ -660,7 +660,7 @@ function renderSocial() {
     <div class="card soc">
       <div class="card-h"><h2>Accounts</h2><div class="legend"><span><i></i>Post scheduled that day</span><span><i class="l"></i>Today</span></div></div>
       <div class="th cap"><span>Account</span><span>Followers</span><span>Next 14 days</span><span>Reach 14 d</span><span style="justify-self:end">Status</span></div>
-      ${A.map((a) => `<div class="row"><span class="who"><span class="ib">${icon("instagram")}</span><span style="min-width:0"><span class="t">@${esc(a.handle)}</span><span class="s">${a.next ? `next ${esc(fmtWhen(a.next))}` : "no post scheduled"}${a.best ? ` · best: ${esc(kfmt(a.best.reach))} reach` : ""}</span></span></span><span class="num">${kfmt(a.followers)}</span>${strip(a)}<span class="num" title="${a.posted14} posts, ${a.likes14} likes">${kfmt(a.reach14)}</span>${status(a)}</div>`).join("")}
+      ${A.map((a) => `<div class="row"><span class="who"><span class="ib">${icon("instagram")}</span><span style="min-width:0"><span class="t">@${esc(a.handle)}</span><span class="s">${a.next ? `next ${esc(fmtWhen(a.next))}` : "no post scheduled"}${a.rejected ? ` · ${a.rejected} rejected (won't post)` : ""}${a.best ? ` · best: ${esc(kfmt(a.best.reach))} reach` : ""}</span></span></span><span class="num">${kfmt(a.followers)}</span>${strip(a)}<span class="num" title="${a.posted14} posts, ${a.likes14} likes">${kfmt(a.reach14)}</span>${status(a)}</div>`).join("")}
     </div>
     <div class="grid2">
       <div class="card next"><div class="card-h"><h2>Coming up</h2></div>

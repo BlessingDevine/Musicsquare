@@ -256,7 +256,9 @@ async function social(fresh) {
   const firstLine = (t) => String(t ?? "").split("\n").find((l) => l.trim())?.trim().slice(0, 140) ?? "";
   const list = accounts.map((a) => {
     const mine = posts.filter((p) => p.socialMediaId === a.id);
-    const upcoming = mine.filter((p) => p.status !== "FAILED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt));
+    // Rejected in PostFast's approval step: they stay in the queue but don't publish, so they don't count.
+    const rejected = mine.filter((p) => p.status !== "FAILED" && p.approvalStatus === "REJECTED").length;
+    const upcoming = mine.filter((p) => p.status !== "FAILED" && p.approvalStatus !== "REJECTED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt));
     const published = metrics.filter((m) => m.socialMediaId === a.id);
     const best = published.reduce((b, m) => (num(m.latestMetric?.reach) > num(b?.latestMetric?.reach) ? m : b), null);
     return {
@@ -265,6 +267,7 @@ async function social(fresh) {
       followers: a.followerCount == null ? null : Number(a.followerCount),
       scheduled: upcoming.filter((p) => p.status === "SCHEDULED").length,
       drafts: upcoming.filter((p) => p.status === "DRAFT").length,
+      rejected,
       next: upcoming.find((p) => p.status === "SCHEDULED")?.scheduledAt ?? null,
       days: upcoming.filter((p) => p.status === "SCHEDULED").map((p) => p.scheduledAt),
       // Two scheduled posts on one account in the same minute (e.g. a feed post and a Reel of the same thing).
@@ -279,7 +282,7 @@ async function social(fresh) {
     };
   }).sort((x, y) => x.handle.localeCompare(y.handle));
   const handle = new Map(list.map((a) => [a.id, a.handle]));
-  const next = posts.filter((p) => p.status === "SCHEDULED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt)).slice(0, 14)
+  const next = posts.filter((p) => p.status === "SCHEDULED" && p.approvalStatus !== "REJECTED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt)).slice(0, 14)
     .map((p) => ({ at: p.scheduledAt, handle: handle.get(p.socialMediaId) ?? "?", platform: p.platform, type: p.controls?.instagramPublishType ?? null, text: firstLine(p.content) }));
   const data = { configured: true, at: new Date().toISOString(), accounts: list, next };
   socialCache = { at: Date.now(), data };
