@@ -267,6 +267,10 @@ async function social(fresh) {
       drafts: upcoming.filter((p) => p.status === "DRAFT").length,
       next: upcoming.find((p) => p.status === "SCHEDULED")?.scheduledAt ?? null,
       days: upcoming.filter((p) => p.status === "SCHEDULED").map((p) => p.scheduledAt),
+      // Two scheduled posts on one account in the same minute (e.g. a feed post and a Reel of the same thing).
+      doubles: Object.values(upcoming.filter((p) => p.status === "SCHEDULED").reduce((g, p) => ((g[p.scheduledAt] ??= []).push(p), g), {}))
+        .filter((g) => g.filter((p) => p.controls?.instagramPublishType !== "STORY").length > 1)
+        .map((g) => ({ at: g[0].scheduledAt, types: g.map((p) => p.controls?.instagramPublishType ?? p.platform), text: firstLine(g[0].content) })),
       failed: mine.filter((p) => p.status === "FAILED").map((p) => ({ at: p.scheduledAt, error: p.lastError?.message ?? "Failed", text: firstLine(p.content) })),
       posted14: published.length,
       reach14: published.reduce((t, m) => t + num(m.latestMetric?.reach), 0),

@@ -599,6 +599,7 @@ function renderNeeds() {
   }
   for (const a of SOC?.accounts ?? []) {
     if (!a.connected) items.push({ k: "Social", t: `@${a.handle} is disconnected`, d: `Posting is paused (${(a.disabledReason ?? "reconnect needed").toLowerCase().replace(/_/g, " ")}). Reconnect it in PostFast; scheduled posts then go out again.`, a: [["Open Social", "social"]] });
+    for (const d of a.doubles ?? []) items.push({ k: "Social", t: `@${a.handle} posts twice at ${fmtWhen(d.at)}`, d: `${d.types.map((t) => t === "TIMELINE" ? "feed post" : t.toLowerCase()).join(" + ")}: "${d.text.slice(0, 60)}". If one is an old silent version, delete it in PostFast.`, a: [["Open Social", "social"]] });
     if (a.failed.length) items.push({ k: "Social", t: `${a.failed.length} post${a.failed.length > 1 ? "s" : ""} failed on @${a.handle}`, d: a.failed[0].error, a: [["Open Social", "social"]] });
   }
   for (const name of OV.artists.held) items.push({ k: "Off air", t: `${name} is off air`, d: "Their music is hidden everywhere until you put it back.", a: [["Review", "job:hold"]] });
@@ -648,7 +649,7 @@ function renderSocial() {
   const strip = (a) => `<span class="days" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => {
     const d0 = start.getTime() + i * 864e5, on = a.days.some((d) => { const t = new Date(d).getTime(); return t >= d0 && t < d0 + 864e5; });
     return `<i class="${on ? "on" : ""}${i === 0 ? " today" : ""}"></i>`; }).join("")}</span>`;
-  const status = (a) => !a.connected ? `<span class="st bad">Disconnected</span>` : a.failed.length ? `<span class="st bad">${a.failed.length} failed</span>` : !a.scheduled ? `<span class="st you">Nothing queued</span>` : `<span class="st ok">${a.scheduled} queued</span>`;
+  const status = (a) => !a.connected ? `<span class="st bad">Disconnected</span>` : a.doubles?.length ? `<span class="st you">${a.doubles.length} double</span>` : a.failed.length ? `<span class="st bad">${a.failed.length} failed</span>` : !a.scheduled ? `<span class="st you">Nothing queued</span>` : `<span class="st ok">${a.scheduled} queued</span>`;
   box.innerHTML = `
     <div class="kpis">
       <div class="card kpi"><span class="cap">Accounts</span><div class="v">${A.length}${off ? ` <span class="num" style="color:var(--red)">${off} off</span>` : ""}</div></div>
@@ -663,7 +664,7 @@ function renderSocial() {
     </div>
     <div class="grid2">
       <div class="card next"><div class="card-h"><h2>Coming up</h2></div>
-        ${SOC.next.length ? SOC.next.map((p) => `<div class="row"><span class="num">${esc(fmtWhen(p.at))}</span><span class="t" style="font-weight:500">@${esc(p.handle)}${p.type === "REELS" ? ' <span class="tag">Reel</span>' : p.type === "STORIES" ? ' <span class="tag">Story</span>' : ""}</span><span class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.text)}</span></div>`).join("") : `<p class="hint">Nothing scheduled.</p>`}
+        ${SOC.next.length ? SOC.next.map((p) => `<div class="row"><span class="num">${esc(fmtWhen(p.at))}</span><span class="t" style="font-weight:500">@${esc(p.handle)}${p.type === "REEL" || p.type === "REELS" ? ' <span class="tag">Reel</span>' : p.type === "STORY" || p.type === "STORIES" ? ' <span class="tag">Story</span>' : ""}</span><span class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.text)}</span></div>`).join("") : `<p class="hint">Nothing scheduled.</p>`}
       </div>
       <div class="card"><div class="card-h"><h2>Failed posts</h2><span class="delta" style="${failed ? "background:var(--red-soft);color:var(--red)" : ""}">${failed}</span></div>
         <div class="need">${failed ? A.flatMap((a) => a.failed.map((f) => `<div class="it"><span class="cap">@${esc(a.handle)} · ${esc(fmtWhen(f.at))}</span><b>${esc(f.text || "Post")}</b><small>${esc(f.error)}</small></div>`)).join("") : `<div class="empty">No failed posts in the last 14 days.</div>`}</div>
