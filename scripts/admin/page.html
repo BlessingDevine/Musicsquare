@@ -399,6 +399,7 @@ const JOBS = [
   { group: "Lyrics & art", id: "canvas", s: "~/Sites/canvas/raw", title: "Upload Canvas clips", what: "Finishes and uploads the Canvas clips saved in ~/Sites/canvas/raw.", preview: true },
   { group: "Artists", id: "instagram", s: "button on 3 platforms", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
   { group: "Artists", id: "hold", s: "off air · back on", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
+  { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left, then evens out the level. Drop recordings (WAV, MP3, phone memos, even video) in VOICEOVERS/To clean in your SQUARE BUSINESS folder. Clean copies land in VOICEOVERS/Cleaned and the originals move to VOICEOVERS/Originals. Made for speech: it removes music too.", fields: ["vofolder", "vofmt", "volevel"], preview: true },
   { group: "Checks", id: "audit", s: "read only", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
 ];
 const ICONS = {
@@ -418,6 +419,7 @@ const ICONS = {
   canvas: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
   instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/>',
   hold: '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
+  voiceover: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   audit: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
 };
 const icon = (id) => `<svg class="i" viewBox="0 0 24 24">${ICONS[id] ?? ICONS.audit}</svg>`;
@@ -697,6 +699,9 @@ function field(name) {
     case "who": return `<label class="f"><span>Artist or song title</span><input id="f-who" type="text" name="who" required placeholder="e.g. Fizz, or Usiku Huu"></label>`;
     case "lang": return `<label class="f"><span>Language the songs are sung in</span><select id="f-lang" name="lang"><option value="en">English (and most songs)</option><option value="sw">Swahili</option><option value="sn">Shona</option><option value="ln">Lingala</option><option value="fr">French</option><option value="pt">Portuguese</option><option value="es">Spanish</option><option value="yo">Yoruba</option></select></label>`;
     case "handle": return `<label class="f"><span>Instagram handle</span><input id="f-handle" type="text" name="handle" placeholder="e.g. saka.sq (no @)"></label>`;
+    case "vofolder": return `<div class="f"><span class="hint">Recordings</span><div class="actions"><button class="btn" type="button" onclick="api('/api/open-voiceovers', { method: 'POST' }).catch((e) => say(e.message))">Open the To clean folder</button></div></div>`;
+    case "vofmt": return `<div class="f"><span class="hint">Save as</span><div class="choices"><label><input type="radio" name="vofmt" value="wav" checked> WAV (for editing)</label><label><input type="radio" name="vofmt" value="mp3"> MP3</label><label><input type="radio" name="vofmt" value="both"> Both</label></div></div>`;
+    case "volevel": return `<div class="f"><span class="hint">Level</span><div class="choices"><label><input type="radio" name="volevel" value="level" checked> Even out (−16 LUFS, the usual for spoken word)</label><label><input type="radio" name="volevel" value="keep"> Keep as recorded</label></div></div>`;
     case "action": return `<div class="f"><span class="hint">Do</span><div class="choices"><label><input type="radio" name="action" value="hold" checked> Take off air</label><label><input type="radio" name="action" value="release"> Put back on air</label><label><input type="radio" name="action" value="list"> Just show who's off air</label></div></div>`;
   }
   return "";

@@ -11,7 +11,7 @@
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -82,6 +82,9 @@ const JOBS = {
     test?.trim()
       ? [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--test", need(test.trim(), /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/)] : [])]]
       : [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--schedule"] : [])]],
+  voiceover: ({ vofmt, volevel }, apply) => [
+    [job("voiceover.mjs"), need(vofmt ?? "wav", /^(wav|mp3|both)$/), need(volevel ?? "level", /^(level|keep)$/), ...(apply ? ["--apply"] : [])],
+  ],
   friday: ({ which }, apply) => [
     [cat("release.mjs"), ...(which?.trim() ? ["--only", need(which.trim(), /^[^\n]{1,120}$/)] : []), ...(apply ? ["--apply"] : [])],
   ],
@@ -357,6 +360,12 @@ createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/run") {
       const { name, form, apply } = await body(req);
       return send(res, 200, { id: await start(name, form, apply) });
+    }
+    if (req.method === "POST" && url.pathname === "/api/open-voiceovers") {
+      const dir = join(LABELS_ROOT, "..", "VOICEOVERS", "To clean");
+      mkdirSync(dir, { recursive: true });
+      spawn("open", [dir], { stdio: "ignore" });
+      return send(res, 200, { ok: true });
     }
     if (req.method === "POST" && url.pathname === "/api/stop") {
       if (current?.child && !current.done) current.child.kill("SIGINT");
