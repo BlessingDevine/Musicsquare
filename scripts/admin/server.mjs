@@ -9,17 +9,18 @@
 // first; the page asks before running it for real. Requests must carry the
 // token printed into the page, so no other website can start a job.
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, parse, posix, resolve } from "node:path";
+import { basename, dirname, extname, join, parse, posix, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { LABELS_ROOT, parseImprint } from "../catalog/scan.mjs";
 import { KINDS, VO_INBOX, voiceFiles } from "./jobs/voiceover.mjs";
+import { TAG, VB_LANGS, VOICES_ROOT, safe, transcribe, vb, vbUp, voiceFolder, voiceOwner } from "./jobs/voices.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
@@ -97,6 +98,18 @@ const JOBS = {
       ...(apply ? ["--apply"] : []),
     ],
   ],
+  // Artist voices: speak lines in a Voicebox voice. Nothing to preview; it only adds new clips.
+  voices: ({ vbprofile, vblines, vbinstruct }) => {
+    const lines = (Array.isArray(vblines) ? vblines : []).map((l) => String(l).trim()).filter(Boolean);
+    if (!lines.length) throw new Error("Type at least one line.");
+    if (lines.length > 50) throw new Error("50 lines at a time at most.");
+    return [[
+      job("voices.mjs"),
+      "--profile", need(vbprofile, UUID),
+      ...lines.flatMap((l) => ["--line", need(l, /^[^\n]{1,1000}$/)]),
+      ...(vbinstruct?.trim() ? ["--instruct", need(vbinstruct.trim(), /^[^\n]{1,300}$/)] : []),
+    ]];
+  },
   friday: ({ which }, apply) => [
     [cat("release.mjs"), ...(which?.trim() ? ["--only", need(which.trim(), /^[^\n]{1,120}$/)] : []), ...(apply ? ["--apply"] : [])],
   ],
@@ -217,6 +230,155 @@ function voAudition(src, file) {
       code === 0 ? done({ ok: true }) : failed(new Error(strip(out).trim().split("\n").slice(-3).join(" ") || "The audition failed."));
     });
   });
+}
+
+// --- artist voices: Voicebox voices, and new voices from a recording or a ready-made voice ---
+// Voicebox (the voice studio app) does the work; these only ask it things on this Mac.
+
+let vbCaps = null; // what this Voicebox version can do, read once from its own API description
+async function vbStatus() {
+  if (!(await vbUp())) return { up: false };
+  if (!vbCaps) {
+    try {
+      const spec = await vb("/openapi.json");
+      const pattern = spec.components?.schemas?.GenerationRequest?.properties?.engine?.anyOf?.find((a) => a.pattern)?.pattern ?? "";
+      vbCaps = { design: pattern.includes("qwen_voice_design") };
+    } catch { vbCaps = { design: false }; }
+  }
+  const voices = (await vb("/profiles")).map((p) => ({
+    id: p.id, name: p.name, artist: (p.description ?? "").match(TAG)?.[1] ?? null, owner: voiceOwner(p),
+    type: p.voice_type ?? "cloned", engine: p.preset_engine ?? p.default_engine ?? null, preset: p.preset_voice_id ?? null,
+    lang: p.language ?? "en", samples: p.sample_count ?? 0, made: p.generation_count ?? 0,
+  })).sort((a, b) => (!!b.artist - !!a.artist) || a.name.localeCompare(b.name));
+  return { up: true, ...vbCaps, voices };
+}
+
+let vbStarting = null;
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const vbAppOpen = () => spawnSync("pgrep", ["-x", "voicebox"]).status === 0;
+/**
+ * Opens Voicebox in the background and waits (up to 2 minutes) for its engine to answer. If the
+ * Voicebox window is open but its engine isn't answering (it happens), Voicebox is closed and opened again.
+ */
+function vbStart() {
+  vbStarting ??= (async () => {
+    if (await vbUp()) return { up: true };
+    if (vbAppOpen()) {
+      for (let i = 0; i < 5 && !(await vbUp()); i++) await pause(2000); // it may just be starting
+      if (await vbUp()) return { up: true };
+      spawnSync("pkill", ["-TERM", "-x", "voicebox"]);
+      for (let i = 0; i < 40 && vbAppOpen(); i++) await pause(500);
+      await pause(1500); // opening it while it is still closing does nothing
+    }
+    spawn("open", ["-g", "-a", "Voicebox"], { stdio: "ignore" });
+    for (let i = 0; i < 60; i++) {
+      if (await vbUp()) return { up: true };
+      if (i % 5 === 4 && !vbAppOpen()) spawn("open", ["-g", "-a", "Voicebox"], { stdio: "ignore" }); // the open didn't take: try again
+      await pause(2000);
+    }
+    throw new Error("Voicebox didn't start. Open it from Applications and check it says it's ready.");
+  })().finally(() => (vbStarting = null));
+  return vbStarting;
+}
+
+function ffmpeg(argv) {
+  return new Promise((done, failed) => {
+    const child = spawn("ffmpeg", argv);
+    let err = "";
+    child.stderr.on("data", (b) => (err += b));
+    child.on("close", (code) => (code === 0 ? done() : failed(new Error(`Couldn't read that recording. ${err.trim().split("\n").pop() ?? ""}`))));
+  });
+}
+
+const VB_TMP = join(tmpdir(), "squaredrum-voices");
+/** Saves an uploaded recording as the artist's reference clip (up to 30 s, mono WAV), then writes down what is said in it. */
+async function vbSample(req, url) {
+  const artist = (await artistRow(need(url.searchParams.get("artist"), SLUG))).artist_name;
+  const lang = VB_LANGS.includes(url.searchParams.get("lang")) ? url.searchParams.get("lang") : "en";
+  const { name: stem, ext } = parse(basename(String(url.searchParams.get("name") ?? "")).replace(/[\u0000-\u001f/\\:]/g, "").replace(/^\.+/, ""));
+  if (!stem || !KINDS.has(ext.toLowerCase())) throw new Error("Only audio or video files can be used.");
+  if (Number(req.headers["content-length"] ?? 0) > 1024 ** 3) throw new Error("That file is over 1 GB.");
+  mkdirSync(VB_TMP, { recursive: true });
+  const tmp = join(VB_TMP, `${randomBytes(6).toString("hex")}${ext}`);
+  try {
+    await pipeline(req, createWriteStream(tmp));
+    const total = await probe(tmp);
+    if (total < 5) throw new Error("That recording is under 5 seconds. Use 10–30 seconds of clear speech.");
+    const from = Math.max(0, Math.min(Number(url.searchParams.get("start")) || 0, total - 5));
+    const seconds = Math.min(30, total - from);
+    const dir = join(VOICES_ROOT, safe(artist), "Reference");
+    mkdirSync(dir, { recursive: true });
+    let to = join(dir, `${safe(stem, 100)}.wav`);
+    for (let n = 2; existsSync(to); n++) to = join(dir, `${safe(stem, 100)} ${n}.wav`);
+    await ffmpeg(["-v", "error", "-y", "-ss", String(from), "-t", String(seconds), "-i", tmp, "-vn", "-ac", "1", "-ar", "24000", to]);
+    const text = await transcribe(to, lang);
+    return { ref: relative(VOICES_ROOT, to), seconds: Math.round(seconds * 10) / 10, total: Math.round(total), from, text };
+  } finally {
+    rmSync(tmp, { force: true });
+  }
+}
+
+/** A file under Artist voices, from a path the page sent back; anything outside it is refused. */
+function vbFile(rel) {
+  const p = resolve(VOICES_ROOT, String(rel ?? ""));
+  if (!p.startsWith(resolve(VOICES_ROOT) + sep) || extname(p).toLowerCase() !== ".wav" || !existsSync(p)) throw new Error("That clip isn't there any more.");
+  return p;
+}
+
+const PRESET_ENGINES = ["kokoro", "qwen_custom_voice"];
+async function vbPresets(engine) {
+  if (!PRESET_ENGINES.includes(engine)) throw new Error("Unknown engine.");
+  return (await vb(`/profiles/presets/${engine}`)).voices ?? [];
+}
+
+/** Makes a new Voicebox voice for an artist: from their reference clip, a ready-made voice, or a description. */
+async function vbCreate({ artist: slug, kind, ref, text, lang, engine, voice, design }) {
+  const artist = (await artistRow(need(slug, SLUG))).artist_name;
+  const language = VB_LANGS.includes(lang) ? lang : "en";
+  const taken = new Set((await vb("/profiles")).map((p) => p.name));
+  const label = kind === "clone" ? "" : kind === "preset" ? ` · ${need(voice, /^[A-Za-z0-9_.-]{1,60}$/).replace(/_/g, " ")}` : " · described";
+  let name = `${artist}${label}`;
+  for (let n = 2; taken.has(name); n++) name = kind === "clone" ? `${artist} · recording ${n}` : `${artist}${label} ${n}`;
+  const base = { name, language, description: `Squaredrum artist voice [squaredrum:${slug}]` };
+  const make = (extra) => vb("/profiles", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...base, ...extra }) });
+
+  if (kind === "clone") {
+    const file = vbFile(ref);
+    const words = need(String(text ?? "").trim(), /^[\s\S]{3,3000}$/);
+    const p = await make({ voice_type: "cloned" });
+    try {
+      const fd = new FormData();
+      fd.append("file", new Blob([readFileSync(file)], { type: "audio/wav" }), basename(file));
+      fd.append("reference_text", words);
+      await vb(`/profiles/${p.id}/samples`, { method: "POST", body: fd, timeout: 120_000 });
+    } catch (e) {
+      await vb(`/profiles/${p.id}`, { method: "DELETE" }).catch(() => {}); // the empty voice we just made
+      throw e;
+    }
+    return { id: p.id, name };
+  }
+  if (kind === "preset") {
+    if (!PRESET_ENGINES.includes(engine)) throw new Error("Pick Kokoro or Qwen CustomVoice.");
+    if (!(await vbPresets(engine)).some((v) => v.voice_id === voice)) throw new Error("Pick a voice from the list.");
+    const p = await make({ voice_type: "preset", preset_engine: engine, preset_voice_id: voice });
+    return { id: p.id, name };
+  }
+  if (kind === "design") {
+    if (!vbCaps?.design) throw new Error("This version of Voicebox can't make a voice from a description yet. Update Voicebox.");
+    const p = await make({ voice_type: "designed", design_prompt: need(String(design ?? "").trim(), /^[^\n]{10,500}$/) });
+    return { id: p.id, name };
+  }
+  throw new Error("Choose how to make the voice.");
+}
+
+/** The latest clips saved for a voice (newest first). */
+async function vbClips(pid) {
+  const folder = voiceFolder(await vb(`/profiles/${need(pid, UUID)}`));
+  if (!existsSync(folder)) return { folder: relative(VOICES_ROOT, folder), clips: [] };
+  const names = readdirSync(folder).filter((n) => n.toLowerCase().endsWith(".wav") && !n.startsWith("."))
+    .map((n) => ({ n, t: statSync(join(folder, n)).mtimeMs })).sort((a, b) => b.t - a.t).slice(0, 20);
+  const clips = await Promise.all(names.map(async ({ n, t }) => ({ name: n, path: relative(VOICES_ROOT, join(folder, n)), at: new Date(t).toISOString(), seconds: await probe(join(folder, n)) })));
+  return { folder: relative(VOICES_ROOT, folder), clips };
 }
 
 // --- the one running job --------------------------------------------------------
@@ -483,6 +645,24 @@ createServer(async (req, res) => {
       if (!existsSync(file)) return send(res, 404, { error: "No audition yet." });
       res.writeHead(200, { "content-type": "audio/wav", "content-length": statSync(file).size, "cache-control": "no-store" });
       return void (await pipeline(createReadStream(file), res));
+    }
+    if (req.method === "GET" && url.pathname === "/api/vb/status") return send(res, 200, await vbStatus());
+    if (req.method === "POST" && url.pathname === "/api/vb/start") return send(res, 200, await vbStart());
+    if (req.method === "GET" && url.pathname === "/api/vb/presets") return send(res, 200, await vbPresets(url.searchParams.get("engine")));
+    if (req.method === "POST" && url.pathname === "/api/vb/sample") return send(res, 200, await vbSample(req, url));
+    if (req.method === "POST" && url.pathname === "/api/vb/create") return send(res, 200, await vbCreate(await body(req)));
+    if (req.method === "GET" && url.pathname === "/api/vb/clips") return send(res, 200, await vbClips(url.searchParams.get("profile")));
+    if (req.method === "GET" && url.pathname === "/api/vb/clip") {
+      const file = vbFile(url.searchParams.get("p"));
+      res.writeHead(200, { "content-type": "audio/wav", "content-length": statSync(file).size, "cache-control": "no-store" });
+      return void (await pipeline(createReadStream(file), res));
+    }
+    if (req.method === "POST" && url.pathname === "/api/vb/show") {
+      const { profile, ref } = await body(req);
+      const folder = ref ? dirname(vbFile(ref)) : voiceFolder(await vb(`/profiles/${need(profile, UUID)}`));
+      mkdirSync(folder, { recursive: true });
+      spawn("open", [folder], { stdio: "ignore" });
+      return send(res, 200, { ok: true });
     }
     if (req.method === "POST" && url.pathname === "/api/stop") {
       if (current?.child && !current.done) current.child.kill("SIGINT");

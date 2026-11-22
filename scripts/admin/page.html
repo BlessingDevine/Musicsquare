@@ -235,6 +235,23 @@ form:not(:has(.f)) .actions{border-top:0;padding-top:0}
 .vo-aud{display:grid;gap:12px;background:var(--well);border-radius:14px;padding:14px 16px;margin-top:4px}
 .vo-bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
 .vo-bar i{display:block;height:100%;width:0;background:var(--ink)}
+/* Artist voices */
+textarea,input[type=number]{border:0;background:var(--well);border-radius:12px;padding:11px 13px;width:100%;box-shadow:inset 0 1px 2px rgb(17 18 20 / .07);outline:0;font:inherit;color:inherit;resize:vertical}
+textarea:focus,input[type=number]:focus{box-shadow:inset 0 1px 2px rgb(17 18 20 / .07),0 0 0 2px var(--ink)}
+.vb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.vb-row>select{flex:1;min-width:200px;width:auto}
+.vb-row>label.f{min-width:0}
+.vb div.f>.hint.vb-help,.vb .vb-help{font-family:var(--sans);font-size:13px;letter-spacing:0;text-transform:none;color:var(--mute)}
+.vb-row .vo-link{margin-left:auto}
+.vb-status{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--well);border-radius:14px;padding:10px 12px}
+.vb-status .btn{margin-left:auto}
+.vb-body{display:grid;gap:16px}
+.vb-new{display:grid;gap:14px;background:var(--glass-2);border-radius:16px;padding:16px;box-shadow:var(--raise-sm)}
+.vb-new .btn::before,.vb .vb-row .btn:not(.primary)::before{display:none}
+.vb-start-at{display:inline-flex;align-items:center;gap:6px}
+.vb-start-at input{width:5.5em;padding:7px 9px}
+.vb-clips button small{margin-left:auto}
+.vb-clips button.playing{background:var(--lime-soft)}
 
 .log{padding:0;overflow:hidden}
 .status{display:flex;gap:10px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2);font-size:13px;color:var(--mute);flex-wrap:wrap}
@@ -426,6 +443,7 @@ const JOBS = [
   { group: "Artists", id: "instagram", s: "button on 3 platforms", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
   { group: "Artists", id: "hold", s: "off air · back on", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
   { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left. Upload recordings (WAV, MP3, phone memos, even video) or choose a folder, select a file and press Preview to hear it, set the strength by ear, then press Clean and choose where to save. Made for speech: it removes music too.", fields: ["vopanel", "vofmt", "volevel", "vostrength"] },
+  { group: "Voiceovers", id: "voices", s: "Voicebox → Artist voices", title: "Artist voices", what: "Gives artists a speaking voice with Voicebox, the voice studio app on this Mac. Make a voice from 10–30 seconds of the artist speaking (you check the words), or pick a ready-made one. Then type lines: each line becomes a clip in VOICEOVERS/Artist voices/<artist>, and every clip is listened back to and flagged if the words don't match. Speaks only; it doesn't sing.", fields: ["vbpanel"] },
   { group: "Checks", id: "audit", s: "read only", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
 ];
 const ICONS = {
@@ -446,6 +464,7 @@ const ICONS = {
   instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/>',
   hold: '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
   voiceover: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  voices: '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>',
   audit: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
 };
 const icon = (id) => `<svg class="i" viewBox="0 0 24 24">${ICONS[id] ?? ICONS.audit}</svg>`;
@@ -741,6 +760,36 @@ function field(name) {
       </div></div>`;
     case "vofmt": return `<div class="f"><span class="hint">Save as</span><div class="choices"><label><input type="radio" name="vofmt" value="wav" checked> WAV (for editing)</label><label><input type="radio" name="vofmt" value="mp3"> MP3</label><label><input type="radio" name="vofmt" value="both"> Both</label></div></div>`;
     case "volevel": return `<div class="f"><span class="hint">Level</span><div class="choices"><label><input type="radio" name="volevel" value="level" checked> Even out (−16 LUFS, the usual for spoken word)</label><label><input type="radio" name="volevel" value="keep"> Keep as recorded</label></div></div>`;
+    case "vbpanel": return `<div class="f vb">
+      <div class="vb-status"><span class="pill" id="vb-pill">Checking Voicebox…</span><span class="hint" id="vb-stat-note"></span><button class="btn" type="button" id="vb-start" hidden>Start Voicebox</button></div>
+      <div class="vb-body" id="vb-body" hidden>
+        <div class="f"><span class="hint">Voice</span>
+          <div class="vb-row"><select id="vb-voice" aria-label="Voice"></select><button class="btn" type="button" id="vb-new">New voice…</button></div>
+          <span class="hint" id="vb-voice-note"></span></div>
+        <div class="vb-new" id="vb-newbox" hidden>
+          <div class="vb-row"><b>New voice</b><button type="button" class="vo-link" id="vb-new-close">Close</button></div>
+          <div class="vb-row"><label class="f" style="flex:2 1 200px"><span>Artist</span><select id="vb-artist">${options(META.artists)}</select></label>
+            <label class="f" style="flex:1 1 150px"><span>Language</span><select id="vb-lang">${VB_LANGS.map((l) => `<option value="${l}">${VB_LANG_NAMES[l]}</option>`).join("")}</select></label></div>
+          <div class="choices"><label><input type="radio" name="vbkind" value="clone" checked> From a recording</label><label><input type="radio" name="vbkind" value="preset"> Ready-made voice</label><label id="vb-kind-design" hidden><input type="radio" name="vbkind" value="design"> From a description</label></div>
+          <div class="f vo-drop" id="vb-k-clone">
+            <span class="hint vb-help">10–30 seconds of the artist speaking clearly, with no music or other voices (clean it with Clean voiceovers first if needed). From a longer recording, 30 seconds are taken from the start point.</span>
+            <div class="vb-row"><button class="btn" type="button" id="vb-up">Choose a recording…</button><label class="hint vb-start-at">Start at <input type="number" id="vb-start-at" min="0" step="1" value="0"> seconds</label><input type="file" id="vb-file" accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
+            <div class="f" id="vb-ref" hidden>
+              <div class="vb-row"><button class="btn" type="button" id="vb-ref-play">Play the clip</button><span class="hint" id="vb-ref-info"></span></div>
+              <label class="f"><span>The exact words said in the clip. Listen and correct them: wrong words make garbled speech.</span><textarea id="vb-ref-text" rows="4" maxlength="3000"></textarea></label>
+            </div>
+          </div>
+          <div class="f" id="vb-k-preset" hidden>
+            <div class="vb-row"><select id="vb-engine" aria-label="Engine"><option value="kokoro">Kokoro: 50 voices (downloads about 350 MB the first time)</option><option value="qwen_custom_voice">Qwen CustomVoice: 9 voices (downloads about 4 GB the first time)</option></select><select id="vb-preset" aria-label="Ready-made voice"></select></div>
+            <span class="hint vb-help">Ready-made voices are shared with every Voicebox user, so they aren't unique to the artist.</span>
+          </div>
+          <label class="f" id="vb-k-design" hidden><span>Describe the voice</span><input type="text" id="vb-design" maxlength="500" placeholder="e.g. warm Joburg alto, late 20s, playful, a slight rasp"></label>
+          <div class="vb-row"><button class="btn primary" type="button" id="vb-save" disabled>Save voice</button><span class="hint" id="vb-new-note"></span></div>
+        </div>
+        <label class="f"><span>Lines to say. Each line becomes its own clip (up to 50)</span><textarea id="vb-lines" rows="5" maxlength="50000" placeholder="You're tuned in to Musicsquare Radio.&#10;New music every Friday on squaredrum.com."></textarea></label>
+        <label class="f"><span>How to say it (optional)</span><input type="text" id="vb-instruct" maxlength="300" placeholder="e.g. warm and excited, a little slower"></label>
+        <div class="f"><div class="vb-row"><span class="hint">Latest clips for this voice</span><button type="button" class="vo-link" id="vb-folder">Show in Finder</button></div><div class="vo-files vb-clips" id="vb-clips"></div></div>
+      </div></div>`;
     case "action": return `<div class="f"><span class="hint">Do</span><div class="choices"><label><input type="radio" name="action" value="hold" checked> Take off air</label><label><input type="radio" name="action" value="release"> Put back on air</label><label><input type="radio" name="action" value="list"> Just show who's off air</label></div></div>`;
   }
   return "";
@@ -951,10 +1000,226 @@ function voStop() {
   if (p) p.textContent = "Play";
 }
 
+// --- Artist voices: Voicebox status, voices, new voice, speak, clips ---
+const VB_LANGS = ["en", "fr", "pt", "es", "de", "it", "sw", "ar", "zh", "ja", "ko", "ru", "nl", "tr", "hi"];
+const VB_LANG_NAMES = { en: "English", fr: "French", pt: "Portuguese", es: "Spanish", de: "German", it: "Italian", sw: "Swahili", ar: "Arabic", zh: "Chinese", ja: "Japanese", ko: "Korean", ru: "Russian", nl: "Dutch", tr: "Turkish", hi: "Hindi" };
+const vbs = { st: null, ref: null, audio: null, url: null, btn: null, voice: "", running: false };
+const vbKind = () => form.querySelector('input[name="vbkind"]:checked')?.value ?? "clone";
+const vbVoice = () => vbs.st?.voices?.find((v) => v.id === $("vb-voice")?.value) ?? null;
+const vbLines = () => ($("vb-lines")?.value ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+const vbTypeName = (v) => v.type === "preset" ? `ready-made (${v.engine === "kokoro" ? "Kokoro" : "Qwen CustomVoice"} ${v.preset ?? ""})` : v.type === "designed" ? "from a description" : `from a recording (${v.samples} sample${v.samples === 1 ? "" : "s"})`;
+
+function vbPanel() {
+  vbs.ref = null;
+  $("vb-start").onclick = vbStartIt;
+  $("vb-voice").onchange = () => { vbs.voice = $("vb-voice").value; try { localStorage.setItem("vb-voice", vbs.voice); } catch {} vbVoiceChanged(); };
+  $("vb-new").onclick = () => { $("vb-newbox").hidden = false; const v = vbVoice(); if (v?.artist) $("vb-artist").value = v.artist; vbNewMarks(); };
+  $("vb-new-close").onclick = () => { $("vb-newbox").hidden = true; };
+  for (const r of form.querySelectorAll('input[name="vbkind"]')) r.onchange = vbKindChanged;
+  $("vb-artist").onchange = $("vb-lang").onchange = () => { vbClearRef(); vbNewMarks(); };
+  $("vb-up").onclick = () => { if (!$("vb-artist").value) return vbNewNote("Pick the artist first."); $("vb-file").click(); };
+  $("vb-file").onchange = () => { const f = $("vb-file").files[0]; $("vb-file").value = ""; if (f) vbUpload(f); };
+  const drop = $("vb-k-clone");
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (!f) return; if (!$("vb-artist").value) return vbNewNote("Pick the artist first."); vbUpload(f); };
+  $("vb-ref-play").onclick = () => vbs.ref && vbPlay(vbs.ref, $("vb-ref-play"));
+  $("vb-ref-text").oninput = $("vb-design").oninput = $("vb-preset").onchange = vbNewMarks;
+  $("vb-engine").onchange = vbLoadPresets;
+  $("vb-save").onclick = vbSave;
+  $("vb-lines").oninput = vbMarks;
+  $("vb-folder").onclick = () => vbVoice() && api("/api/vb/show", { method: "POST", body: JSON.stringify({ profile: vbVoice().id }) }).catch((e) => say(e.message));
+  $("vb-speak").onclick = vbSpeak;
+  try { vbs.voice = localStorage.getItem("vb-voice") ?? ""; } catch {}
+  vbLoad();
+}
+
+async function vbLoad(select) {
+  let st;
+  try { st = await api("/api/vb/status"); } catch (e) { st = { up: false, err: e.message }; }
+  if (!$("vb-pill")) return;
+  vbs.st = st;
+  $("vb-pill").className = `pill ${st.up ? "ok" : "bad"}`;
+  $("vb-pill").textContent = st.up ? "Voicebox ready" : "Voicebox is closed";
+  $("vb-stat-note").textContent = st.up ? `${st.voices.length} voice${st.voices.length === 1 ? "" : "s"}` : st.err ?? "Start it here, or open Voicebox from Applications.";
+  $("vb-start").hidden = st.up;
+  $("vb-body").hidden = !st.up;
+  if (!st.up) return vbMarks();
+  $("vb-kind-design").hidden = !st.design;
+  const sel = $("vb-voice");
+  const group = (label, list) => list.length ? `<optgroup label="${label}">${list.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</optgroup>` : "";
+  sel.innerHTML = st.voices.length ? group("Artists", st.voices.filter((v) => v.artist)) + group("Other voices", st.voices.filter((v) => !v.artist)) : `<option value="">No voices yet: press New voice</option>`;
+  const want = select ?? vbs.voice;
+  if (want && st.voices.some((v) => v.id === want)) sel.value = want;
+  vbs.voice = sel.value;
+  if (!st.voices.length) $("vb-newbox").hidden = false;
+  vbKindChanged();
+  vbVoiceChanged();
+}
+
+async function vbStartIt() {
+  const b = $("vb-start");
+  b.disabled = true; b.textContent = "Starting… (up to a minute)";
+  let err = "";
+  try { await api("/api/vb/start", { method: "POST" }); } catch (e) { err = e.message; }
+  b.disabled = false; b.textContent = "Start Voicebox";
+  await vbLoad();
+  if (err && $("vb-stat-note")) $("vb-stat-note").textContent = err;
+}
+
+function vbVoiceChanged() {
+  const v = vbVoice();
+  $("vb-voice-note").textContent = v ? `${v.owner ? `${v.owner}'s voice` : "Not linked to an artist"} · ${vbTypeName(v)} · ${VB_LANG_NAMES[v.lang] ?? v.lang}` : "";
+  vbClipsLoad();
+  vbMarks();
+}
+
+async function vbClipsLoad() {
+  const box = $("vb-clips"), v = vbVoice();
+  if (!box) return;
+  if (!v) { box.innerHTML = ""; return; }
+  try {
+    const r = await api(`/api/vb/clips?profile=${encodeURIComponent(v.id)}`);
+    box.innerHTML = r.clips.length ? "" : `<span class="hint">No clips yet. They're saved in VOICEOVERS/Artist voices/${esc(r.folder)}.</span>`;
+    for (const c of r.clips) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = `<span>▶ ${esc(c.name.replace(/\.wav$/i, ""))}</span><small>${c.seconds.toFixed(1)} s · ${esc(ago(c.at))}</small>`;
+      b.onclick = () => vbPlay(c.path, b);
+      box.appendChild(b);
+    }
+  } catch (e) { box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; }
+}
+
+/** Plays a clip from Artist voices (fetched with the page token); pressing the same button again stops it. */
+async function vbPlay(path, btn) {
+  const same = vbs.btn === btn && vbs.audio && !vbs.audio.paused;
+  vbStopAudio();
+  if (same) return;
+  try {
+    const r = await fetch(`/api/vb/clip?p=${encodeURIComponent(path)}`, { headers: { "x-admin-token": TOKEN } });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Couldn't play it.");
+    vbs.url = URL.createObjectURL(await r.blob());
+    vbs.audio = new Audio(vbs.url);
+    vbs.btn = btn;
+    btn.classList.add("playing");
+    vbs.audio.onended = vbStopAudio;
+    await vbs.audio.play();
+  } catch (e) { say(e.message); vbStopAudio(); }
+}
+function vbStopAudio() {
+  if (vbs.audio) vbs.audio.pause();
+  if (vbs.url) URL.revokeObjectURL(vbs.url);
+  vbs.btn?.classList.remove("playing");
+  vbs.audio = vbs.url = vbs.btn = null;
+}
+
+function vbKindChanged() {
+  const k = vbKind();
+  $("vb-k-clone").hidden = k !== "clone";
+  $("vb-k-preset").hidden = k !== "preset";
+  $("vb-k-design").hidden = k !== "design";
+  if (k === "preset" && !$("vb-preset").options.length) vbLoadPresets();
+  vbNewMarks();
+}
+
+async function vbLoadPresets() {
+  const sel = $("vb-preset");
+  sel.innerHTML = `<option value="">Loading voices…</option>`;
+  try {
+    const list = await api(`/api/vb/presets?engine=${encodeURIComponent($("vb-engine").value)}`);
+    const lang = $("vb-lang").value;
+    list.sort((a, b) => (b.language === lang) - (a.language === lang) || a.name.localeCompare(b.name));
+    sel.innerHTML = `<option value="">Choose a voice…</option>` + list.map((v) => `<option value="${esc(v.voice_id)}">${esc(v.name)} · ${esc(v.gender ?? "")} · ${esc(VB_LANG_NAMES[v.language] ?? v.language ?? "")}</option>`).join("");
+  } catch (e) { sel.innerHTML = ""; vbNewNote(e.message); }
+  vbNewMarks();
+}
+
+function vbNewNote(msg) { const n = $("vb-new-note"); if (n) n.textContent = msg; }
+function vbClearRef() { vbs.ref = null; $("vb-ref").hidden = true; $("vb-ref-text").value = ""; }
+
+async function vbUpload(file) {
+  vbStopAudio();
+  vbClearRef();
+  const up = $("vb-up");
+  up.disabled = true;
+  vbNewNote(`Uploading ${file.name} and writing down what's said… (up to a minute the first time)`);
+  try {
+    const q = new URLSearchParams({ artist: $("vb-artist").value, lang: $("vb-lang").value, name: file.name, start: $("vb-start-at").value || "0" });
+    const r = await fetch(`/api/vb/sample?${q}`, { method: "POST", headers: { "x-admin-token": TOKEN }, body: file });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error ?? "Upload failed.");
+    vbs.ref = j.ref;
+    $("vb-ref").hidden = false;
+    $("vb-ref-text").value = j.text;
+    $("vb-ref-info").textContent = `${j.seconds} s used${j.total > j.seconds + 0.5 ? ` of ${j.total} s, from ${j.from} s` : ""} · saved in Artist voices/${j.ref.replace(/\/[^/]+$/, "")}`;
+    vbNewNote(j.text ? "Play the clip and check the words match exactly, then Save voice." : "No words were heard. Is it speech? Try another recording.");
+  } catch (e) { vbNewNote(e.message); }
+  up.disabled = false;
+  vbNewMarks();
+}
+
+function vbNewMarks() {
+  const s = $("vb-save");
+  if (!s) return;
+  const k = vbKind();
+  s.disabled = !$("vb-artist").value || (k === "clone" ? !(vbs.ref && $("vb-ref-text").value.trim().length >= 3) : k === "preset" ? !$("vb-preset").value : $("vb-design").value.trim().length < 10);
+}
+
+async function vbSave() {
+  const k = vbKind(), s = $("vb-save");
+  s.disabled = true;
+  vbNewNote("Saving the voice in Voicebox…");
+  try {
+    const r = await api("/api/vb/create", { method: "POST", body: JSON.stringify({
+      artist: $("vb-artist").value, kind: k, lang: $("vb-lang").value,
+      ref: vbs.ref, text: $("vb-ref-text").value, engine: $("vb-engine").value, voice: $("vb-preset").value, design: $("vb-design").value,
+    }) });
+    vbClearRef();
+    $("vb-design").value = "";
+    $("vb-newbox").hidden = true;
+    vbNewNote("");
+    await vbLoad(r.id);
+    $("vb-hint").textContent = `Saved "${r.name}". Type a line and press Speak to hear it.`;
+  } catch (e) { vbNewNote(e.message); vbNewMarks(); }
+}
+
+function vbMarks() {
+  const b = $("vb-speak"), hint = $("vb-hint");
+  if (!b) return;
+  const v = vbVoice(), n = vbLines().length;
+  b.disabled = !vbs.st?.up || !v || !n || n > 50 || vbs.running;
+  b.textContent = n > 1 ? `Speak ${n} lines` : "Speak";
+  if (vbs.running) return;
+  hint.textContent = !vbs.st?.up ? "Start Voicebox first." : !v ? "Make a voice first." : !n ? "Type a line to say." : n > 50 ? "50 lines at a time at most." : `Makes ${n} clip${n > 1 ? "s" : ""} in ${v.name}'s voice, then listens back to check the words.`;
+}
+
+async function vbSpeak() {
+  const v = vbVoice(), lines = vbLines();
+  if (!v || !lines.length) return;
+  vbStopAudio();
+  try {
+    const { id } = await api("/api/run", { method: "POST", body: JSON.stringify({ name: "voices", form: { vbprofile: v.id, vblines: lines, vbinstruct: $("vb-instruct").value }, apply: true }) });
+    jobId = id; seen = 0; out.textContent = ""; out.classList.remove("empty");
+    vbs.running = true;
+    $("vb-speak").disabled = true;
+    $("vb-hint").textContent = "Speaking… each clip appears below as it's checked. The first one can take a few minutes while the voice model loads.";
+    watch();
+  } catch (e) { say(e.message); }
+}
+
+function vbDone(ok) {
+  vbs.running = false;
+  vbClipsLoad();
+  vbMarks();
+  $("vb-hint").textContent = ok ? "Done. Play the clips below; any marked ⚠ in the output need a listen." : "It stopped. The output below says why.";
+}
+
 function choose(id, prefill) {
   const next = JOBS.find((j) => j.id === id) ?? JOBS[0];
   if (active?.id === next.id && !prefill && form.innerHTML) return;
   voStop();
+  vbStopAudio();
   active = next;
   picked = null;
   previewed = null;
@@ -963,6 +1228,8 @@ function choose(id, prefill) {
   $("what").textContent = active.what;
   const buttons = active.id === "voiceover"
     ? `<div class="actions"><button class="btn primary" type="button" id="vo-clean" disabled>Clean</button><span class="hint" id="vo-sel">Select a file first.</span></div>`
+    : active.id === "voices"
+    ? `<div class="actions"><button class="btn primary" type="button" id="vb-speak" disabled>Speak</button><span class="hint" id="vb-hint">Checking Voicebox…</span></div>`
     : active.preview
     ? `<div class="actions"><button class="btn" type="submit" id="preview">Preview</button><button class="btn primary" type="button" id="apply" disabled>Do it</button><span class="hint" id="apply-hint">Preview first to see what will change.</span></div>`
     : `<div class="actions"><button class="btn primary" type="submit" id="preview">Run</button></div>`;
@@ -977,6 +1244,7 @@ function choose(id, prefill) {
   };
   form.oninput = form.onchange = () => lockApply();
   if (active.id === "voiceover") voPanel();
+  if (active.id === "voices") vbPanel();
   const applyBtn = $("apply");
   if (applyBtn) applyBtn.onclick = () => run(true);
 }
@@ -1023,7 +1291,7 @@ function lockApply() {
   if (a) { a.disabled = true; $("apply-hint").textContent = "Preview first to see what will change."; }
 }
 
-form.addEventListener("submit", (e) => { e.preventDefault(); if (active?.id !== "voiceover") run(false); });
+form.addEventListener("submit", (e) => { e.preventDefault(); if (active?.id !== "voiceover" && active?.id !== "voices") run(false); });
 
 async function run(apply) {
   const v = values();
@@ -1080,6 +1348,7 @@ function watch() {
     if (j.apply && j.ok) { previewed = null; if (a) a.disabled = true; META = await api("/api/meta").catch(() => META); }
     loadOverview();
     if (j.name === "voiceover" && active?.id === "voiceover") voDone(j.ok);
+    if (j.name === "voices" && active?.id === "voices") vbDone(j.ok);
   };
   tick();
 }
