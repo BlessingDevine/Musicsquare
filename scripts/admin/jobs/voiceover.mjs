@@ -6,7 +6,7 @@
 //   Originals:        from To clean they move to VOICEOVERS/Originals, so nothing is done twice;
 //                     anywhere else they stay put, and files that already have a clean copy are skipped.
 //
-//   node scripts/admin/jobs/voiceover.mjs [--src <folder>] [--dest cleaned|beside] [--format wav|mp3|both]
+//   node scripts/admin/jobs/voiceover.mjs [--src <folder>] [--file <name>]... [--dest cleaned|beside|<folder>] [--format wav|mp3|both]
 //        [--level level|keep] [--strength 0-100] [--apply]
 //   node scripts/admin/jobs/voiceover.mjs --src <folder> --audition <file name> --out <folder>
 //        (writes orig.wav and voice.wav, the first 30 seconds, for listening in Admin)
@@ -106,18 +106,20 @@ async function main() {
   const level = opt("level", "level");
   const dest = opt("dest", "cleaned");
   const strength = Number(opt("strength", "100"));
-  if (!["wav", "mp3", "both"].includes(format) || !["level", "keep"].includes(level) || !["cleaned", "beside"].includes(dest)) fail("Something in the form isn't allowed.");
+  if (!["wav", "mp3", "both"].includes(format) || !["level", "keep"].includes(level) || !(["cleaned", "beside"].includes(dest) || (existsSync(dest) && statSync(dest).isDirectory()))) fail("Something in the form isn't allowed.");
   if (!Number.isInteger(strength) || strength < 0 || strength > 100) fail("Strength must be 0 to 100.");
   const exts = format === "both" ? [".wav", ".mp3"] : [`.${format}`];
-  const outDir = dest === "beside" ? src : OUT;
+  const outDir = dest === "beside" ? src : dest === "cleaned" ? OUT : resolve(dest);
+  const picks = process.argv.flatMap((a, i) => (a === "--file" ? [parse(String(process.argv[i + 1])).base] : []));
 
   const all = voiceFiles(src);
   const done = all.filter((n) => exts.some((e) => existsSync(join(outDir, `${parse(n).name} (clean)${e}`))));
-  const files = inbox ? all : all.filter((n) => !done.includes(n));
+  const files = picks.length ? all.filter((n) => picks.includes(n)) : inbox ? all : all.filter((n) => !done.includes(n));
+  if (picks.length && files.length < picks.length) fail(`Not in this folder any more: ${picks.filter((n) => !all.includes(n)).join(", ")}`);
   const others = readdirSync(src).filter((n) => !n.startsWith(".") && !all.includes(n) && statSync(join(src, n)).isFile() && !/\(clean( \d+)?\)$/.test(parse(n).name));
 
   console.log(`Folder: ${src}`);
-  if (!inbox && done.length) console.log(`Already cleaned, skipped: ${done.join(", ")}`);
+  if (!inbox && !picks.length && done.length) console.log(`Already cleaned, skipped: ${done.join(", ")}`);
   if (!files.length) {
     console.log(inbox ? "Nothing to clean yet. Upload files or drop them in this folder." : "Nothing new to clean in this folder.");
     if (others.length) console.log(`Skipped (not audio or video): ${others.join(", ")}`);
@@ -131,7 +133,7 @@ async function main() {
   const saveAs = { wav: "WAV (48 kHz, 24-bit)", mp3: "MP3 (320 kbps)", both: "WAV and MP3" }[format];
   console.log(`\nStrength: ${strength}%${strength < 100 ? ` (${100 - strength}% of the background kept)` : " (voice only)"}`);
   console.log(`Saves: ${saveAs}${level === "level" ? `, level evened out to ${TARGET} LUFS` : ", original level kept"}`);
-  console.log(`Into: ${dest === "beside" ? "the same folder, next to each original" : OUT}`);
+  console.log(`Into: ${outDir === src ? "the same folder, next to each original" : outDir}`);
   console.log(inbox ? `Originals then move to: ${DONE}` : "Originals stay where they are.");
   console.log(`About ${Math.max(15, Math.round(total / 2 + 15))} seconds.`);
   if (!APPLY) return;

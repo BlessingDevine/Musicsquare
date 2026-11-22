@@ -85,11 +85,12 @@ const JOBS = {
     test?.trim()
       ? [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--test", need(test.trim(), /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/)] : [])]]
       : [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--schedule"] : [])]],
-  voiceover: ({ vosrc, vodest, vofmt, volevel, vostrength }, apply) => [
+  voiceover: ({ vosrc, vofiles, vodest, vofmt, volevel, vostrength }, apply) => [
     [
       job("voiceover.mjs"),
       "--src", voFolder(vosrc),
-      "--dest", need(vodest ?? "cleaned", /^(cleaned|beside)$/),
+      ...(Array.isArray(vofiles) ? vofiles.slice(0, 300).flatMap((f) => ["--file", need(String(f), /^[^\n\/]{1,255}$/)]) : []),
+      "--dest", voFolder(vodest),
       "--format", need(vofmt ?? "wav", /^(wav|mp3|both)$/),
       "--level", need(volevel ?? "level", /^(level|keep)$/),
       "--strength", String(Math.min(100, Math.max(0, Math.round(Number(need(String(vostrength ?? "100"), /^\d{1,3}$/)))))),
@@ -146,9 +147,10 @@ function voFolder(src) {
 }
 
 /** Shows the Mac's folder dialog; resolves to the chosen path, or null if cancelled. */
-function pickFolder() {
+function pickFolder(prompt = "Choose a folder of voiceovers to clean", start = null) {
   return new Promise((done) => {
-    const script = ['activate', 'POSIX path of (choose folder with prompt "Choose a folder of voiceovers to clean")'];
+    const from = start && existsSync(start) ? ` default location (POSIX file ${JSON.stringify(start)})` : "";
+    const script = ["activate", `POSIX path of (choose folder with prompt ${JSON.stringify(prompt)}${from})`];
     const child = spawn("osascript", script.flatMap((l) => ["-e", l]));
     let out = "";
     child.stdout.on("data", (b) => (out += b));
@@ -461,6 +463,11 @@ createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/api/vo/upload") return send(res, 200, { name: await voUpload(req, url.searchParams.get("name")) });
     if (req.method === "POST" && url.pathname === "/api/vo/pick") return send(res, 200, { folder: await pickFolder() });
+    if (req.method === "POST" && url.pathname === "/api/vo/pick-save") {
+      const { src, last } = await body(req);
+      const from = last && voPicked.has(resolve(last)) && existsSync(last) ? resolve(last) : voFolder(src);
+      return send(res, 200, { folder: await pickFolder("Save the clean voiceovers in…", from) });
+    }
     if (req.method === "GET" && url.pathname === "/api/vo/files") return send(res, 200, await voList(url.searchParams.get("src")));
     if (req.method === "POST" && url.pathname === "/api/vo/open") {
       spawn("open", [voFolder((await body(req)).src)], { stdio: "ignore" });

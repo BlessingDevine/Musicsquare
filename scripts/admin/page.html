@@ -221,6 +221,7 @@ form:not(:has(.f)) .actions{border-top:0;padding-top:0}
 .vo-files button:hover{background:var(--glass-2)}
 .vo-files button[aria-pressed="true"]{background:var(--lime-soft);font-weight:500}
 .vo-files small{font-family:var(--mono);color:var(--mute);flex:none}
+.vo-files button.focus span::before{content:"▶ ";font-size:10px;vertical-align:1px}
 .vo-range{display:flex;align-items:center;gap:12px}
 .vo-range input{flex:1;min-width:80px;accent-color:var(--ink)}
 .vo-range output{font-family:var(--mono);font-weight:600;min-width:4.5ch;text-align:right}
@@ -417,7 +418,7 @@ const JOBS = [
   { group: "Lyrics & art", id: "canvas", s: "~/Sites/canvas/raw", title: "Upload Canvas clips", what: "Finishes and uploads the Canvas clips saved in ~/Sites/canvas/raw.", preview: true },
   { group: "Artists", id: "instagram", s: "button on 3 platforms", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
   { group: "Artists", id: "hold", s: "off air · back on", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
-  { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left, then evens out the level. Upload recordings (WAV, MP3, phone memos, even video) or choose a folder, click a file to audition it, set the strength, then Preview and Do it. Made for speech: it removes music too.", fields: ["vopanel", "vostrength", "vodest", "vofmt", "volevel"], preview: true },
+  { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left. Upload recordings (WAV, MP3, phone memos, even video) or choose a folder, select a file and press Preview to hear it, set the strength by ear, then press Clean and choose where to save. Made for speech: it removes music too.", fields: ["vopanel", "vostrength", "vofmt", "volevel"] },
   { group: "Checks", id: "audit", s: "read only", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
 ];
 const ICONS = {
@@ -719,18 +720,17 @@ function field(name) {
     case "handle": return `<label class="f"><span>Instagram handle</span><input id="f-handle" type="text" name="handle" placeholder="e.g. saka.sq (no @)"></label>`;
     case "vopanel": return `<div class="f vo-drop" id="vo-drop"><span class="hint">Recordings</span>
       <div class="vo-src">${FOLDER}<code id="vo-path">VOICEOVERS/To clean</code></div>
-      <div class="vo-btns"><button class="btn" type="button" id="vo-up">Upload files</button><button class="btn" type="button" id="vo-pick">Choose a folder…</button><button class="btn" type="button" id="vo-inbox" hidden>Back to To clean</button><button class="btn" type="button" id="vo-open">Show in Finder</button><input type="file" id="vo-file" multiple accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
+      <div class="vo-btns"><button class="btn" type="button" id="vo-up">Upload files</button><button class="btn" type="button" id="vo-pick">Choose a folder…</button><button class="btn" type="button" id="vo-inbox" hidden>Back to To clean</button><button class="btn" type="button" id="vo-open">Show in Finder</button><button class="btn" type="button" id="vo-all">Select all</button><input type="file" id="vo-file" multiple accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
       <input type="hidden" name="vosrc" id="vo-src" value="">
       <div class="vo-files" id="vo-files"></div>
-      <span class="hint" id="vo-note">Drag files onto this box to upload them. Click a file to audition it.</span></div>`;
+      <span class="hint" id="vo-note">Drag files onto this box to upload them.</span></div>`;
     case "vostrength": return `<div class="f"><span class="hint">Strength</span>
       <div class="vo-range"><span class="hint">Light</span><input type="range" name="vostrength" id="vo-strength" min="0" max="100" step="5" value="100" aria-label="Strength, percent"><span class="hint">Voice only</span><output id="vo-pct">100%</output></div>
       <div class="vo-aud" id="vo-aud" hidden>
-        <div class="vo-row"><b id="vo-aud-name"></b><span class="hint">first 30 seconds, looping</span></div>
+        <div class="vo-row"><b id="vo-aud-name"></b><span class="hint">preview: first 30 seconds, looping</span></div>
         <div class="vo-bar"><i id="vo-bar"></i></div>
         <div class="vo-row"><button class="btn primary" type="button" id="vo-play">Play</button><div class="seg" role="group" aria-label="Compare"><button type="button" data-ab="before" aria-pressed="false">Before</button><button type="button" data-ab="after" aria-pressed="true">After</button></div><span class="hint">Volume matched, so you hear the cleaning, not a level jump.</span></div>
       </div></div>`;
-    case "vodest": return `<div class="f"><span class="hint">Save to</span><div class="choices"><label><input type="radio" name="vodest" value="cleaned" checked> VOICEOVERS/Cleaned</label><label><input type="radio" name="vodest" value="beside"> Next to the originals</label></div></div>`;
     case "vofmt": return `<div class="f"><span class="hint">Save as</span><div class="choices"><label><input type="radio" name="vofmt" value="wav" checked> WAV (for editing)</label><label><input type="radio" name="vofmt" value="mp3"> MP3</label><label><input type="radio" name="vofmt" value="both"> Both</label></div></div>`;
     case "volevel": return `<div class="f"><span class="hint">Level</span><div class="choices"><label><input type="radio" name="volevel" value="level" checked> Even out (−16 LUFS, the usual for spoken word)</label><label><input type="radio" name="volevel" value="keep"> Keep as recorded</label></div></div>`;
     case "action": return `<div class="f"><span class="hint">Do</span><div class="choices"><label><input type="radio" name="action" value="hold" checked> Take off air</label><label><input type="radio" name="action" value="release"> Put back on air</label><label><input type="radio" name="action" value="list"> Just show who's off air</label></div></div>`;
@@ -739,10 +739,10 @@ function field(name) {
 }
 
 // --- Clean voiceovers: folder, uploads, file list and the audition player ---
-const vo = { src: "", ctx: null, orig: null, voice: null, nodes: null, gO: null, gV: null, t0: 0, raf: 0, ab: "after", file: "" };
+const vo = { sel: new Set(), focus: "", names: [], src: "", ctx: null, orig: null, voice: null, nodes: null, gO: null, gV: null, t0: 0, raf: 0, ab: "after", file: "" };
 
 function voPanel() {
-  vo.src = "";
+  vo.src = ""; vo.sel = new Set(); vo.focus = "";
   const fileIn = $("vo-file");
   $("vo-up").onclick = () => fileIn.click();
   fileIn.onchange = () => { voUpload([...fileIn.files]); fileIn.value = ""; };
@@ -755,13 +755,20 @@ function voPanel() {
     } catch (e) { voNote(e.message); }
   };
   $("vo-inbox").onclick = () => voUse("");
+  $("vo-all").onclick = () => { const all = vo.names.every((n) => vo.sel.has(n)); vo.sel = new Set(all ? [] : vo.names); vo.focus = all ? "" : vo.names[0] ?? ""; voMarks(); };
+  $("vo-preview").onclick = () => {
+    if (!vo.focus) return;
+    if (vo.file === vo.focus && vo.orig) { $("vo-aud").hidden = false; return vo.nodes ? voStop() : voPlay(); }
+    voAudition(vo.focus);
+  };
+  $("vo-clean").onclick = voClean;
   $("vo-open").onclick = () => api("/api/vo/open", { method: "POST", body: JSON.stringify({ src: vo.src }) }).catch((e) => voNote(e.message));
   const drop = $("vo-drop");
   drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
   drop.ondragleave = () => drop.classList.remove("over");
   drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); voUpload([...e.dataTransfer.files]); };
   const range = $("vo-strength");
-  range.addEventListener("input", () => { $("vo-pct").textContent = `${range.value}%`; voGains(); });
+  range.addEventListener("input", () => { $("vo-pct").textContent = `${range.value}%`; voGains(); voMarks(); });
   $("vo-play").onclick = () => (vo.nodes ? voStop() : voPlay());
   for (const b of form.querySelectorAll("[data-ab]")) b.onclick = () => {
     vo.ab = b.dataset.ab;
@@ -776,6 +783,7 @@ function voNote(msg) { const n = $("vo-note"); if (n) n.textContent = msg; }
 function voUse(folder) {
   voStop();
   vo.src = folder;
+  vo.sel = new Set(); vo.focus = "";
   $("vo-src").value = folder;
   $("vo-inbox").hidden = !folder;
   $("vo-aud").hidden = true;
@@ -790,15 +798,23 @@ async function voRefresh() {
     const r = await api(`/api/vo/files?src=${encodeURIComponent(vo.src)}`);
     $("vo-path").textContent = r.inbox ? "VOICEOVERS/To clean" : r.folder;
     list.innerHTML = "";
+    vo.names = r.files.map((f) => f.name);
+    vo.sel = new Set([...vo.sel].filter((n) => vo.names.includes(n)));
+    if (!vo.sel.has(vo.focus)) vo.focus = [...vo.sel].pop() ?? "";
     for (const f of r.files) {
       const b = document.createElement("button");
       b.type = "button";
-      b.setAttribute("aria-pressed", String(f.name === vo.file && !$("vo-aud").hidden));
+      b.dataset.name = f.name;
       b.innerHTML = `<span>${esc(f.name)}</span><small>${Math.floor(f.seconds / 60)}:${String(Math.round(f.seconds % 60)).padStart(2, "0")}</small>`;
-      b.onclick = () => voAudition(f.name);
+      b.onclick = () => {
+        if (vo.sel.has(f.name) && vo.focus === f.name) { vo.sel.delete(f.name); vo.focus = [...vo.sel].pop() ?? ""; }
+        else { vo.sel.add(f.name); vo.focus = f.name; }
+        voMarks();
+      };
       list.appendChild(b);
     }
-    voNote(r.files.length ? `${r.files.length} file${r.files.length > 1 ? "s" : ""}. Click one to audition it. Drag more onto this box to upload.` : r.inbox ? "Nothing here yet. Upload files or drag them onto this box." : "No audio or video files in this folder.");
+    voMarks();
+    voNote(r.files.length ? `${r.files.length} file${r.files.length > 1 ? "s" : ""}. Click to select; click again to unselect. Drag more onto this box to upload.` : r.inbox ? "Nothing here yet. Upload files or drag them onto this box." : "No audio or video files in this folder.");
   } catch (e) { voNote(e.message); }
 }
 
@@ -818,8 +834,8 @@ async function voUpload(files) {
 async function voAudition(name) {
   voStop();
   vo.file = name;
-  for (const b of $("vo-files").children) b.setAttribute("aria-pressed", String(b.firstChild.textContent === name));
-  voNote(`Making an audition of ${name} (about 10 seconds)…`);
+  const pv = $("vo-preview");
+  pv.disabled = true; pv.textContent = "Making preview…";
   try {
     await api("/api/vo/audition", { method: "POST", body: JSON.stringify({ src: vo.src, file: name }) });
     vo.ctx ??= new AudioContext();
@@ -828,9 +844,51 @@ async function voAudition(name) {
     vo.rms = rms(vo.orig.getChannelData(0));
     $("vo-aud-name").textContent = name;
     $("vo-aud").hidden = false;
-    voNote("Audition ready. Press Play, move the strength, and switch Before / After.");
     voPlay();
   } catch (e) { voNote(e.message); }
+  pv.textContent = "Preview";
+  voMarks();
+}
+
+/** Shows which files are selected and what Preview and Clean will do. */
+function voMarks() {
+  for (const b of $("vo-files")?.children ?? []) { b.setAttribute("aria-pressed", String(vo.sel.has(b.dataset.name))); b.classList.toggle("focus", b.dataset.name === vo.focus); }
+  const n = vo.sel.size;
+  const pv = $("vo-preview"), cl = $("vo-clean"), hint = $("vo-sel");
+  if (!pv) return;
+  if (pv.textContent === "Preview") pv.disabled = !vo.focus;
+  cl.disabled = !n;
+  cl.textContent = n > 1 ? `Clean ${n} files` : "Clean";
+  hint.textContent = !n ? "Select a file first." : `Preview plays ${vo.focus}. Clean asks where to save, then cleans ${n > 1 ? `all ${n}` : "it"} at ${$("vo-strength").value}%.`;
+}
+
+async function voDone(ok) {
+  await voRefresh();
+  const hint = $("vo-sel");
+  if (!hint || !vo.lastDest) return;
+  hint.innerHTML = ok ? `Cleaned. <button type="button" class="btn" id="vo-show">Show the clean files</button>` : "It stopped. The output below says why.";
+  const b = $("vo-show");
+  if (b) b.onclick = () => api("/api/vo/open", { method: "POST", body: JSON.stringify({ src: vo.lastDest }) }).catch((e) => say(e.message));
+}
+
+async function voClean() {
+  if (!vo.sel.size) return;
+  voStop();
+  const cl = $("vo-clean");
+  cl.disabled = true;
+  $("vo-sel").textContent = "Choose where to save in the window that opened…";
+  try {
+    const { folder } = await api("/api/vo/pick-save", { method: "POST", body: JSON.stringify({ src: vo.src, last: vo.lastDest ?? "" }) });
+    if (!folder) { voMarks(); return; }
+    const v = values();
+    const fields = { vosrc: vo.src, vofiles: [...vo.sel], vodest: folder, vofmt: v.vofmt, volevel: v.volevel, vostrength: v.vostrength };
+    const { id } = await api("/api/run", { method: "POST", body: JSON.stringify({ name: "voiceover", form: fields, apply: true }) });
+    jobId = id; seen = 0; out.textContent = ""; out.classList.remove("empty");
+    vo.sel = new Set(); vo.focus = ""; vo.lastDest = folder;
+    $("vo-clean").disabled = $("vo-preview").disabled = true;
+    $("vo-sel").textContent = `Cleaning… saving to ${folder}`;
+    watch();
+  } catch (e) { say(e.message); voMarks(); }
 }
 
 function rms(a, b, s) {
@@ -887,7 +945,9 @@ function choose(id, prefill) {
   $("crumb").textContent = `Squaredrum / ${active.group}`;
   $("title").textContent = active.title;
   $("what").textContent = active.what;
-  const buttons = active.preview
+  const buttons = active.id === "voiceover"
+    ? `<div class="actions"><button class="btn" type="button" id="vo-preview" disabled>Preview</button><button class="btn primary" type="button" id="vo-clean" disabled>Clean</button><span class="hint" id="vo-sel">Select a file first.</span></div>`
+    : active.preview
     ? `<div class="actions"><button class="btn" type="submit" id="preview">Preview</button><button class="btn primary" type="button" id="apply" disabled>Do it</button><span class="hint" id="apply-hint">Preview first to see what will change.</span></div>`
     : `<div class="actions"><button class="btn primary" type="submit" id="preview">Run</button></div>`;
   form.innerHTML = (active.fields ?? []).map(field).join("") + buttons;
@@ -947,7 +1007,7 @@ function lockApply() {
   if (a) { a.disabled = true; $("apply-hint").textContent = "Preview first to see what will change."; }
 }
 
-form.addEventListener("submit", (e) => { e.preventDefault(); run(false); });
+form.addEventListener("submit", (e) => { e.preventDefault(); if (active?.id !== "voiceover") run(false); });
 
 async function run(apply) {
   const v = values();
@@ -1003,7 +1063,7 @@ function watch() {
     if (a && !j.apply && j.ok && previewed && active?.id === j.name) { a.disabled = false; $("apply-hint").textContent = "Runs it for real."; }
     if (j.apply && j.ok) { previewed = null; if (a) a.disabled = true; META = await api("/api/meta").catch(() => META); }
     loadOverview();
-    if (j.apply && j.name === "voiceover" && active?.id === "voiceover") voRefresh();
+    if (j.name === "voiceover" && active?.id === "voiceover") voDone(j.ok);
   };
   tick();
 }
