@@ -223,11 +223,27 @@ form:not(:has(.f)) .actions{border-top:0;padding-top:0}
 pre.out{color:var(--ink-2);padding:16px 18px 20px;margin:0;min-height:200px;max-height:56vh;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
 pre.out.empty{color:var(--faint)}
 
+/* social */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{padding:16px 18px}
+.kpi .v{font-size:34px;letter-spacing:-.03em;line-height:1.1;margin-top:4px}
+.kpi .v.bad{color:var(--red)}
+.soc .th,.soc .row{grid-template-columns:minmax(0,1.2fr) 90px minmax(150px,1fr) 100px 132px}
+.soc .row{cursor:default}
+.days{display:flex;gap:3px;height:20px;align-items:stretch}
+.days i{flex:1;border-radius:2px;background:var(--line)}
+.days i.on{background:var(--ink)}
+.days i.today{outline:1.5px solid var(--lime);outline-offset:1px}
+.num{font-family:var(--mono);font-size:13px}
+.next .row{grid-template-columns:130px 150px minmax(0,1fr);cursor:default}
+.setup ol{margin:8px 0 0;padding-left:20px;display:grid;gap:6px}
+.setup code{font-family:var(--mono);font-size:12.5px;background:var(--well);padding:1px 6px;border-radius:6px}
+
 .hist .row{grid-template-columns:minmax(0,1fr) 120px 150px}
 
 [hidden]{display:none!important}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root{--glass:rgb(250 250 251 / .96);--card:#fbfbfc;--glass-2:#ffffff}}
-@media (max-width:1180px){.grid2{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.chart{min-height:220px}}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.soc .th,.soc .row{grid-template-columns:minmax(0,1fr) 80px 100px 120px}.soc .days{display:none}.soc .th span:nth-child(3){display:none}.grid2{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.chart{min-height:220px}}
 @media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.rail{display:none}.th,.row{grid-template-columns:minmax(0,1fr) 120px}.th :nth-child(2),.row .ticks{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -240,6 +256,7 @@ pre.out.empty{color:var(--faint)}
     <button type="button" data-view="job:import" aria-label="Import new music" title="Import new music"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
     <button type="button" data-view="job:friday" aria-label="Waiting for Friday" title="Waiting for Friday" id="rail-friday"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></button>
     <button type="button" data-view="job:drumroll" aria-label="Drumroll" title="Drumroll"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg></button>
+    <button type="button" data-view="social" aria-label="Social" title="Social"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg></button>
     <button type="button" data-view="history" aria-label="Run history" title="Run history"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
     <div class="meter" aria-hidden="true" id="rail-meter"></div>
     <span class="vert" aria-hidden="true">Squaredrum · console</span>
@@ -253,6 +270,7 @@ pre.out.empty{color:var(--faint)}
         <div class="cap">Workspace</div>
         <button class="item" type="button" data-view="overview"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Overview</button>
         <button class="item" type="button" data-view="needs"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Needs you<span class="badge" id="needs-n" hidden>0</span></button>
+        <button class="item" type="button" data-view="social"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg>Social<span class="n" id="soc-n"></span></button>
         <button class="item" type="button" data-view="history"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Run history<span class="n" id="hist-n"></span></button>
       </div>
       <div class="sec">
@@ -322,6 +340,14 @@ pre.out.empty{color:var(--faint)}
           <div class="foot-note">Friday 9:00 AM Pacific · releases go live with Drumroll</div>
         </div>
       </div>
+    </section>
+
+    <section id="v-social" hidden>
+      <div class="head">
+        <div><div class="cap">Squaredrum / Social</div><h1>Social</h1><div class="sub" id="soc-sub">Artist accounts in PostFast: what's scheduled, what failed, and how posts are doing. Read only.</div></div>
+        <div class="head-r"><button class="pillbtn" type="button" id="soc-refresh"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Refresh</button></div>
+      </div>
+      <div id="soc-body"><div class="card"><p class="hint">Asking PostFast…</p></div></div>
     </section>
 
     <section id="v-history" hidden>
@@ -446,6 +472,8 @@ function go(v, prefill) {
   view = v;
   $("v-overview").hidden = v !== "overview" && v !== "needs";
   $("v-history").hidden = v !== "history";
+  $("v-social").hidden = v !== "social";
+  if (v === "social") loadSocial();
   $("v-job").hidden = !v.startsWith("job:");
   if (v.startsWith("job:")) choose(v.slice(4), prefill);
   if (v === "needs") setTimeout(() => $("needs-card").scrollIntoView({ behavior: "smooth", block: "start" }), 30);
@@ -569,6 +597,10 @@ function renderNeeds() {
     const j = JOBS.find((x) => x.id === h.name);
     if (j) items.push({ k: "Stopped", t: `${j.title} didn't finish`, d: `${h.apply ? "Run" : "Preview"} ${ago(h.at)}. Open it to see why.`, a: [["Open", `job:${j.id}`]] });
   }
+  for (const a of SOC?.accounts ?? []) {
+    if (!a.connected) items.push({ k: "Social", t: `@${a.handle} is disconnected`, d: `Posting is paused (${(a.disabledReason ?? "reconnect needed").toLowerCase().replace(/_/g, " ")}). Reconnect it in PostFast; scheduled posts then go out again.`, a: [["Open Social", "social"]] });
+    if (a.failed.length) items.push({ k: "Social", t: `${a.failed.length} post${a.failed.length > 1 ? "s" : ""} failed on @${a.handle}`, d: a.failed[0].error, a: [["Open Social", "social"]] });
+  }
   for (const name of OV.artists.held) items.push({ k: "Off air", t: `${name} is off air`, d: "Their music is hidden everywhere until you put it back.", a: [["Review", "job:hold"]] });
   $("needs-n").hidden = !items.length; $("needs-n").textContent = items.length;
   $("needs-n2").textContent = items.length;
@@ -582,6 +614,64 @@ function renderMeter() {
   const runs = (OV?.history ?? []).slice(0, 14);
   $("rail-meter").innerHTML = Array.from({ length: 14 }, (_, i) => { const r = runs[i]; return `<i class="${!r ? "" : r.ok ? "on" : "hot"}"></i>`; }).join("");
 }
+// --- social (PostFast, read only) ---------------------------------------------------
+let SOC = null;
+const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const kfmt = (n) => n == null ? "–" : n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}k` : n.toLocaleString();
+async function loadSocial(fresh) {
+  try { SOC = await api(`/api/social${fresh ? "?fresh=1" : ""}`); }
+  catch (e) { $("soc-body").innerHTML = `<div class="card"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  renderSocial();
+  if (OV) renderNeeds();
+}
+$("soc-refresh").onclick = () => { $("soc-body").style.opacity = ".5"; loadSocial(true).finally(() => ($("soc-body").style.opacity = "")); };
+function renderSocial() {
+  const box = $("soc-body");
+  if (!SOC?.configured) {
+    $("soc-n").textContent = "";
+    box.innerHTML = `<div class="card setup"><div class="card-h"><h2>Connect PostFast</h2></div>
+      <p class="hint">The Social view reads your PostFast workspace with its API key. It only reads: it can't post, change or delete anything.</p>
+      <ol><li>In PostFast, open <b>Settings → API keys</b> and create a key for the workspace your artist accounts are in.</li>
+      <li>Open <code>~/Sites/musicsquareradio-2026/.env.local</code> and add a line: <code>POSTFAST_API_KEY=</code> followed by the key.</li>
+      <li>Close the admin (power button, bottom left) and open it again from the Desktop icon.</li></ol></div>`;
+    return;
+  }
+  const A = SOC.accounts;
+  const week = Date.now() + 7 * 864e5;
+  const next7 = A.reduce((t, a) => t + a.days.filter((d) => new Date(d) < week).length, 0);
+  const failed = A.reduce((t, a) => t + a.failed.length, 0);
+  const off = A.filter((a) => !a.connected).length;
+  const reach = A.reduce((t, a) => t + a.reach14, 0);
+  $("soc-n").textContent = A.length;
+  $("soc-sub").textContent = `${A.length} accounts in PostFast · updated ${ago(SOC.at)} · read only`;
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const strip = (a) => `<span class="days" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => {
+    const d0 = start.getTime() + i * 864e5, on = a.days.some((d) => { const t = new Date(d).getTime(); return t >= d0 && t < d0 + 864e5; });
+    return `<i class="${on ? "on" : ""}${i === 0 ? " today" : ""}"></i>`; }).join("")}</span>`;
+  const status = (a) => !a.connected ? `<span class="st bad">Disconnected</span>` : a.failed.length ? `<span class="st bad">${a.failed.length} failed</span>` : !a.scheduled ? `<span class="st you">Nothing queued</span>` : `<span class="st ok">${a.scheduled} queued</span>`;
+  box.innerHTML = `
+    <div class="kpis">
+      <div class="card kpi"><span class="cap">Accounts</span><div class="v">${A.length}${off ? ` <span class="num" style="color:var(--red)">${off} off</span>` : ""}</div></div>
+      <div class="card kpi"><span class="cap">Posts next 7 days</span><div class="v">${next7}</div></div>
+      <div class="card kpi"><span class="cap">Failed · 14 days</span><div class="v ${failed ? "bad" : ""}">${failed}</div></div>
+      <div class="card kpi"><span class="cap">Reach · last 14 days</span><div class="v">${kfmt(reach)}</div></div>
+    </div>
+    <div class="card soc">
+      <div class="card-h"><h2>Accounts</h2><div class="legend"><span><i></i>Post scheduled that day</span><span><i class="l"></i>Today</span></div></div>
+      <div class="th cap"><span>Account</span><span>Followers</span><span>Next 14 days</span><span>Reach 14 d</span><span style="justify-self:end">Status</span></div>
+      ${A.map((a) => `<div class="row"><span class="who"><span class="ib">${icon("instagram")}</span><span style="min-width:0"><span class="t">@${esc(a.handle)}</span><span class="s">${a.next ? `next ${esc(fmtWhen(a.next))}` : "no post scheduled"}${a.best ? ` · best: ${esc(kfmt(a.best.reach))} reach` : ""}</span></span></span><span class="num">${kfmt(a.followers)}</span>${strip(a)}<span class="num" title="${a.posted14} posts, ${a.likes14} likes">${kfmt(a.reach14)}</span>${status(a)}</div>`).join("")}
+    </div>
+    <div class="grid2">
+      <div class="card next"><div class="card-h"><h2>Coming up</h2></div>
+        ${SOC.next.length ? SOC.next.map((p) => `<div class="row"><span class="num">${esc(fmtWhen(p.at))}</span><span class="t" style="font-weight:500">@${esc(p.handle)}${p.type === "REELS" ? ' <span class="tag">Reel</span>' : p.type === "STORIES" ? ' <span class="tag">Story</span>' : ""}</span><span class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.text)}</span></div>`).join("") : `<p class="hint">Nothing scheduled.</p>`}
+      </div>
+      <div class="card"><div class="card-h"><h2>Failed posts</h2><span class="delta" style="${failed ? "background:var(--red-soft);color:var(--red)" : ""}">${failed}</span></div>
+        <div class="need">${failed ? A.flatMap((a) => a.failed.map((f) => `<div class="it"><span class="cap">@${esc(a.handle)} · ${esc(fmtWhen(f.at))}</span><b>${esc(f.text || "Post")}</b><small>${esc(f.error)}</small></div>`)).join("") : `<div class="empty">No failed posts in the last 14 days.</div>`}</div>
+        <div class="foot-note">Fix or retry failed posts in PostFast · this page only reads</div>
+      </div>
+    </div>`;
+}
+
 function renderHistory() {
   const rows = OV?.history ?? [];
   $("hist-rows").innerHTML = rows.length ? rows.map((h) => {
@@ -755,6 +845,7 @@ $("quit").onclick = async () => {
   // The label and artist lists come from the catalogue; redraw the form once they're here (nothing typed yet).
   if (view.startsWith("job:") && !picked && !previewed) { const id = active.id; active = null; choose(id); }
   loadOverview();
+  loadSocial();
   setInterval(() => { if (document.visibilityState === "visible") loadOverview(); }, 60000);
   const j = await api("/api/job").catch(() => null);
   if (j) { jobId = j.id; if (!j.done) go(`job:${j.name}`); watch(); }

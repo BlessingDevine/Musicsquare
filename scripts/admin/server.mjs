@@ -223,6 +223,65 @@ async function overview() {
   };
 }
 
+// --- social: PostFast, read only ---------------------------------------------------
+// Only GET requests to PostFast: accounts, posts, and published-post metrics. Nothing here can create,
+// change or delete a post. The key (POSTFAST_API_KEY in .env.local) belongs to one PostFast workspace.
+
+const PF = "https://api.postfa.st";
+let socialCache = null; // { at, data } — PostFast is asked at most every 5 minutes
+
+async function pf(path) {
+  const r = await fetch(PF + path, { headers: { "pf-api-key": process.env.POSTFAST_API_KEY } });
+  if (!r.ok) throw new Error(`PostFast said ${r.status}${r.status === 401 || r.status === 403 ? " (check POSTFAST_API_KEY)" : ""}`);
+  return r.json();
+}
+
+async function social(fresh) {
+  if (!process.env.POSTFAST_API_KEY) return { configured: false };
+  if (!fresh && socialCache && Date.now() - socialCache.at < 5 * 60_000) return socialCache.data;
+  const now = Date.now();
+  const iso = (t) => new Date(t).toISOString();
+  const accounts = await pf("/social-media/my-social-accounts");
+  // Upcoming (scheduled, drafts) for 35 days, and anything that failed in the last 14.
+  const posts = [];
+  for (const [statuses, from, to] of [["SCHEDULED,DRAFT", now, now + 35 * 864e5], ["FAILED", now - 14 * 864e5, now + 35 * 864e5]]) {
+    for (let page = 0; page < 12; page++) {
+      const res = await pf(`/social-posts?statuses=${statuses}&from=${iso(from)}&to=${iso(to)}&limit=50&page=${page}`);
+      posts.push(...(res.data ?? []));
+      if (!res.pageInfo?.hasNextPage) break;
+    }
+  }
+  const metrics = (await pf(`/social-posts/analytics?startDate=${iso(now - 14 * 864e5)}&endDate=${iso(now)}`)).data ?? [];
+  const num = (v) => (v == null ? 0 : Number(v) || 0);
+  const firstLine = (t) => String(t ?? "").split("\n").find((l) => l.trim())?.trim().slice(0, 140) ?? "";
+  const list = accounts.map((a) => {
+    const mine = posts.filter((p) => p.socialMediaId === a.id);
+    const upcoming = mine.filter((p) => p.status !== "FAILED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt));
+    const published = metrics.filter((m) => m.socialMediaId === a.id);
+    const best = published.reduce((b, m) => (num(m.latestMetric?.reach) > num(b?.latestMetric?.reach) ? m : b), null);
+    return {
+      id: a.id, platform: a.platform, handle: a.platformUsername ?? a.displayName ?? "", name: a.displayName ?? "",
+      connected: a.connectionStatus === "CONNECTED", disabledReason: a.disabledReason ?? null,
+      followers: a.followerCount == null ? null : Number(a.followerCount),
+      scheduled: upcoming.filter((p) => p.status === "SCHEDULED").length,
+      drafts: upcoming.filter((p) => p.status === "DRAFT").length,
+      next: upcoming.find((p) => p.status === "SCHEDULED")?.scheduledAt ?? null,
+      days: upcoming.filter((p) => p.status === "SCHEDULED").map((p) => p.scheduledAt),
+      failed: mine.filter((p) => p.status === "FAILED").map((p) => ({ at: p.scheduledAt, error: p.lastError?.message ?? "Failed", text: firstLine(p.content) })),
+      posted14: published.length,
+      reach14: published.reduce((t, m) => t + num(m.latestMetric?.reach), 0),
+      likes14: published.reduce((t, m) => t + num(m.latestMetric?.likes), 0),
+      best: best ? { text: firstLine(best.content), reach: num(best.latestMetric?.reach), at: best.publishedAt } : null,
+    };
+  }).sort((x, y) => x.handle.localeCompare(y.handle));
+  const handle = new Map(list.map((a) => [a.id, a.handle]));
+  const next = posts.filter((p) => p.status === "SCHEDULED").sort((x, y) => new Date(x.scheduledAt) - new Date(y.scheduledAt)).slice(0, 14)
+    .map((p) => ({ at: p.scheduledAt, handle: handle.get(p.socialMediaId) ?? "?", platform: p.platform, type: p.controls?.instagramPublishType ?? null, text: firstLine(p.content) }));
+  const data = { configured: true, at: new Date().toISOString(), accounts: list, next };
+  socialCache = { at: Date.now(), data };
+  return data;
+}
+
 // --- lists for the page ---------------------------------------------------------
 
 async function meta() {
@@ -280,6 +339,7 @@ createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/api/meta") return send(res, 200, await meta());
     if (req.method === "GET" && url.pathname === "/api/overview") return send(res, 200, await overview());
+    if (req.method === "GET" && url.pathname === "/api/social") return send(res, 200, await social(url.searchParams.has("fresh")));
     if (req.method === "GET" && url.pathname === "/api/songs") return send(res, 200, await findSongs(url.searchParams.get("q") ?? ""));
     if (req.method === "GET" && url.pathname === "/api/job") {
       if (!current) return send(res, 200, null);
