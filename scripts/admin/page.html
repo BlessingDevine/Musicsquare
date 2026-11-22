@@ -212,7 +212,13 @@ form:not(:has(.f)) .actions{border-top:0;padding-top:0}
 /* Clean voiceovers */
 .vo-drop{border-radius:16px;transition:background .15s}
 .vo-drop.over{background:var(--lime-soft);outline:2px dashed var(--ink);outline-offset:4px}
-.vo-src{display:flex;gap:10px;align-items:center;background:var(--well);border-radius:12px;padding:10px 12px;min-width:0}
+.vo-src{display:flex;gap:10px;align-items:center;background:var(--well);border:0;border-radius:12px;padding:10px 12px;min-width:0;width:100%;text-align:left;cursor:pointer}
+.vo-src:hover{background:var(--glass-2)}
+.vo-src .hint{margin-left:auto;flex:none;font-size:12px}
+.vo-btns .btn::before{display:none}
+.vo-btns .btn{padding:10px 16px}
+.vo-list-head{display:flex;justify-content:flex-end}
+.vo-link{border:0;background:none;color:var(--ink);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:2px 4px}
 .vo-src code{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere;min-width:0}
 .vo-btns,.vo-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .vo-files{display:grid;gap:4px;max-height:260px;overflow-y:auto}
@@ -719,9 +725,10 @@ function field(name) {
     case "lang": return `<label class="f"><span>Language the songs are sung in</span><select id="f-lang" name="lang"><option value="en">English (and most songs)</option><option value="sw">Swahili</option><option value="sn">Shona</option><option value="ln">Lingala</option><option value="fr">French</option><option value="pt">Portuguese</option><option value="es">Spanish</option><option value="yo">Yoruba</option></select></label>`;
     case "handle": return `<label class="f"><span>Instagram handle</span><input id="f-handle" type="text" name="handle" placeholder="e.g. saka.sq (no @)"></label>`;
     case "vopanel": return `<div class="f vo-drop" id="vo-drop"><span class="hint">Recordings</span>
-      <div class="vo-src">${FOLDER}<code id="vo-path">VOICEOVERS/To clean</code></div>
-      <div class="vo-btns"><button class="btn" type="button" id="vo-up">Upload files</button><button class="btn" type="button" id="vo-pick">Choose a folder…</button><button class="btn" type="button" id="vo-inbox" hidden>Back to To clean</button><button class="btn" type="button" id="vo-open">Show in Finder</button><button class="btn" type="button" id="vo-all">Select all</button><input type="file" id="vo-file" multiple accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
+      <button class="vo-src" type="button" id="vo-open" title="Show in Finder">${FOLDER}<code id="vo-path">VOICEOVERS/To clean</code><span class="hint">Show in Finder</span></button>
+      <div class="vo-btns"><button class="btn" type="button" id="vo-up">Upload files</button><button class="btn" type="button" id="vo-pick">Choose a folder…</button><button class="btn" type="button" id="vo-inbox" hidden>Back to To clean</button><input type="file" id="vo-file" multiple accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
       <input type="hidden" name="vosrc" id="vo-src" value="">
+      <div class="vo-list-head" id="vo-list-head" hidden><button type="button" class="vo-link" id="vo-all">Select all</button></div>
       <div class="vo-files" id="vo-files"></div>
       <span class="hint" id="vo-note">Drag files onto this box to upload them.</span></div>`;
     case "vostrength": return `<div class="f"><span class="hint">Strength</span>
@@ -813,6 +820,7 @@ async function voRefresh() {
       };
       list.appendChild(b);
     }
+    $("vo-list-head").hidden = r.files.length < 2;
     voMarks();
     voNote(r.files.length ? `${r.files.length} file${r.files.length > 1 ? "s" : ""}. Click to select; click again to unselect. Drag more onto this box to upload.` : r.inbox ? "Nothing here yet. Upload files or drag them onto this box." : "No audio or video files in this folder.");
   } catch (e) { voNote(e.message); }
@@ -858,6 +866,8 @@ function voMarks() {
   if (!pv) return;
   if (pv.textContent === "Preview") pv.disabled = !vo.focus;
   cl.disabled = !n;
+  const all = $("vo-all");
+  if (all) all.textContent = vo.names.length && vo.names.every((x) => vo.sel.has(x)) ? "Select none" : "Select all";
   cl.textContent = n > 1 ? `Clean ${n} files` : "Clean";
   hint.textContent = !n ? "Select a file first." : `Preview plays ${vo.focus}. Clean asks where to save, then cleans ${n > 1 ? `all ${n}` : "it"} at ${$("vo-strength").value}%.`;
 }
