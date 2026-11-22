@@ -209,6 +209,24 @@ form:not(:has(.f)) .actions{border-top:0;padding-top:0}
 .btn.primary::before{background:var(--lime)}
 .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;background:var(--well);color:var(--mute)}
 .btn:disabled::before{background:var(--faint)}
+/* Clean voiceovers */
+.vo-drop{border-radius:16px;transition:background .15s}
+.vo-drop.over{background:var(--lime-soft);outline:2px dashed var(--ink);outline-offset:4px}
+.vo-src{display:flex;gap:10px;align-items:center;background:var(--well);border-radius:12px;padding:10px 12px;min-width:0}
+.vo-src code{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere;min-width:0}
+.vo-btns,.vo-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.vo-files{display:grid;gap:4px;max-height:260px;overflow-y:auto}
+.vo-files button{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;border:0;background:var(--well);border-radius:10px;padding:9px 12px;cursor:pointer;min-width:0}
+.vo-files button span{overflow-wrap:anywhere;min-width:0}
+.vo-files button:hover{background:var(--glass-2)}
+.vo-files button[aria-pressed="true"]{background:var(--lime-soft);font-weight:500}
+.vo-files small{font-family:var(--mono);color:var(--mute);flex:none}
+.vo-range{display:flex;align-items:center;gap:12px}
+.vo-range input{flex:1;min-width:80px;accent-color:var(--ink)}
+.vo-range output{font-family:var(--mono);font-weight:600;min-width:4.5ch;text-align:right}
+.vo-aud{display:grid;gap:12px;background:var(--well);border-radius:14px;padding:14px 16px;margin-top:4px}
+.vo-bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.vo-bar i{display:block;height:100%;width:0;background:var(--ink)}
 
 .log{padding:0;overflow:hidden}
 .status{display:flex;gap:10px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2);font-size:13px;color:var(--mute);flex-wrap:wrap}
@@ -399,7 +417,7 @@ const JOBS = [
   { group: "Lyrics & art", id: "canvas", s: "~/Sites/canvas/raw", title: "Upload Canvas clips", what: "Finishes and uploads the Canvas clips saved in ~/Sites/canvas/raw.", preview: true },
   { group: "Artists", id: "instagram", s: "button on 3 platforms", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
   { group: "Artists", id: "hold", s: "off air · back on", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
-  { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left, then evens out the level. Drop recordings (WAV, MP3, phone memos, even video) in VOICEOVERS/To clean in your SQUARE BUSINESS folder. Clean copies land in VOICEOVERS/Cleaned and the originals move to VOICEOVERS/Originals. Made for speech: it removes music too.", fields: ["vofolder", "vofmt", "volevel"], preview: true },
+  { group: "Voiceovers", id: "voiceover", s: "To clean → Cleaned", title: "Clean voiceovers", what: "Takes away room noise, hum and background so only the voice is left, then evens out the level. Upload recordings (WAV, MP3, phone memos, even video) or choose a folder, click a file to audition it, set the strength, then Preview and Do it. Made for speech: it removes music too.", fields: ["vopanel", "vostrength", "vodest", "vofmt", "volevel"], preview: true },
   { group: "Checks", id: "audit", s: "read only", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
 ];
 const ICONS = {
@@ -699,7 +717,20 @@ function field(name) {
     case "who": return `<label class="f"><span>Artist or song title</span><input id="f-who" type="text" name="who" required placeholder="e.g. Fizz, or Usiku Huu"></label>`;
     case "lang": return `<label class="f"><span>Language the songs are sung in</span><select id="f-lang" name="lang"><option value="en">English (and most songs)</option><option value="sw">Swahili</option><option value="sn">Shona</option><option value="ln">Lingala</option><option value="fr">French</option><option value="pt">Portuguese</option><option value="es">Spanish</option><option value="yo">Yoruba</option></select></label>`;
     case "handle": return `<label class="f"><span>Instagram handle</span><input id="f-handle" type="text" name="handle" placeholder="e.g. saka.sq (no @)"></label>`;
-    case "vofolder": return `<div class="f"><span class="hint">Recordings</span><div class="actions"><button class="btn" type="button" onclick="api('/api/open-voiceovers', { method: 'POST' }).catch((e) => say(e.message))">Open the To clean folder</button></div></div>`;
+    case "vopanel": return `<div class="f vo-drop" id="vo-drop"><span class="hint">Recordings</span>
+      <div class="vo-src">${FOLDER}<code id="vo-path">VOICEOVERS/To clean</code></div>
+      <div class="vo-btns"><button class="btn" type="button" id="vo-up">Upload files</button><button class="btn" type="button" id="vo-pick">Choose a folder…</button><button class="btn" type="button" id="vo-inbox" hidden>Back to To clean</button><button class="btn" type="button" id="vo-open">Show in Finder</button><input type="file" id="vo-file" multiple accept="audio/*,video/*,.m4a,.caf,.aif,.aiff,.opus" hidden></div>
+      <input type="hidden" name="vosrc" id="vo-src" value="">
+      <div class="vo-files" id="vo-files"></div>
+      <span class="hint" id="vo-note">Drag files onto this box to upload them. Click a file to audition it.</span></div>`;
+    case "vostrength": return `<div class="f"><span class="hint">Strength</span>
+      <div class="vo-range"><span class="hint">Light</span><input type="range" name="vostrength" id="vo-strength" min="0" max="100" step="5" value="100" aria-label="Strength, percent"><span class="hint">Voice only</span><output id="vo-pct">100%</output></div>
+      <div class="vo-aud" id="vo-aud" hidden>
+        <div class="vo-row"><b id="vo-aud-name"></b><span class="hint">first 30 seconds, looping</span></div>
+        <div class="vo-bar"><i id="vo-bar"></i></div>
+        <div class="vo-row"><button class="btn primary" type="button" id="vo-play">Play</button><div class="seg" role="group" aria-label="Compare"><button type="button" data-ab="before" aria-pressed="false">Before</button><button type="button" data-ab="after" aria-pressed="true">After</button></div><span class="hint">Volume matched, so you hear the cleaning, not a level jump.</span></div>
+      </div></div>`;
+    case "vodest": return `<div class="f"><span class="hint">Save to</span><div class="choices"><label><input type="radio" name="vodest" value="cleaned" checked> VOICEOVERS/Cleaned</label><label><input type="radio" name="vodest" value="beside"> Next to the originals</label></div></div>`;
     case "vofmt": return `<div class="f"><span class="hint">Save as</span><div class="choices"><label><input type="radio" name="vofmt" value="wav" checked> WAV (for editing)</label><label><input type="radio" name="vofmt" value="mp3"> MP3</label><label><input type="radio" name="vofmt" value="both"> Both</label></div></div>`;
     case "volevel": return `<div class="f"><span class="hint">Level</span><div class="choices"><label><input type="radio" name="volevel" value="level" checked> Even out (−16 LUFS, the usual for spoken word)</label><label><input type="radio" name="volevel" value="keep"> Keep as recorded</label></div></div>`;
     case "action": return `<div class="f"><span class="hint">Do</span><div class="choices"><label><input type="radio" name="action" value="hold" checked> Take off air</label><label><input type="radio" name="action" value="release"> Put back on air</label><label><input type="radio" name="action" value="list"> Just show who's off air</label></div></div>`;
@@ -707,9 +738,149 @@ function field(name) {
   return "";
 }
 
+// --- Clean voiceovers: folder, uploads, file list and the audition player ---
+const vo = { src: "", ctx: null, orig: null, voice: null, nodes: null, gO: null, gV: null, t0: 0, raf: 0, ab: "after", file: "" };
+
+function voPanel() {
+  vo.src = "";
+  const fileIn = $("vo-file");
+  $("vo-up").onclick = () => fileIn.click();
+  fileIn.onchange = () => { voUpload([...fileIn.files]); fileIn.value = ""; };
+  $("vo-pick").onclick = async () => {
+    voNote("Choose a folder in the window that opened…");
+    try {
+      const { folder } = await api("/api/vo/pick", { method: "POST" });
+      if (!folder) return voNote("No folder chosen.");
+      voUse(folder);
+    } catch (e) { voNote(e.message); }
+  };
+  $("vo-inbox").onclick = () => voUse("");
+  $("vo-open").onclick = () => api("/api/vo/open", { method: "POST", body: JSON.stringify({ src: vo.src }) }).catch((e) => voNote(e.message));
+  const drop = $("vo-drop");
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); voUpload([...e.dataTransfer.files]); };
+  const range = $("vo-strength");
+  range.addEventListener("input", () => { $("vo-pct").textContent = `${range.value}%`; voGains(); });
+  $("vo-play").onclick = () => (vo.nodes ? voStop() : voPlay());
+  for (const b of form.querySelectorAll("[data-ab]")) b.onclick = () => {
+    vo.ab = b.dataset.ab;
+    for (const x of form.querySelectorAll("[data-ab]")) x.setAttribute("aria-pressed", String(x === b));
+    voGains();
+  };
+  voRefresh();
+}
+
+function voNote(msg) { const n = $("vo-note"); if (n) n.textContent = msg; }
+
+function voUse(folder) {
+  voStop();
+  vo.src = folder;
+  $("vo-src").value = folder;
+  $("vo-inbox").hidden = !folder;
+  $("vo-aud").hidden = true;
+  lockApply();
+  voRefresh();
+}
+
+async function voRefresh() {
+  const list = $("vo-files");
+  if (!list) return;
+  try {
+    const r = await api(`/api/vo/files?src=${encodeURIComponent(vo.src)}`);
+    $("vo-path").textContent = r.inbox ? "VOICEOVERS/To clean" : r.folder;
+    list.innerHTML = "";
+    for (const f of r.files) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(f.name === vo.file && !$("vo-aud").hidden));
+      b.innerHTML = `<span>${esc(f.name)}</span><small>${Math.floor(f.seconds / 60)}:${String(Math.round(f.seconds % 60)).padStart(2, "0")}</small>`;
+      b.onclick = () => voAudition(f.name);
+      list.appendChild(b);
+    }
+    voNote(r.files.length ? `${r.files.length} file${r.files.length > 1 ? "s" : ""}. Click one to audition it. Drag more onto this box to upload.` : r.inbox ? "Nothing here yet. Upload files or drag them onto this box." : "No audio or video files in this folder.");
+  } catch (e) { voNote(e.message); }
+}
+
+async function voUpload(files) {
+  if (!files.length) return;
+  if (vo.src) voUse("");
+  for (const [i, f] of files.entries()) {
+    voNote(`Uploading ${i + 1} of ${files.length}: ${f.name}…`);
+    const r = await fetch(`/api/vo/upload?name=${encodeURIComponent(f.name)}`, { method: "POST", headers: { "x-admin-token": TOKEN }, body: f });
+    if (!r.ok) { voNote(`${f.name}: ${(await r.json().catch(() => ({}))).error ?? "upload failed."}`); await voRefresh(); return; }
+  }
+  lockApply();
+  await voRefresh();
+  voNote(`Uploaded ${files.length} to VOICEOVERS/To clean. Click one to audition it.`);
+}
+
+async function voAudition(name) {
+  voStop();
+  vo.file = name;
+  for (const b of $("vo-files").children) b.setAttribute("aria-pressed", String(b.firstChild.textContent === name));
+  voNote(`Making an audition of ${name} (about 10 seconds)…`);
+  try {
+    await api("/api/vo/audition", { method: "POST", body: JSON.stringify({ src: vo.src, file: name }) });
+    vo.ctx ??= new AudioContext();
+    const clip = async (k) => vo.ctx.decodeAudioData(await (await fetch(`/api/vo/clip?k=${k}&t=${Date.now()}`, { headers: { "x-admin-token": TOKEN } })).arrayBuffer());
+    [vo.orig, vo.voice] = await Promise.all([clip("orig"), clip("voice")]);
+    vo.rms = rms(vo.orig.getChannelData(0));
+    $("vo-aud-name").textContent = name;
+    $("vo-aud").hidden = false;
+    voNote("Audition ready. Press Play, move the strength, and switch Before / After.");
+    voPlay();
+  } catch (e) { voNote(e.message); }
+}
+
+function rms(a, b, s) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i += 4) { const x = b ? s * b[i] + (1 - s) * a[i] : a[i]; sum += x * x; }
+  return Math.sqrt(sum / Math.ceil(a.length / 4)) || 1e-9;
+}
+
+function voGains() {
+  if (!vo.gO) return;
+  const s = vo.ab === "before" ? 0 : Number($("vo-strength").value) / 100;
+  const match = Math.min(8, vo.rms / rms(vo.orig.getChannelData(0), vo.voice.getChannelData(0), s));
+  const t = vo.ctx.currentTime;
+  vo.gO.gain.setTargetAtTime((1 - s) * match, t, 0.02);
+  vo.gV.gain.setTargetAtTime(s * match, t, 0.02);
+}
+
+function voPlay() {
+  if (!vo.orig || !vo.ctx) return;
+  vo.ctx.resume();
+  vo.gO = vo.ctx.createGain(); vo.gV = vo.ctx.createGain();
+  vo.gO.connect(vo.ctx.destination); vo.gV.connect(vo.ctx.destination);
+  vo.nodes = [[vo.orig, vo.gO], [vo.voice, vo.gV]].map(([buf, g]) => { const n = vo.ctx.createBufferSource(); n.buffer = buf; n.loop = true; n.connect(g); return n; });
+  voGains();
+  vo.t0 = vo.ctx.currentTime + 0.05;
+  for (const n of vo.nodes) n.start(vo.t0);
+  $("vo-play").textContent = "Stop";
+  const bar = $("vo-bar");
+  const step = () => {
+    if (!vo.nodes) return;
+    bar.style.width = `${(((vo.ctx.currentTime - vo.t0) % vo.orig.duration) / vo.orig.duration) * 100}%`;
+    vo.raf = requestAnimationFrame(step);
+  };
+  step();
+}
+
+function voStop() {
+  if (vo.nodes) for (const n of vo.nodes) { try { n.stop(); } catch {} }
+  vo.nodes = null;
+  vo.gO?.disconnect(); vo.gV?.disconnect();
+  vo.gO = vo.gV = null;
+  cancelAnimationFrame(vo.raf);
+  const p = $("vo-play");
+  if (p) p.textContent = "Play";
+}
+
 function choose(id, prefill) {
   const next = JOBS.find((j) => j.id === id) ?? JOBS[0];
   if (active?.id === next.id && !prefill && form.innerHTML) return;
+  voStop();
   active = next;
   picked = null;
   previewed = null;
@@ -729,6 +900,7 @@ function choose(id, prefill) {
     $("f-handle").value = a?.instagram ?? "";
   };
   form.oninput = form.onchange = () => lockApply();
+  if (active.id === "voiceover") voPanel();
   const applyBtn = $("apply");
   if (applyBtn) applyBtn.onclick = () => run(true);
 }
@@ -831,6 +1003,7 @@ function watch() {
     if (a && !j.apply && j.ok && previewed && active?.id === j.name) { a.disabled = false; $("apply-hint").textContent = "Runs it for real."; }
     if (j.apply && j.ok) { previewed = null; if (a) a.disabled = true; META = await api("/api/meta").catch(() => META); }
     loadOverview();
+    if (j.apply && j.name === "voiceover" && active?.id === "voiceover") voRefresh();
   };
   tick();
 }

@@ -11,12 +11,15 @@
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join, posix } from "node:path";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, parse, posix, resolve } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { LABELS_ROOT, parseImprint } from "../catalog/scan.mjs";
+import { KINDS, VO_INBOX, voiceFiles } from "./jobs/voiceover.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
@@ -82,8 +85,16 @@ const JOBS = {
     test?.trim()
       ? [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--test", need(test.trim(), /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/)] : [])]]
       : [[join(REPO, "scripts/newsletter/send.mjs"), ...(apply ? ["--schedule"] : [])]],
-  voiceover: ({ vofmt, volevel }, apply) => [
-    [job("voiceover.mjs"), need(vofmt ?? "wav", /^(wav|mp3|both)$/), need(volevel ?? "level", /^(level|keep)$/), ...(apply ? ["--apply"] : [])],
+  voiceover: ({ vosrc, vodest, vofmt, volevel, vostrength }, apply) => [
+    [
+      job("voiceover.mjs"),
+      "--src", voFolder(vosrc),
+      "--dest", need(vodest ?? "cleaned", /^(cleaned|beside)$/),
+      "--format", need(vofmt ?? "wav", /^(wav|mp3|both)$/),
+      "--level", need(volevel ?? "level", /^(level|keep)$/),
+      "--strength", String(Math.min(100, Math.max(0, Math.round(Number(need(String(vostrength ?? "100"), /^\d{1,3}$/)))))),
+      ...(apply ? ["--apply"] : []),
+    ],
   ],
   friday: ({ which }, apply) => [
     [cat("release.mjs"), ...(which?.trim() ? ["--only", need(which.trim(), /^[^\n]{1,120}$/)] : []), ...(apply ? ["--apply"] : [])],
@@ -117,6 +128,93 @@ async function artistRow(slug) {
   const { data, error } = await db.from("artists").select("artist_name").eq("slug", slug).maybeSingle();
   if (error || !data) throw new Error("Artist not found.");
   return data;
+}
+
+// --- voiceovers: folders, uploads and auditions for "Clean voiceovers" ------------
+
+// The page may only use the To clean folder and folders picked in this Mac's own folder dialog.
+const voPicked = new Set([resolve(VO_INBOX)]);
+const AUDITION = join(tmpdir(), "squaredrum-vo-audition");
+let auditioning = false;
+
+function voFolder(src) {
+  const p = resolve(typeof src === "string" && src ? src : VO_INBOX);
+  if (!voPicked.has(p)) throw new Error("Choose the folder again.");
+  if (p === resolve(VO_INBOX)) mkdirSync(p, { recursive: true });
+  if (!existsSync(p)) throw new Error("That folder is gone. Choose it again.");
+  return p;
+}
+
+/** Shows the Mac's folder dialog; resolves to the chosen path, or null if cancelled. */
+function pickFolder() {
+  return new Promise((done) => {
+    const script = ['activate', 'POSIX path of (choose folder with prompt "Choose a folder of voiceovers to clean")'];
+    const child = spawn("osascript", script.flatMap((l) => ["-e", l]));
+    let out = "";
+    child.stdout.on("data", (b) => (out += b));
+    child.on("close", (code) => {
+      if (code !== 0 || !out.trim()) return done(null);
+      const p = resolve(out.trim());
+      voPicked.add(p);
+      done(p);
+    });
+  });
+}
+
+function probe(file) {
+  return new Promise((done) => {
+    const child = spawn("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]);
+    let out = "";
+    child.stdout.on("data", (b) => (out += b));
+    child.on("close", () => done(Number(out.trim()) || 0));
+  });
+}
+
+async function voList(src) {
+  const folder = voFolder(src);
+  const names = voiceFiles(folder).slice(0, 300);
+  const files = await Promise.all(names.map(async (name) => ({ name, seconds: await probe(join(folder, name)) })));
+  return { folder, inbox: folder === resolve(VO_INBOX), files };
+}
+
+/** Saves an uploaded file into To clean under a safe, unused name. */
+async function voUpload(req, rawName) {
+  const { name: stem, ext } = parse(basename(String(rawName ?? "")).replace(/[\u0000-\u001f/\\:]/g, "").replace(/^\.+/, ""));
+  if (!stem || !KINDS.has(ext.toLowerCase())) throw new Error("Only audio or video files can be uploaded.");
+  const size = Number(req.headers["content-length"] ?? 0);
+  if (size > 4 * 1024 ** 3) throw new Error("That file is over 4 GB.");
+  mkdirSync(VO_INBOX, { recursive: true });
+  const short = stem.slice(0, 150);
+  let to = join(VO_INBOX, `${short}${ext}`);
+  for (let n = 2; existsSync(to); n++) to = join(VO_INBOX, `${short} ${n}${ext}`);
+  try {
+    await pipeline(req, createWriteStream(to, { flags: "wx" }));
+  } catch (e) {
+    rmSync(to, { force: true });
+    throw e;
+  }
+  return basename(to);
+}
+
+/** Cleans the first 30 seconds of one file into orig.wav and voice.wav for listening. */
+function voAudition(src, file) {
+  const folder = voFolder(src);
+  const name = basename(String(file ?? ""));
+  if (!voiceFiles(folder).includes(name)) throw new Error("Pick a file from the list.");
+  if (auditioning) throw new Error("An audition is already being made.");
+  if (current && !current.done) throw new Error("Wait for the running job to finish.");
+  auditioning = true;
+  rmSync(AUDITION, { recursive: true, force: true });
+  return new Promise((done, failed) => {
+    const child = spawn(process.execPath, [job("voiceover.mjs"), "--src", folder, "--audition", name, "--out", AUDITION], { cwd: REPO, env: process.env });
+    let out = "";
+    child.stdout.on("data", (b) => (out += b));
+    child.stderr.on("data", (b) => (out += b));
+    child.on("close", (code) => {
+      auditioning = false;
+      code === 0 ? done({ ok: true }) : failed(new Error(strip(out).trim().split("\n").slice(-3).join(" ") || "The audition failed."));
+    });
+  });
 }
 
 // --- the one running job --------------------------------------------------------
@@ -361,11 +459,23 @@ createServer(async (req, res) => {
       const { name, form, apply } = await body(req);
       return send(res, 200, { id: await start(name, form, apply) });
     }
-    if (req.method === "POST" && url.pathname === "/api/open-voiceovers") {
-      const dir = join(LABELS_ROOT, "..", "VOICEOVERS", "To clean");
-      mkdirSync(dir, { recursive: true });
-      spawn("open", [dir], { stdio: "ignore" });
+    if (req.method === "POST" && url.pathname === "/api/vo/upload") return send(res, 200, { name: await voUpload(req, url.searchParams.get("name")) });
+    if (req.method === "POST" && url.pathname === "/api/vo/pick") return send(res, 200, { folder: await pickFolder() });
+    if (req.method === "GET" && url.pathname === "/api/vo/files") return send(res, 200, await voList(url.searchParams.get("src")));
+    if (req.method === "POST" && url.pathname === "/api/vo/open") {
+      spawn("open", [voFolder((await body(req)).src)], { stdio: "ignore" });
       return send(res, 200, { ok: true });
+    }
+    if (req.method === "POST" && url.pathname === "/api/vo/audition") {
+      const { src, file } = await body(req);
+      return send(res, 200, await voAudition(src, file));
+    }
+    if (req.method === "GET" && url.pathname === "/api/vo/clip") {
+      const k = url.searchParams.get("k");
+      const file = join(AUDITION, k === "voice" ? "voice.wav" : "orig.wav");
+      if (!existsSync(file)) return send(res, 404, { error: "No audition yet." });
+      res.writeHead(200, { "content-type": "audio/wav", "content-length": statSync(file).size, "cache-control": "no-store" });
+      return void (await pipeline(createReadStream(file), res));
     }
     if (req.method === "POST" && url.pathname === "/api/stop") {
       if (current?.child && !current.done) current.child.kill("SIGINT");
