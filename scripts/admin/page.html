@@ -6,132 +6,338 @@
 <title>Squaredrum Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a studio desk. Jobs sit in a rail on the left like labelled channel strips; the chosen job is the
-   faceplate on the right: what it does, its controls, then the transport (Preview arms it, Do it records it,
-   like a tape machine) and the log underneath. Michroma is the face on the compilation series tiles. */
+/* Squaredrum Admin, frosted "ops console" (Nov 2026): panels of frosted glass over a soft tinted backdrop,
+   an icon rail and a sidebar of job folders, one lime accent for things that need you, mono small-caps for
+   labels and data. Home is the Overview (catalogue numbers, releases per week, jobs, what needs you); each
+   job opens on the right with its form and output. Preview first, then "Do it", exactly as before. */
 :root{
-  --desk:#e3e6e1; --plate:#f4f5f2; --well:#eceee9; --ink:#1c2321; --mute:#5c6561; --line:#c9cec8; --line-2:#d8dcd6;
-  --amber:#c9820f; --amber-glow:#f2b33d; --amber-soft:#f6e7c8;
-  --rec:#c8352a; --rec-glow:#ff5a4a; --rec-soft:#f5dcd8;
-  --go:#2b7d4f; --go-soft:#d9ecdf;
-  --tape:#1a1f1d; --tape-fg:#d9e1dc; --tape-dim:#7f8b85;
-  --shadow:0 1px 0 #ffffff inset, 0 1px 2px rgb(28 35 33 / .08);
-  --silk:"Michroma","Eurostile","Arial",sans-serif;
-  --body:"Instrument Sans",-apple-system,BlinkMacSystemFont,sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --backdrop:#dfe2e6;
+  --glass:rgb(255 255 255 / .42); --glass-2:rgb(255 255 255 / .62); --edge:rgb(255 255 255 / .75);
+  --card:rgb(255 255 255 / .66); --solid:#ffffff; --well:rgb(240 242 245 / .7); --ink:#111214; --ink-2:#2a2c30; --mute:#5f636a; --faint:#6e727a;
+  --line:rgb(17 18 20 / .09); --line-2:rgb(17 18 20 / .06);
+  --lime:#d8f55e; --lime-ink:#3b4f00; --lime-soft:rgb(216 245 94 / .35);
+  --red:#e5484d; --red-soft:rgb(229 72 77 / .12); --amber:#c97f10; --amber-soft:rgb(211 138 26 / .14); --green:#2a8f52; --green-soft:rgb(47 158 91 / .13);
+  --blur:blur(26px) saturate(1.6);
+  --raise:0 1px 0 rgb(255 255 255 / .8) inset, 0 0 0 1px var(--edge) inset, 0 18px 40px -18px rgb(17 18 20 / .22);
+  --raise-sm:0 1px 0 rgb(255 255 255 / .8) inset, 0 0 0 1px var(--edge) inset, 0 6px 14px -8px rgb(17 18 20 / .2);
+  --sans:"Geist",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --desk:#141817; --plate:#1c211f; --well:#171b1a; --ink:#e4e9e5; --mute:#97a29c; --line:#323a37; --line-2:#29302d;
-  --amber:#e8a332; --amber-glow:#ffc861; --amber-soft:#3a2e17;
-  --rec:#ef5b4d; --rec-glow:#ff7a6c; --rec-soft:#3b1d1a;
-  --go:#6cc58f; --go-soft:#183024;
-  --tape:#0d100f; --tape-fg:#d9e1dc; --tape-dim:#6b7671;
-  --shadow:0 1px 0 rgb(255 255 255 / .04) inset, 0 1px 2px rgb(0 0 0 / .4);
+  --backdrop:#0b0c0e;
+  --glass:rgb(28 30 34 / .45); --glass-2:rgb(36 38 43 / .6); --edge:rgb(255 255 255 / .08);
+  --card:rgb(38 40 45 / .55); --solid:#1b1d20; --well:rgb(255 255 255 / .05); --ink:#eceef0; --ink-2:#d0d3d7; --mute:#9aa0a7; --faint:#8a8f96;
+  --line:rgb(255 255 255 / .09); --line-2:rgb(255 255 255 / .06);
+  --lime:#c9ec3f; --lime-ink:#1d2600; --lime-soft:rgb(201 236 63 / .16);
+  --red:#ff6369; --red-soft:rgb(255 99 105 / .14); --amber:#f0a83a; --amber-soft:rgb(240 168 58 / .14); --green:#5cc98a; --green-soft:rgb(92 201 138 / .14);
+  --raise:0 1px 0 rgb(255 255 255 / .06) inset, 0 0 0 1px var(--edge) inset, 0 18px 40px -18px rgb(0 0 0 / .7);
+  --raise-sm:0 1px 0 rgb(255 255 255 / .05) inset, 0 0 0 1px var(--edge) inset, 0 6px 14px -8px rgb(0 0 0 / .6);
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--backdrop);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased;position:relative}
+/* the tinted light behind the glass: soft lime, sky and stone glows that the panels frost over */
+body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38% 42% at 78% 18%, rgb(216 245 94 / .55), transparent 70%),
+    radial-gradient(34% 40% at 18% 82%, rgb(150 190 255 / .45), transparent 70%),
+    radial-gradient(40% 36% at 62% 92%, rgb(255 196 150 / .35), transparent 70%),
+    radial-gradient(30% 30% at 30% 10%, rgb(255 255 255 / .9), transparent 70%);
+  filter:blur(20px)}
+@media (prefers-color-scheme: dark){body::before{opacity:.35}}
 button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.app{display:grid;grid-template-columns:272px minmax(0,1fr);height:100%}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.glass{background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise-sm)}
 
-/* --- rail --- */
-aside{background:var(--plate);border-right:1px solid var(--line);padding:22px 14px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:22px}
-.brand{padding:0 8px;display:grid;gap:8px}
-.brand .mark{font-family:var(--silk);font-size:15px;letter-spacing:.06em;text-transform:uppercase;line-height:1.25}
-.brand .sub{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--mute)}
-.led{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;box-shadow:inset 0 1px 1px rgb(0 0 0 / .2)}
-.led.on{background:var(--go);box-shadow:0 0 0 3px var(--go-soft)}
-#nav{display:grid;gap:20px}
-.group b{display:block;font-family:var(--silk);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);font-weight:400;margin:0 0 6px 10px}
-.group button{position:relative;display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:7px 10px 7px 22px;cursor:pointer;color:var(--ink)}
-.group button::before{content:"";position:absolute;left:9px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--line)}
-.group button:hover{background:var(--well)}
-.group button[aria-current="true"]{background:var(--ink);color:var(--plate)}
-.group button[aria-current="true"]::before{background:var(--amber-glow);box-shadow:0 0 6px var(--amber-glow)}
-.quit{margin-top:auto;background:none;border:1px solid var(--line);border-radius:7px;padding:9px;cursor:pointer;color:var(--mute);font-size:13.5px}
-.quit:hover{border-color:var(--rec);color:var(--rec)}
+.app{display:grid;grid-template-columns:64px 268px minmax(0,1fr);gap:12px;height:100%;padding:12px}
 
-/* --- faceplate --- */
-main{overflow-y:auto;padding:30px clamp(16px,4vw,52px) 52px;display:flex;flex-direction:column;gap:16px;min-width:0}
-.eyebrow{font-family:var(--silk);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin:0}
-h1{font-family:var(--body);font-weight:600;font-size:clamp(26px,3.2vw,34px);letter-spacing:-.015em;line-height:1.1;margin:0}
-.what{color:var(--mute);margin:0;max-width:66ch}
-.plate{max-width:840px;background:var(--plate);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
-form{padding:20px;display:grid;gap:16px}
+/* --- icon rail --- */
+.rail{border-radius:22px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0}
+.rail .logo{width:38px;height:38px;border-radius:11px;background:var(--ink);color:var(--solid);display:grid;place-items:center;font-weight:600;margin-bottom:10px;box-shadow:0 8px 16px -8px rgb(0 0 0 / .6)}
+.rail button{width:40px;height:40px;border:0;border-radius:12px;background:none;color:var(--mute);display:grid;place-items:center;cursor:pointer;position:relative}
+.rail button:hover{color:var(--ink);background:var(--well)}
+.rail button[aria-current="true"]{background:var(--glass-2);color:var(--ink);box-shadow:var(--raise-sm)}
+.rail button .dot{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 2px var(--solid)}
+.rail .meter{margin-top:auto;display:grid;gap:3px;padding:10px 0}
+.rail .meter i{display:block;width:14px;height:2px;border-radius:1px;background:var(--line)}
+.rail .meter i.on{background:var(--ink)}
+.rail .meter i.hot{background:var(--red)}
+.rail .vert{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin:8px 0}
+
+/* --- sidebar --- */
+.side{border-radius:22px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.side-scroll{overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:18px;flex:1}
+.ws{display:flex;align-items:center;gap:11px;padding:6px 6px}
+.ws .sq{width:36px;height:36px;border-radius:10px;background:var(--ink);color:var(--solid);display:grid;place-items:center;font-weight:600;flex:none}
+.ws b{display:block;font-weight:600;line-height:1.2}
+.ws small{color:var(--mute);font-size:12.5px}
+.search{display:flex;align-items:center;gap:8px;background:var(--well);border-radius:12px;padding:8px 10px;box-shadow:inset 0 1px 2px rgb(17 18 20 / .06)}
+.search input{border:0;background:none;outline:0;flex:1;min-width:0;padding:0}
+.search kbd{font-family:var(--mono);font-size:10px;color:var(--mute);background:var(--glass-2);border-radius:5px;padding:1px 5px;box-shadow:var(--raise-sm)}
+.sec .cap{display:flex;justify-content:space-between;align-items:center;margin:0 8px 6px}
+.item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;border-radius:10px;padding:7px 9px;cursor:pointer;text-align:left;color:var(--ink-2)}
+.item:hover{background:var(--well)}
+.item[aria-current="true"]{background:var(--glass-2);color:var(--ink);box-shadow:var(--raise-sm);font-weight:500}
+.item .n{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.item .badge{margin-left:auto;min-width:20px;height:20px;border-radius:10px;background:var(--lime);color:var(--lime-ink);font-family:var(--mono);font-size:11px;display:grid;place-items:center;padding:0 6px}
+.sq-dot{width:9px;height:9px;border-radius:3px;flex:none;background:var(--line)}
+.sq-dot.run{background:var(--lime);box-shadow:0 0 0 3px var(--lime-soft)}
+.sq-dot.wait{background:var(--ink)}
+.sq-dot.bad{background:var(--red);border-radius:50%}
+.folder{border-radius:12px}
+.folder.open{background:var(--well);padding-bottom:4px}
+.folder>.item{font-weight:500}
+.folder .kids{display:none;padding:2px 0 2px 18px}
+.folder.open .kids{display:grid;gap:1px}
+.folder .kids .item{padding:6px 9px;font-size:13.5px}
+.side-foot{padding:10px;border-top:1px solid var(--line-2);display:flex;align-items:center;gap:10px}
+.side-foot .av{width:32px;height:32px;border-radius:50%;background:var(--glass-2);box-shadow:var(--raise-sm);display:grid;place-items:center;font-family:var(--mono);font-size:11px}
+.side-foot b{display:block;font-weight:500;font-size:13.5px;line-height:1.2}
+.side-foot small{color:var(--mute);font-size:12px}
+.side-foot button{margin-left:auto;border:0;background:none;color:var(--mute);cursor:pointer;border-radius:8px;padding:6px;display:grid;place-items:center}
+.side-foot button:hover{color:var(--red);background:var(--red-soft)}
+
+/* --- main --- */
+main{border-radius:24px;overflow-y:auto;padding:26px clamp(16px,3vw,34px) 40px;min-width:0;background:rgb(255 255 255 / .18)}
+@media (prefers-color-scheme: dark){main{background:rgb(255 255 255 / .02)}}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.head h1{font-size:clamp(28px,3.4vw,40px);font-weight:500;letter-spacing:-.03em;line-height:1.05;margin:6px 0 6px}
+.head .sub{color:var(--mute);font-size:13.5px}
+.head-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:flex;background:var(--well);border-radius:12px;padding:3px;box-shadow:inset 0 1px 2px rgb(17 18 20 / .06)}
+.seg button{border:0;background:none;border-radius:9px;padding:6px 13px;cursor:pointer;color:var(--mute);font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--glass-2);color:var(--ink);box-shadow:var(--raise-sm);font-weight:500}
+.round{width:38px;height:38px;border-radius:12px;border:0;background:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise-sm);display:grid;place-items:center;cursor:pointer;position:relative;color:var(--ink)}
+.round .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--solid)}
+.pillbtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:14px;padding:10px 16px;background:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise);cursor:pointer;font-weight:500}
+.pillbtn:hover{transform:translateY(-1px)}
+.pillbtn.dark{background:var(--ink);color:var(--solid)}
+
+.card{background:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-radius:22px;box-shadow:var(--raise);padding:20px 22px}
+.card-h{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.card-h h2{font-size:16px;font-weight:600;margin:0;letter-spacing:-.01em}
+.card-h .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.link{display:inline-flex;align-items:center;gap:6px;border:0;background:var(--glass-2);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:13px;box-shadow:var(--raise-sm)}
+.legend{display:flex;gap:14px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.legend i{width:7px;height:7px;border-radius:50%;background:var(--ink)}
+.legend i.l{background:var(--lime)}
+.legend i.r{background:var(--red)}
+
+/* hero card */
+.hero{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:28px}
+.big{font-size:clamp(64px,8vw,104px);font-weight:400;letter-spacing:-.05em;line-height:.9;margin:6px 0 12px}
+.delta{display:inline-flex;align-items:center;gap:5px;background:var(--lime);color:var(--lime-ink);border-radius:8px;padding:2px 8px;font-family:var(--mono);font-size:12px;font-weight:500}
+.delta-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.blurb{color:var(--mute);font-size:13px;margin:12px 0 18px;max-width:34ch}
+.stats{display:grid}
+.stats div{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line-2);font-size:13.5px;color:var(--mute)}
+.stats b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.chart{position:relative;min-height:250px;align-self:stretch}
+.chart svg{width:100%;height:100%;display:block;overflow:visible}
+.strip{margin-top:18px;display:flex;align-items:center;gap:14px;background:var(--well);border-radius:16px;padding:12px 14px;flex-wrap:wrap}
+.strip .ic{width:34px;height:34px;border-radius:10px;background:var(--glass-2);box-shadow:var(--raise-sm);display:grid;place-items:center;flex:none}
+.strip p{margin:0;flex:1;min-width:200px;font-size:13.5px;color:var(--mute)}
+.strip p b{color:var(--ink);font-weight:600}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,1fr);gap:16px;margin-top:16px}
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--line-2);margin-bottom:6px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:6px 0 10px;cursor:pointer;color:var(--mute);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button sup{font-family:var(--mono);font-size:10px;margin-left:4px;color:var(--faint)}
+.tabs button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink)}
+.th{display:grid;grid-template-columns:minmax(0,1fr) 170px 128px;gap:14px;padding:8px 0}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 170px 128px;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line-2);cursor:pointer;width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left}
+.row:hover .t{text-decoration:underline;text-underline-offset:3px}
+.row .who{display:flex;gap:12px;align-items:center;min-width:0}
+.row .ib{width:34px;height:34px;border-radius:10px;background:var(--glass-2);box-shadow:var(--raise-sm);display:grid;place-items:center;flex:none}
+.row .t{font-weight:500;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ticks{display:flex;gap:2px;height:20px;align-items:stretch}
+.ticks i{flex:1;border-radius:1px;background:var(--line)}
+.ticks i.ok{background:var(--ink)}
+.ticks i.pv{background:var(--faint)}
+.ticks i.bad{background:var(--red)}
+.st{justify-self:end;display:inline-flex;align-items:center;gap:6px;border-radius:9px;padding:4px 9px;font-size:12px;white-space:nowrap;background:var(--well);color:var(--mute)}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.st.ok{background:var(--green-soft);color:var(--green)}.st.ok::before{background:var(--green)}
+.st.bad{background:var(--red-soft);color:var(--red)}.st.bad::before{background:var(--red)}
+.st.you{background:var(--lime);color:var(--lime-ink)}.st.you::before{background:var(--lime-ink)}
+.st.run{background:var(--amber-soft);color:var(--amber)}.st.run::before{background:var(--amber);animation:blink 1s infinite}
+
+.need{display:grid;gap:10px}
+.need .it{background:var(--well);border-radius:16px;padding:12px 14px;box-shadow:0 0 0 1px var(--edge) inset;display:grid;gap:4px}
+.need .it b{font-weight:600;font-size:14px}
+.need .it small{color:var(--mute);font-size:12.5px}
+.need .it .acts{display:flex;gap:8px;margin-top:6px}
+.need .empty{color:var(--mute);font-size:13.5px;padding:16px 4px}
+.foot-note{margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+
+/* --- job view --- */
+.what{color:var(--mute);margin:0;max-width:72ch}
+.jobgrid{display:grid;gap:16px;max-width:980px}
+form{display:grid;gap:16px}
 form:empty{display:none}
 label.f,div.f{display:grid;gap:6px}
-label.f>span,div.f>.hint:first-child{font-family:var(--silk);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-input[type=text],input[type=search],input[type=email],select{border:1px solid var(--line);background:var(--well);border-radius:8px;padding:10px 12px;width:100%;transition:border-color .15s,background .15s}
-input:focus,select:focus{background:var(--plate);border-color:var(--amber)}
+label.f>span,div.f>.hint:first-child{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+input[type=text],input[type=search],input[type=email],select{border:0;background:var(--well);border-radius:12px;padding:11px 13px;width:100%;box-shadow:inset 0 1px 2px rgb(17 18 20 / .07);outline:0}
+input:focus,select:focus{box-shadow:inset 0 1px 2px rgb(17 18 20 / .07),0 0 0 2px var(--ink)}
 .choices{display:flex;gap:8px;flex-wrap:wrap}
-.choices label{display:flex;gap:8px;align-items:center;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--well)}
-.choices label:has(input:checked){border-color:var(--ink);background:var(--plate)}
-.choices input{accent-color:var(--amber);margin:0}
-.results{display:grid;gap:4px;max-height:260px;overflow-y:auto}
-.results button{text-align:left;background:var(--well);border:1px solid var(--line-2);border-radius:8px;padding:9px 12px;cursor:pointer;display:grid;gap:2px}
-.results button:hover{border-color:var(--amber)}
+.choices label{display:flex;gap:8px;align-items:center;cursor:pointer;border-radius:12px;padding:8px 12px;background:var(--well)}
+.choices label:has(input:checked){background:var(--glass-2);box-shadow:var(--raise-sm);font-weight:500}
+.choices input{accent-color:var(--ink);margin:0}
+.results{display:grid;gap:6px;max-height:280px;overflow-y:auto;padding:2px}
+.results button{text-align:left;background:var(--well);border:0;border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:2px}
+.results button:hover{background:var(--glass-2);box-shadow:var(--raise-sm)}
 .results small{color:var(--mute)}
-.picked{background:var(--amber-soft);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.picked{background:var(--lime-soft);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
 .picked button{background:none;border:0;color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.tag{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:4px;background:var(--line-2);color:var(--mute)}
-.tag.archived{background:var(--rec-soft);color:var(--rec)}
-.tag.draft{background:var(--amber-soft);color:var(--amber)}
-.hint{color:var(--mute);font-size:13.5px}
-
-/* --- transport: Preview arms, Do it records --- */
-.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line-2);margin:4px -20px -20px;padding:14px 20px;background:var(--well)}
-form:not(:has(.f)) .actions{border-top:0;margin-top:-20px}
-.btn{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--plate);border-radius:8px;padding:9px 16px 9px 13px;cursor:pointer;font-weight:600;box-shadow:var(--shadow);transition:transform .08s,border-color .15s}
-.btn::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--amber)}
-.btn:hover:not(:disabled){border-color:var(--ink)}
+.tag{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:5px;background:var(--well);color:var(--mute)}
+.tag.archived{background:var(--red-soft);color:var(--red)}
+.tag.draft,.tag.ready{background:var(--amber-soft);color:var(--amber)}
+.hint{color:var(--mute);font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line-2);padding-top:16px}
+form:not(:has(.f)) .actions{border-top:0;padding-top:0}
+.btn{display:inline-flex;align-items:center;gap:9px;border:0;background:var(--glass-2);border-radius:13px;padding:10px 16px 10px 13px;cursor:pointer;font-weight:500;box-shadow:var(--raise);transition:transform .08s}
+.btn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--amber)}
 .btn:active:not(:disabled){transform:translateY(1px)}
-#apply::before{background:var(--rec)}
-#apply:not(:disabled){background:var(--rec);border-color:var(--rec);color:#fff}
-#apply:not(:disabled)::before{background:#fff;box-shadow:0 0 0 3px rgb(255 255 255 / .25)}
-#apply:not(:disabled):hover{background:var(--rec-glow);border-color:var(--rec-glow)}
-.btn.primary:not(#apply){background:var(--ink);border-color:var(--ink);color:var(--plate)}
-.btn.primary:not(#apply)::before{background:var(--go)}
-.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-#apply-hint{margin-left:4px}
+.btn.primary{background:var(--ink);color:var(--solid)}
+.btn.primary::before{background:var(--lime)}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;background:var(--well);color:var(--mute)}
+.btn:disabled::before{background:var(--faint)}
 
-/* --- log --- */
-.log{max-width:840px;border-radius:12px;overflow:hidden;background:var(--tape);box-shadow:0 1px 2px rgb(0 0 0 / .15)}
-.status{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid rgb(255 255 255 / .07);font-size:13px;color:var(--tape-dim)}
-.status .hint{color:var(--tape-dim);font-size:13px}
-.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--silk);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--tape-fg)}
-.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:#3d4643}
-.pill.run::before{background:var(--amber-glow);box-shadow:0 0 8px var(--amber-glow);animation:blink 1.1s ease-in-out infinite}
-.pill.ok::before{background:#5fd08b;box-shadow:0 0 8px #5fd08b}
-.pill.bad::before{background:var(--rec-glow);box-shadow:0 0 8px var(--rec-glow)}
-@keyframes blink{50%{opacity:.35}}
-.stop{margin-left:auto;background:none;border:1px solid rgb(255 255 255 / .18);border-radius:6px;padding:3px 10px;color:var(--tape-fg);cursor:pointer;font-size:12.5px}
-.stop:hover{border-color:var(--rec-glow);color:var(--rec-glow)}
-pre.out{color:var(--tape-fg);padding:14px 16px 18px;margin:0;min-height:180px;max-height:52vh;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-pre.out.empty{color:var(--tape-dim)}
-.error{color:var(--rec);margin:0}
-@media (max-width:760px){.app{grid-template-columns:1fr;height:auto}aside{border-right:0;border-bottom:1px solid var(--line)}.quit{margin-top:0}}
-@media (prefers-reduced-motion:reduce){.pill.run::before{animation:none}.btn{transition:none}}
+.log{padding:0;overflow:hidden}
+.status{display:flex;gap:10px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2);font-size:13px;color:var(--mute);flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:var(--well);border-radius:8px;padding:4px 9px}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.pill.run{background:var(--lime);color:var(--lime-ink)}
+.pill.run::before{background:var(--lime-ink);animation:blink 1.1s ease-in-out infinite}
+.pill.ok{background:var(--green-soft);color:var(--green)}.pill.ok::before{background:var(--green)}
+.pill.bad{background:var(--red-soft);color:var(--red)}.pill.bad::before{background:var(--red)}
+@keyframes blink{50%{opacity:.3}}
+.stop{margin-left:auto;border:0;background:var(--ink);color:var(--solid);border-radius:10px;padding:6px 12px;cursor:pointer;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+pre.out{color:var(--ink-2);padding:16px 18px 20px;margin:0;min-height:200px;max-height:56vh;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+pre.out.empty{color:var(--faint)}
+
+.hist .row{grid-template-columns:minmax(0,1fr) 120px 150px}
+
+[hidden]{display:none!important}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root{--glass:rgb(250 250 251 / .96);--card:#fbfbfc;--glass-2:#ffffff}}
+@media (max-width:1180px){.grid2{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.chart{min-height:220px}}
+@media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.rail{display:none}.th,.row{grid-template-columns:minmax(0,1fr) 120px}.th :nth-child(2),.row .ticks{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div class="app">
-  <aside>
-    <div class="brand"><span class="mark">Squaredrum<br>Admin</span><span class="sub"><span class="led on"></span>Catalogue jobs · this Mac only</span></div>
-    <nav id="nav" aria-label="Jobs"></nav>
-    <button class="quit" id="quit" type="button">Close admin</button>
+  <nav class="rail glass" aria-label="Sections">
+    <div class="logo" aria-hidden="true">S</div>
+    <button type="button" data-view="overview" aria-label="Overview" title="Overview"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
+    <button type="button" data-view="job:import" aria-label="Import new music" title="Import new music"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
+    <button type="button" data-view="job:friday" aria-label="Waiting for Friday" title="Waiting for Friday" id="rail-friday"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></button>
+    <button type="button" data-view="job:drumroll" aria-label="Drumroll" title="Drumroll"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg></button>
+    <button type="button" data-view="history" aria-label="Run history" title="Run history"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
+    <div class="meter" aria-hidden="true" id="rail-meter"></div>
+    <span class="vert" aria-hidden="true">Squaredrum · console</span>
+  </nav>
+
+  <aside class="side glass">
+    <div class="side-scroll">
+      <div class="ws"><span class="sq">S</span><span><b>Squaredrum</b><small>Catalogue workspace</small></span></div>
+      <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="find" type="search" placeholder="Search jobs" aria-label="Search jobs"><kbd>⌘K</kbd></label>
+      <div class="sec">
+        <div class="cap">Workspace</div>
+        <button class="item" type="button" data-view="overview"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Overview</button>
+        <button class="item" type="button" data-view="needs"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Needs you<span class="badge" id="needs-n" hidden>0</span></button>
+        <button class="item" type="button" data-view="history"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Run history<span class="n" id="hist-n"></span></button>
+      </div>
+      <div class="sec">
+        <div class="cap">Live</div>
+        <button class="item" type="button" id="live-run"><span class="sq-dot" id="live-run-dot"></span>Running<span class="n" id="live-run-n">0</span></button>
+        <button class="item" type="button" data-view="job:friday"><span class="sq-dot wait"></span>Waiting for Friday<span class="n" id="live-wait-n">–</span></button>
+        <button class="item" type="button" data-view="history"><span class="sq-dot bad"></span>Stopped today<span class="n" id="live-bad-n">0</span></button>
+      </div>
+      <div class="sec">
+        <div class="cap">Jobs <span id="jobs-n"></span></div>
+        <div id="nav"></div>
+      </div>
+    </div>
+    <div class="side-foot">
+      <span class="av">SQ</span><span><b>Squaredrum Admin</b><small>This Mac only</small></span>
+      <button type="button" id="quit" title="Close admin" aria-label="Close admin"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7a8 8 0 1 0 11.4 0"/></svg></button>
+    </div>
   </aside>
-  <main>
-    <p class="eyebrow" id="group"></p>
-    <h1 id="title"></h1>
-    <p class="what" id="what"></p>
-    <div class="plate"><form id="form" autocomplete="off"></form></div>
-    <section class="log" aria-label="Output">
-      <div class="status"><span class="pill" id="pill">Ready</span><span class="hint" id="state"></span><button class="stop" id="stop" type="button" hidden>Stop</button></div>
-      <pre class="out empty" id="out">Output appears here.</pre>
+
+  <main id="main" class="glass">
+    <section id="v-overview" hidden>
+      <div class="head">
+        <div><div class="cap">Squaredrum / Overview</div><h1>Overview</h1><div class="sub" id="today"></div></div>
+        <div class="head-r">
+          <div class="seg" role="group" aria-label="Chart range"><button type="button" data-range="4">4 weeks</button><button type="button" data-range="12" aria-pressed="true">12 weeks</button><button type="button" data-range="26">26 weeks</button></div>
+          <button class="round" type="button" data-view="needs" title="Needs you" aria-label="Needs you"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dot" id="bell-dot" hidden></span></button>
+          <button class="pillbtn" type="button" data-view="job:import"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Import music</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h2>Songs live</h2>
+          <div class="legend"><span><i></i>Released per week</span><span><i class="l"></i>This week</span><span><i class="r"></i>Peak</span></div>
+          <div class="r"><button class="link" type="button" data-view="history">Open run log →</button></div>
+        </div>
+        <div class="hero">
+          <div>
+            <div class="big" id="o-live">–</div>
+            <div class="delta-row"><span class="delta" id="o-delta">↑ 0</span><span>released in the last 7 days</span></div>
+            <p class="blurb" id="o-blurb">Reading the catalogue…</p>
+            <div class="stats">
+              <div><span>Waiting for Friday</span><b id="o-ready">–</b></div>
+              <div><span>Artists on air</span><b id="o-artists">–</b></div>
+              <div><span>Archived · drafts</span><b id="o-arch">–</b></div>
+            </div>
+          </div>
+          <div class="chart" id="chart" aria-label="Songs released per week"></div>
+        </div>
+        <div class="strip" id="strip" hidden>
+          <span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>
+          <p id="strip-t"></p>
+          <button class="pillbtn dark" type="button" id="strip-go">Review release</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-h"><h2>Jobs</h2><div class="r"><button class="link" type="button" data-view="history">History →</button></div></div>
+          <div class="tabs" id="job-tabs"></div>
+          <div class="th cap"><span>Job</span><span>Last runs</span><span style="justify-self:end">Status</span></div>
+          <div id="job-rows"></div>
+        </div>
+        <div class="card" id="needs-card">
+          <div class="card-h"><h2>Needs you</h2><span class="delta" id="needs-n2">0</span><div class="r"><button class="link" type="button" data-view="job:friday">Open Friday →</button></div></div>
+          <div class="need" id="need"></div>
+          <div class="foot-note">Friday 9:00 AM Pacific · releases go live with Drumroll</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-history" hidden>
+      <div class="head"><div><div class="cap">Squaredrum / Run history</div><h1>Run history</h1><div class="sub">Every preview and run started from this page on this Mac.</div></div></div>
+      <div class="card hist"><div class="th cap"><span>Job</span><span>Kind</span><span style="justify-self:end">When</span></div><div id="hist-rows"></div></div>
+    </section>
+
+    <section id="v-job" hidden>
+      <div class="head"><div><div class="cap" id="crumb"></div><h1 id="title"></h1><p class="what" id="what"></p></div></div>
+      <div class="jobgrid">
+        <div class="card"><form id="form" autocomplete="off"></form></div>
+        <section class="card log" aria-label="Output">
+          <div class="status"><span class="pill" id="pill">Ready</span><span class="hint" id="state"></span><button class="stop" id="stop" type="button" hidden>❚❚ Stop</button></div>
+          <pre class="out empty" id="out">Output appears here.</pre>
+        </section>
+      </div>
     </section>
   </main>
 </div>
@@ -146,57 +352,245 @@ const api = async (path, opts = {}) => {
 };
 
 let META = { labels: [], artists: [] };
+let OV = null;
 
 // Each job: what the page shows and which fields it asks for. "preview" jobs show what would
-// happen first; "Do it" only unlocks after a preview with the same values.
+// happen first; "Do it" only unlocks after a preview with the same values. `s` is the line under it on the Overview.
 const JOBS = [
-  { group: "New music", id: "import", title: "Import new music", what: "Brings new songs from a label's folders into the catalogue and uploads their covers. They stay hidden until New Music Friday (9 AM), when they go live everywhere with Drumroll. Preview lists the new files first, with anything that needs a second look flagged.", fields: ["label"], preview: true },
-  { group: "Drumroll", id: "drumroll", title: "Build this Friday's Drumroll", what: "Builds the New Music Friday email from this week's releases (plus a spotlight artist, a moving Canvas, the channel and Off the Square). The words live in Drumroll/<date>/notes.md in your SQUARE BUSINESS folder: edit them and build again. Thursday's reminder builds it for you." },
-  { group: "Drumroll", id: "drumrollsend", title: "Test or schedule Drumroll", what: "Preview shows the subject and send time. Type your email and press Do it to get a test copy; leave the box empty and press Do it to schedule it for the whole list at Friday 9 AM.", fields: ["test"], preview: true },
-  { group: "New music", id: "friday", title: "Waiting for Friday", what: "Shows the albums imported this week that go live on Friday at 9 AM. \"Do it\" releases them right now instead; type an album or artist name to release just that one early.", fields: ["which"], preview: true },
-  { group: "New music", id: "covers", title: "Upload covers", what: "Uploads new or changed album covers and single covers from your folders. Type an album name to do just that album: it takes seconds instead of checking the whole catalogue.", fields: ["album"], preview: true },
-  { group: "New music", id: "playlists", title: "Curated playlists", what: "Loads the playlists in SQUARE BUSINESS/PLAYLISTS into GoSquare.", preview: true },
-  { group: "Fix a song", id: "replace", title: "Replace a song's audio", what: "After you save a new version of a song over the old file, same name. The song keeps its likes, playlists and lyrics.", fields: ["song"], preview: true },
-  { group: "Fix a song", id: "rename", title: "Rename a song", what: "Changes a song's title everywhere. The new title is remembered, so a later import keeps it.", fields: ["song", "newtitle"], preview: true },
-  { group: "Fix a song", id: "status", title: "Archive or bring back", what: "Archive hides a song everywhere without deleting anything. Make live brings an archived song back, or switches on an alternate version that came in as a draft.", fields: ["song", "to"], preview: true },
-  { group: "Fix a song", id: "explicit", title: "Explicit tags", what: "Reads the Explicit Finder tags on your song files and folders and updates the E badges.", preview: true },
-  { group: "Lyrics & art", id: "lyrics", title: "Load lyrics", what: "Reads the Lyrics folders and loads new or changed lyric sheets.", preview: true },
-  { group: "Lyrics & art", id: "sync", title: "Time lyrics to the music", what: "Listens to the songs and times each lyric line, so lyrics scroll in GoSquare. Takes about 40 seconds a song. Zulu and Xhosa songs can't be timed yet.", fields: ["who", "lang"], preview: true },
-  { group: "Lyrics & art", id: "photos", title: "Artist photos & bio", what: "Uploads an artist's Photos folder and Press Kit (bio, Artist at a Glance) for their page on squaredrum.com.", fields: ["artist"], preview: true },
-  { group: "Lyrics & art", id: "canvas", title: "Upload Canvas clips", what: "Finishes and uploads the Canvas clips saved in ~/Sites/canvas/raw.", preview: true },
-  { group: "Artists", id: "instagram", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
-  { group: "Artists", id: "hold", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
-  { group: "Checks", id: "audit", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
+  { group: "New music", id: "import", s: "ingest → covers", title: "Import new music", what: "Brings new songs from a label's folders into the catalogue and uploads their covers. They stay hidden until New Music Friday (9 AM), when they go live everywhere with Drumroll. Preview lists the new files first, with anything that needs a second look flagged.", fields: ["label"], preview: true },
+  { group: "New music", id: "friday", s: "release · Fri 9:00", title: "Waiting for Friday", what: "Shows the albums imported this week that go live on Friday at 9 AM. \"Do it\" releases them right now instead; type an album or artist name to release just that one early.", fields: ["which"], preview: true },
+  { group: "New music", id: "covers", s: "covers → storage", title: "Upload covers", what: "Uploads new or changed album covers and single covers from your folders. Type an album name to do just that album: it takes seconds instead of checking the whole catalogue.", fields: ["album"], preview: true },
+  { group: "New music", id: "playlists", s: "PLAYLISTS → GoSquare", title: "Curated playlists", what: "Loads the playlists in SQUARE BUSINESS/PLAYLISTS into GoSquare.", preview: true },
+  { group: "Drumroll", id: "drumroll", s: "notes.md → email", title: "Build this Friday's Drumroll", what: "Builds the New Music Friday email from this week's releases (plus a spotlight artist, a moving Canvas, the channel and Off the Square). The words live in Drumroll/<date>/notes.md in your SQUARE BUSINESS folder: edit them and build again. Thursday's reminder builds it for you." },
+  { group: "Drumroll", id: "drumrollsend", s: "test or schedule", title: "Test or schedule Drumroll", what: "Preview shows the subject and send time. Type your email and press Do it to get a test copy; leave the box empty and press Do it to schedule it for the whole list at Friday 9 AM.", fields: ["test"], preview: true },
+  { group: "Fix a song", id: "replace", s: "new audio, same song", title: "Replace a song's audio", what: "After you save a new version of a song over the old file, same name. The song keeps its likes, playlists and lyrics.", fields: ["song"], preview: true },
+  { group: "Fix a song", id: "rename", s: "title everywhere", title: "Rename a song", what: "Changes a song's title everywhere. The new title is remembered, so a later import keeps it.", fields: ["song", "newtitle"], preview: true },
+  { group: "Fix a song", id: "status", s: "archive · make live", title: "Archive or bring back", what: "Archive hides a song everywhere without deleting anything. Make live brings an archived song back, or switches on an alternate version that came in as a draft.", fields: ["song", "to"], preview: true },
+  { group: "Fix a song", id: "explicit", s: "Finder tags → E badge", title: "Explicit tags", what: "Reads the Explicit Finder tags on your song files and folders and updates the E badges.", preview: true },
+  { group: "Lyrics & art", id: "lyrics", s: "Lyrics folders", title: "Load lyrics", what: "Reads the Lyrics folders and loads new or changed lyric sheets.", preview: true },
+  { group: "Lyrics & art", id: "sync", s: "~40 s a song", title: "Time lyrics to the music", what: "Listens to the songs and times each lyric line, so lyrics scroll in GoSquare. Takes about 40 seconds a song. Zulu and Xhosa songs can't be timed yet.", fields: ["who", "lang"], preview: true },
+  { group: "Lyrics & art", id: "photos", s: "Photos + Press Kit", title: "Artist photos & bio", what: "Uploads an artist's Photos folder and Press Kit (bio, Artist at a Glance) for their page on squaredrum.com.", fields: ["artist"], preview: true },
+  { group: "Lyrics & art", id: "canvas", s: "~/Sites/canvas/raw", title: "Upload Canvas clips", what: "Finishes and uploads the Canvas clips saved in ~/Sites/canvas/raw.", preview: true },
+  { group: "Artists", id: "instagram", s: "button on 3 platforms", title: "Instagram handle", what: "Sets or removes an artist's Instagram button on all three platforms. Leave the handle empty to remove it.", fields: ["artist", "handle"], preview: true },
+  { group: "Artists", id: "hold", s: "off air · back on", title: "Take off air / put back", what: "Takes an artist's music off the radio, GoSquare and squaredrum.com without deleting anything, or puts it back.", fields: ["artist", "action"], preview: true },
+  { group: "Checks", id: "audit", s: "read only", title: "Catalogue check", what: "Reports titles that look like file names, duplicate songs, albums without covers or Canvas, and which artists are missing a bio or photos. Changes nothing." },
 ];
+const ICONS = {
+  import: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  friday: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+  covers: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+  playlists: '<path d="M3 6h12M3 12h12M3 18h8"/><circle cx="18" cy="17" r="3"/><path d="M21 17V6h-3"/>',
+  drumroll: '<path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/>',
+  drumrollsend: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+  replace: '<path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4L4 10M4 14a8 8 0 0 0 14 4l2-4"/>',
+  rename: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>',
+  status: '<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>',
+  explicit: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M14 8h-4v8h4M10 12h3"/>',
+  lyrics: '<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h4"/>',
+  sync: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  photos: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  canvas: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/>',
+  hold: '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
+  audit: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+};
+const icon = (id) => `<svg class="i" viewBox="0 0 24 24">${ICONS[id] ?? ICONS.audit}</svg>`;
+const FOLDER = '<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
-const nav = document.getElementById("nav");
-const form = document.getElementById("form");
-const out = document.getElementById("out");
-const pill = document.getElementById("pill");
-const stateEl = document.getElementById("state");
-const stopBtn = document.getElementById("stop");
-let active = null, picked = null, previewed = null, polling = null, seen = 0, jobId = null;
+const $ = (id) => document.getElementById(id);
+const nav = $("nav"), form = $("form"), out = $("out"), pill = $("pill"), stateEl = $("state"), stopBtn = $("stop");
+let view = "overview", active = null, picked = null, previewed = null, polling = null, seen = 0, jobId = null, range = 12, tab = "New music";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ago = (iso) => {
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (m < 1) return "just now"; if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60); if (h < 24) return `${h} h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};
+const lastRun = (id) => OV?.history.find((h) => h.name === id);
 
+// --- sidebar --------------------------------------------------------------------
+const open = new Set(["New music"]);
 function renderNav() {
-  const groups = [...new Set(JOBS.map((j) => j.group))];
+  const q = $("find").value.trim().toLowerCase();
   nav.innerHTML = "";
-  for (const g of groups) {
+  $("jobs-n").textContent = JOBS.length;
+  for (const g of [...new Set(JOBS.map((j) => j.group))]) {
+    const list = JOBS.filter((j) => j.group === g && (!q || j.title.toLowerCase().includes(q) || g.toLowerCase().includes(q)));
+    if (!list.length) continue;
     const box = document.createElement("div");
-    box.className = "group";
-    box.innerHTML = `<b>${g}</b>`;
-    for (const j of JOBS.filter((x) => x.group === g)) {
+    box.className = "folder" + (open.has(g) || q || (active && active.group === g && view.startsWith("job:")) ? " open" : "");
+    const head = document.createElement("button");
+    head.type = "button"; head.className = "item";
+    head.innerHTML = `${FOLDER}${esc(g)}<span class="n">${list.length}</span>`;
+    head.onclick = () => { open.has(g) ? open.delete(g) : open.add(g); renderNav(); };
+    const kids = document.createElement("div"); kids.className = "kids";
+    for (const j of list) {
       const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = j.title;
-      b.onclick = () => choose(j.id);
-      b.dataset.id = j.id;
-      box.appendChild(b);
+      b.type = "button"; b.className = "item"; b.dataset.view = `job:${j.id}`;
+      const bad = lastRun(j.id)?.ok === false;
+      b.innerHTML = `<span>${esc(j.title)}</span>${bad ? '<span class="n" style="color:var(--red)">●</span>' : j.id === "friday" && OV?.songs.ready ? `<span class="n">${OV.songs.ready}</span>` : ""}`;
+      kids.appendChild(b);
     }
+    box.append(head, kids);
     nav.appendChild(box);
   }
+  for (const b of document.querySelectorAll(".rail [data-view], .side [data-view]")) b.setAttribute("aria-current", String(b.dataset.view === view));
+}
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-view]"); if (t) go(t.dataset.view); });
+$("find").oninput = renderNav;
+document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("find").focus(); } });
+$("live-run").onclick = () => { if (OV?.running) go(`job:${OV.running.name}`); };
+
+function go(v, prefill) {
+  view = v;
+  $("v-overview").hidden = v !== "overview" && v !== "needs";
+  $("v-history").hidden = v !== "history";
+  $("v-job").hidden = !v.startsWith("job:");
+  if (v.startsWith("job:")) choose(v.slice(4), prefill);
+  if (v === "needs") setTimeout(() => $("needs-card").scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+  if (v === "history") renderHistory();
+  if (v === "overview" && OV) requestAnimationFrame(drawChart);
+  try { localStorage.setItem("admin-view", v); } catch {}
+  renderNav();
 }
 
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// --- overview -------------------------------------------------------------------
+async function loadOverview() {
+  try { OV = await api("/api/overview"); } catch (e) { $("o-blurb").textContent = e.message; return; }
+  const s = OV.songs;
+  $("o-live").textContent = s.live.toLocaleString();
+  const week = Object.entries(OV.days).filter(([d]) => Date.now() - new Date(d + "T12:00:00") < 7 * 864e5).reduce((a, [, n]) => a + n, 0);
+  $("o-delta").textContent = `↑ ${week}`;
+  $("o-ready").textContent = s.ready.toLocaleString();
+  $("o-artists").textContent = `${OV.artists.onAir}${OV.artists.held.length ? ` · ${OV.artists.held.length} off air` : ""}`;
+  $("o-arch").textContent = `${s.archived} · ${s.draft}`;
+  const last = OV.recent[0];
+  $("o-blurb").textContent = `On Musicsquare Radio, GoSquare and squaredrum.com.${last ? ` Latest: ${last.album}, ${last.songs} songs on ${new Date(last.date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}.` : ""}`;
+  const fails = OV.history.filter((h) => !h.ok && new Date(h.at).toDateString() === new Date().toDateString()).length;
+  $("live-run-n").textContent = OV.running ? 1 : 0;
+  $("live-run-dot").className = "sq-dot" + (OV.running ? " run" : "");
+  $("live-wait-n").textContent = s.ready;
+  $("live-bad-n").textContent = fails;
+  $("hist-n").textContent = OV.history.length || "";
+  if (OV.waiting.length) {
+    const w = OV.waiting;
+    $("strip").hidden = false;
+    $("strip-t").innerHTML = `<b>${esc(w[0].album)}</b>${w.length > 1 ? ` and ${w.length - 1} more` : ""}: ${s.ready} songs waiting for Friday 9 AM. Release early, or leave them for Drumroll.`;
+    $("strip-go").onclick = () => go("job:friday");
+  } else $("strip").hidden = true;
+  if (view === "overview" || view === "needs") drawChart();
+  renderTabs();
+  renderNeeds();
+  renderMeter();
+  renderNav();
+  if (view === "history") renderHistory();
+}
+
+function weeks(n) {
+  // Monday-start weeks, oldest first, ending with this week.
+  const mon = new Date(); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const list = [];
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(mon); d.setDate(d.getDate() - 7 * i); list.push({ start: d, n: 0 }); }
+  for (const [date, c] of Object.entries(OV.days)) {
+    const t = new Date(date + "T12:00:00");
+    for (let i = list.length - 1; i >= 0; i--) if (t >= list[i].start) { list[i].n += c; break; }
+  }
+  return list;
+}
+function drawChart() {
+  const box = $("chart");
+  const W = Math.max(320, box.clientWidth || 600), H = Math.max(220, box.clientHeight || 250);
+  const data = weeks(range);
+  const max = Math.max(10, ...data.map((d) => d.n));
+  const padL = 6, padB = 26, padT = 36, inner = H - padB - padT;
+  const slot = (W - padL) / data.length, bw = Math.max(5, Math.min(30, slot * 0.5));
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  let bars = "", labels = "";
+  data.forEach((d, i) => {
+    const h = d.n ? Math.max(4, (d.n / max) * inner) : 2;
+    const x = padL + i * slot + (slot - bw) / 2, y = padT + inner - h;
+    const now = i === data.length - 1;
+    // frosted columns: a lit glass face with a darker side, like the reference's extruded bars
+    bars += `<g><title>Week of ${d.start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}: ${d.n} songs</title>
+      <rect x="${x + bw * 0.6}" y="${y + 3}" width="${bw * 0.4}" height="${Math.max(0, h - 3)}" rx="1.5" fill="url(#side)"/>
+      <rect x="${x}" y="${y}" width="${bw * 0.68}" height="${h}" rx="2" fill="${now ? "url(#lit-now)" : "url(#lit)"}" stroke="rgb(255 255 255 / ${dark ? .12 : .9})" stroke-width=".8"/></g>`;
+    if (i % Math.ceil(data.length / 8) === 0 || now) labels += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${d.start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</text>`;
+  });
+  const lastX = padL + (data.length - 1) * slot + slot / 2, lastN = data.at(-1).n;
+  const peak = data.reduce((a, b) => (b.n > a.n ? b : a), data[0]);
+  const pi = data.indexOf(peak), px = padL + pi * slot + slot / 2, py = padT + inner - (peak.n / max) * inner;
+  const ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Songs released per week">
+    <defs>
+      <linearGradient id="lit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dark ? "#55595f" : "#ffffff"}" stop-opacity=".95"/><stop offset="1" stop-color="${dark ? "#2c2f33" : "#d3d7dc"}" stop-opacity=".75"/></linearGradient>
+      <linearGradient id="lit-now" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecfca6"/><stop offset="1" stop-color="#c3e83a"/></linearGradient>
+      <linearGradient id="side" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dark ? "#2a2d31" : "#bfc4ca"}" stop-opacity=".9"/><stop offset="1" stop-color="${dark ? "#1b1d20" : "#a2a8af"}" stop-opacity=".8"/></linearGradient>
+    </defs>
+    <line x1="0" x2="${W}" y1="${padT + inner + .5}" y2="${padT + inner + .5}" stroke="var(--line)"/>
+    ${bars}
+    ${peak.n && pi !== data.length - 1 ? `<g font-family="Geist Mono,monospace" font-size="10" fill="var(--mute)"><circle cx="${px}" cy="${py - 9}" r="2.6" fill="var(--red)"/><text x="${px + 7}" y="${py - 6}">PEAK ${peak.n}</text></g>` : ""}
+    <line x1="${lastX}" x2="${lastX}" y1="${padT - 8}" y2="${padT + inner}" stroke="${ink}" stroke-dasharray="2 3"/>
+    <g transform="translate(${Math.max(0, Math.min(W - 96, lastX - 48))},${padT - 32})"><rect width="96" height="20" rx="10" fill="${ink}"/><circle cx="11" cy="10" r="3.5" fill="var(--lime)"/><text x="20" y="14" font-family="Geist Mono,monospace" font-size="10" fill="var(--solid)" letter-spacing=".08em">WEEK · ${lastN}</text></g>
+    <g font-family="Geist Mono,monospace" font-size="10" fill="var(--faint)">${labels}</g>
+  </svg>`;
+}
+for (const b of document.querySelectorAll("[data-range]")) b.onclick = () => {
+  range = Number(b.dataset.range);
+  for (const x of document.querySelectorAll("[data-range]")) x.setAttribute("aria-pressed", String(x === b));
+  if (OV) drawChart();
+};
+addEventListener("resize", () => { if (OV && !$("v-overview").hidden) drawChart(); });
+
+function statusOf(j) {
+  if (OV?.running?.name === j.id) return `<span class="st run">Running</span>`;
+  if (j.id === "friday" && OV?.songs.ready) return `<span class="st you">Waiting on you</span>`;
+  const r = lastRun(j.id);
+  if (!r) return `<span class="st">Not run yet</span>`;
+  if (!r.ok) return `<span class="st bad">Stopped · ${ago(r.at)}</span>`;
+  return `<span class="st ok">${r.apply ? "Done" : "Previewed"} · ${ago(r.at)}</span>`;
+}
+function ticks(id) {
+  const runs = (OV?.history ?? []).filter((h) => h.name === id).slice(0, 24).reverse();
+  const cells = Array.from({ length: 24 }, (_, i) => runs[i - (24 - runs.length)]);
+  return `<span class="ticks" aria-hidden="true">${cells.map((r) => `<i class="${!r ? "" : !r.ok ? "bad" : r.apply ? "ok" : "pv"}"></i>`).join("")}</span>`;
+}
+function renderTabs() {
+  const groups = [...new Set(JOBS.map((j) => j.group))];
+  $("job-tabs").innerHTML = groups.map((g) => `<button type="button" aria-pressed="${g === tab}" data-tab="${esc(g)}">${esc(g)}<sup>${JOBS.filter((j) => j.group === g).length}</sup></button>`).join("");
+  for (const b of $("job-tabs").querySelectorAll("button")) b.onclick = () => { tab = b.dataset.tab; renderTabs(); };
+  $("job-rows").innerHTML = JOBS.filter((j) => j.group === tab).map((j) =>
+    `<button type="button" class="row" data-view="job:${j.id}"><span class="who"><span class="ib">${icon(j.id)}</span><span style="min-width:0"><span class="t">${esc(j.title)}</span><span class="s">${esc(j.s)}</span></span></span>${ticks(j.id)}${statusOf(j)}</button>`).join("");
+}
+function renderNeeds() {
+  const items = [];
+  for (const w of OV.waiting) items.push({ k: "Friday release", t: w.album, d: `${w.songs} songs${w.artist ? ` · ${w.artist}` : ""} · goes live Friday 9 AM unless you release it now.`, a: [["Release now", "job:friday", { which: w.album }]] });
+  for (const h of OV.history.filter((x) => !x.ok).slice(0, 3)) {
+    const j = JOBS.find((x) => x.id === h.name);
+    if (j) items.push({ k: "Stopped", t: `${j.title} didn't finish`, d: `${h.apply ? "Run" : "Preview"} ${ago(h.at)}. Open it to see why.`, a: [["Open", `job:${j.id}`]] });
+  }
+  for (const name of OV.artists.held) items.push({ k: "Off air", t: `${name} is off air`, d: "Their music is hidden everywhere until you put it back.", a: [["Review", "job:hold"]] });
+  $("needs-n").hidden = !items.length; $("needs-n").textContent = items.length;
+  $("needs-n2").textContent = items.length;
+  $("bell-dot").hidden = !items.length;
+  $("rail-friday").querySelector(".dot")?.remove();
+  if (OV.songs.ready) $("rail-friday").insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+  $("need").innerHTML = items.length ? items.map((it, n) => `<div class="it"><span class="cap">${esc(it.k)}</span><b>${esc(it.t)}</b><small>${esc(it.d)}</small><div class="acts">${it.a.map((a, i) => `<button class="link" type="button" data-need="${n}:${i}">${esc(a[0])} →</button>`).join("")}</div></div>`).join("") : `<div class="empty">Nothing needs you right now.</div>`;
+  for (const b of $("need").querySelectorAll("[data-need]")) b.onclick = () => { const [n, i] = b.dataset.need.split(":").map(Number); const a = items[n].a[i]; go(a[1], a[2]); };
+}
+function renderMeter() {
+  const runs = (OV?.history ?? []).slice(0, 14);
+  $("rail-meter").innerHTML = Array.from({ length: 14 }, (_, i) => { const r = runs[i]; return `<i class="${!r ? "" : r.ok ? "on" : "hot"}"></i>`; }).join("");
+}
+function renderHistory() {
+  const rows = OV?.history ?? [];
+  $("hist-rows").innerHTML = rows.length ? rows.map((h) => {
+    const j = JOBS.find((x) => x.id === h.name);
+    return `<button type="button" class="row" data-view="job:${esc(h.name)}"><span class="who"><span class="ib">${icon(h.name)}</span><span style="min-width:0"><span class="t">${esc(j?.title ?? h.name)}</span><span class="s">${h.lines} lines of output</span></span></span><span class="st ${h.ok ? (h.apply ? "ok" : "") : "bad"}" style="justify-self:start">${h.ok ? (h.apply ? "Ran" : "Preview") : "Stopped"}</span><span class="s" style="justify-self:end">${new Date(h.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></button>`;
+  }).join("") : `<p class="hint" style="padding:14px 0">No runs yet. Previews and runs you start here are listed with the time and whether they finished.</p>`;
+}
+
+// --- one job (same behaviour as before) ------------------------------------------
 const options = (list, current) => `<option value="">Choose…</option>` + list.map((x) => `<option value="${esc(x.slug)}" ${x.slug === current ? "selected" : ""}>${esc(x.name)}${x.held ? " (off air)" : ""}</option>`).join("");
 
 function field(name) {
@@ -217,46 +611,47 @@ function field(name) {
   return "";
 }
 
-function choose(id) {
-  active = JOBS.find((j) => j.id === id);
+function choose(id, prefill) {
+  const next = JOBS.find((j) => j.id === id) ?? JOBS[0];
+  if (active?.id === next.id && !prefill && form.innerHTML) return;
+  active = next;
   picked = null;
   previewed = null;
-  for (const b of nav.querySelectorAll("button")) b.setAttribute("aria-current", String(b.dataset.id === id));
-  document.getElementById("group").textContent = active.group;
-  document.getElementById("title").textContent = active.title;
-  document.getElementById("what").textContent = active.what;
+  $("crumb").textContent = `Squaredrum / ${active.group}`;
+  $("title").textContent = active.title;
+  $("what").textContent = active.what;
   const buttons = active.preview
     ? `<div class="actions"><button class="btn" type="submit" id="preview">Preview</button><button class="btn primary" type="button" id="apply" disabled>Do it</button><span class="hint" id="apply-hint">Preview first to see what will change.</span></div>`
     : `<div class="actions"><button class="btn primary" type="submit" id="preview">Run</button></div>`;
   form.innerHTML = (active.fields ?? []).map(field).join("") + buttons;
   if ((active.fields ?? []).includes("song")) songBox();
-  const artistSel = document.getElementById("f-artist");
+  for (const [k, v] of Object.entries(prefill ?? {})) { const el = form.querySelector(`[name="${k}"]`); if (el) el.value = v; }
+  const artistSel = $("f-artist");
   if (artistSel && active.id === "instagram") artistSel.onchange = () => {
     const a = META.artists.find((x) => x.slug === artistSel.value);
-    document.getElementById("artist-note").textContent = a ? (a.instagram ? `Now: @${a.instagram}` : "No handle yet.") : "";
-    document.getElementById("f-handle").value = a?.instagram ?? "";
+    $("artist-note").textContent = a ? (a.instagram ? `Now: @${a.instagram}` : "No handle yet.") : "";
+    $("f-handle").value = a?.instagram ?? "";
   };
   form.oninput = form.onchange = () => lockApply();
-  const applyBtn = document.getElementById("apply");
+  const applyBtn = $("apply");
   if (applyBtn) applyBtn.onclick = () => run(true);
-  try { localStorage.setItem("admin-job", id); } catch {}
 }
 
 function songBox() {
-  const box = document.getElementById("song-box");
+  const box = $("song-box");
   if (picked) {
     box.innerHTML = `<span class="hint">Song</span><div class="picked"><span><b>${esc(picked.title)}</b> · ${esc(picked.artist ?? "label compilation")} · ${esc(picked.album ?? "")} <span class="tag ${esc(picked.status)}">${esc(picked.status.replace("_radio", ""))}</span></span><button type="button" id="repick">Change</button></div>`;
-    document.getElementById("repick").onclick = () => { picked = null; lockApply(); songBox(); };
+    $("repick").onclick = () => { picked = null; lockApply(); songBox(); };
     return;
   }
   box.innerHTML = `<label class="f"><span>Find the song</span><input id="f-song" type="search" placeholder="Type part of the title or its SONG- code"></label><div class="results" id="results"></div>`;
-  const input = document.getElementById("f-song");
+  const input = $("f-song");
   let t = null;
   input.oninput = () => {
     clearTimeout(t);
     t = setTimeout(async () => {
       const list = await api(`/api/songs?q=${encodeURIComponent(input.value)}`).catch(() => []);
-      const res = document.getElementById("results");
+      const res = $("results");
       res.innerHTML = "";
       for (const s of list) {
         const b = document.createElement("button");
@@ -280,8 +675,8 @@ function values() {
 
 function lockApply() {
   previewed = null;
-  const a = document.getElementById("apply");
-  if (a) { a.disabled = true; document.getElementById("apply-hint").textContent = "Preview first to see what will change."; }
+  const a = $("apply");
+  if (a) { a.disabled = true; $("apply-hint").textContent = "Preview first to see what will change."; }
 }
 
 form.addEventListener("submit", (e) => { e.preventDefault(); run(false); });
@@ -327,6 +722,7 @@ function watch() {
     const what = j.apply ? "Doing it" : "Previewing";
     if (!j.done) {
       pill.className = "pill run"; pill.textContent = "Running"; stateEl.textContent = `${what}… you can leave this page open.`; stopBtn.hidden = false;
+      $("live-run-n").textContent = 1; $("live-run-dot").className = "sq-dot run";
       polling = setTimeout(tick, 700);
       return;
     }
@@ -335,29 +731,33 @@ function watch() {
     const final = j.apply || !JOBS.find((x) => x.id === j.name)?.preview;
     pill.textContent = j.ok ? (final ? "Done" : "Preview ready") : "Stopped";
     stateEl.textContent = j.ok ? (final ? "Finished." : "Check the preview, then press Do it.") : "It stopped before finishing. The output above says why.";
-    const a = document.getElementById("apply");
-    if (a && !j.apply && j.ok && previewed && active?.id === j.name) { a.disabled = false; document.getElementById("apply-hint").textContent = "Runs it for real."; }
+    const a = $("apply");
+    if (a && !j.apply && j.ok && previewed && active?.id === j.name) { a.disabled = false; $("apply-hint").textContent = "Runs it for real."; }
     if (j.apply && j.ok) { previewed = null; if (a) a.disabled = true; META = await api("/api/meta").catch(() => META); }
+    loadOverview();
   };
   tick();
 }
 
 stopBtn.onclick = () => api("/api/stop", { method: "POST" }).catch(() => {});
-document.getElementById("quit").onclick = async () => {
+$("quit").onclick = async () => {
   await api("/api/quit", { method: "POST" }).catch(() => {});
-  document.body.innerHTML = `<p style="padding:40px;font-family:var(--body)">Squaredrum Admin is closed. Open it again from the Desktop icon.</p>`;
+  document.body.innerHTML = `<p style="padding:40px;font-family:var(--sans)">Squaredrum Admin is closed. Open it again from the Desktop icon.</p>`;
 };
 
 (async () => {
-  renderNav();
-  let first = "import";
-  try { first = localStorage.getItem("admin-job") || first; } catch {}
-  choose(JOBS.some((j) => j.id === first) ? first : "import");
-  // The label and artist lists come from the catalogue; redraw the form once they're here (nothing typed yet).
+  $("today").textContent = new Date().toLocaleString(undefined, { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" });
+  let first = "overview";
+  try { first = localStorage.getItem("admin-view") || first; } catch {}
+  if (first.startsWith("job:") && !JOBS.some((j) => `job:${j.id}` === first)) first = "overview";
+  go(first);
   try { META = await api("/api/meta"); } catch (e) { say(e.message); }
-  if (!picked && !previewed) choose(active.id);
+  // The label and artist lists come from the catalogue; redraw the form once they're here (nothing typed yet).
+  if (view.startsWith("job:") && !picked && !previewed) { const id = active.id; active = null; choose(id); }
+  loadOverview();
+  setInterval(() => { if (document.visibilityState === "visible") loadOverview(); }, 60000);
   const j = await api("/api/job").catch(() => null);
-  if (j) { jobId = j.id; watch(); }
+  if (j) { jobId = j.id; if (!j.done) go(`job:${j.name}`); watch(); }
 })();
 </script>
 </body>

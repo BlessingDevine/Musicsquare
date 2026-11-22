@@ -46,3 +46,6 @@ tsconfig.tsbuildinfo
 
 # catalogue import outputs (manifests, upload logs)
 /scripts/catalog/out/
+
+# Squaredrum Admin run history (this Mac only)
+/scripts/admin/.history.json

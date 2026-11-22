@@ -11,7 +11,7 @@
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ import { LABELS_ROOT, parseImprint } from "../catalog/scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "../..");
-const PORT = 4747;
+const PORT = Number(process.env.ADMIN_PORT ?? 4747);
 const TOKEN = randomBytes(24).toString("hex");
 process.loadEnvFile(join(REPO, ".env.local"));
 process.env.PATH = `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? "/usr/bin:/bin"}`;
@@ -159,8 +159,68 @@ async function start(name, form, apply) {
     }
     run.ok = true;
     run.done = true;
-  })();
+  })().finally(() => remember(run));
   return run.id;
+}
+
+// --- run history (kept on this Mac, for the Overview) ---------------------------
+
+const HISTORY = join(HERE, ".history.json");
+let history = [];
+try { history = JSON.parse(readFileSync(HISTORY, "utf8")); } catch {}
+function remember(run) {
+  history.unshift({ name: run.name, apply: run.apply, ok: run.ok, at: new Date().toISOString(), lines: run.lines.length });
+  history = history.slice(0, 300);
+  try { writeFileSync(HISTORY, JSON.stringify(history)); } catch {}
+}
+
+// --- overview: read-only numbers for the home screen ------------------------------
+
+const RELEASE_LOG = join(LABELS_ROOT, "..", "Friday releases log.tsv");
+
+async function count(status) {
+  const { count: n, error } = await db.from("songs").select("song_id", { count: "exact", head: true }).eq("release_status", status);
+  if (error) throw new Error(error.message);
+  return n ?? 0;
+}
+
+async function overview() {
+  const [live, ready, archived, draft, artists, waiting] = await Promise.all([
+    count("released_radio"), count("ready"), count("archived"), count("draft"),
+    db.from("artists").select("artist_name, status"),
+    db.from("songs").select("album_title, artists!songs_primary_artist_id_fkey(artist_name)").eq("release_status", "ready").limit(5000),
+  ]);
+  if (artists.error) throw new Error(artists.error.message);
+  if (waiting.error) throw new Error(waiting.error.message);
+  const albums = new Map();
+  for (const s of waiting.data) {
+    const key = `${s.album_title ?? "Singles"}\u0000${s.artists?.artist_name ?? ""}`;
+    albums.set(key, (albums.get(key) ?? 0) + 1);
+  }
+  // Songs released per day, from the release log (date, song, artist, album, title).
+  const days = {};
+  const recent = [];
+  if (existsSync(RELEASE_LOG)) {
+    const rows = readFileSync(RELEASE_LOG, "utf8").trim().split("\n").slice(1).map((l) => l.split("\t"));
+    for (const [date, , artist, album] of rows) if (/^\d{4}-\d{2}-\d{2}$/.test(date)) days[date] = (days[date] ?? 0) + 1;
+    const seen = new Set();
+    for (const [date, , artist, album] of rows.reverse()) {
+      const key = `${album}\u0000${artist}`;
+      if (!album || seen.has(key)) continue;
+      seen.add(key);
+      recent.push({ date, artist, album, songs: rows.filter((r) => r[3] === album && r[2] === artist).length });
+      if (recent.length === 8) break;
+    }
+  }
+  return {
+    songs: { live, ready, archived, draft },
+    artists: { onAir: artists.data.filter((a) => a.status === "active").length, held: artists.data.filter((a) => a.status === "paused").map((a) => a.artist_name).sort() },
+    waiting: [...albums].map(([k, n]) => ({ album: k.split("\u0000")[0], artist: k.split("\u0000")[1], songs: n })).sort((a, b) => b.songs - a.songs),
+    days,
+    recent,
+    history: history.slice(0, 120),
+    running: current && !current.done ? { name: current.name, apply: current.apply } : null,
+  };
 }
 
 // --- lists for the page ---------------------------------------------------------
@@ -212,13 +272,14 @@ async function body(req) {
 createServer(async (req, res) => {
   try {
     // Only this Mac's own browser, by name, so a web page can't reach us through DNS tricks.
-    if (!/^(localhost|127\.0\.0\.1):4747$/.test(req.headers.host ?? "")) return send(res, 403, { error: "Forbidden" });
+    if (req.headers.host !== `localhost:${PORT}` && req.headers.host !== `127.0.0.1:${PORT}`) return send(res, 403, { error: "Forbidden" });
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (req.method === "GET" && url.pathname === "/") return send(res, 200, PAGE.replace("__TOKEN__", TOKEN), "text/html; charset=utf-8");
     if (url.pathname === "/health") return send(res, 200, { ok: true });
     if (req.headers["x-admin-token"] !== TOKEN) return send(res, 403, { error: "Reload the page." });
 
     if (req.method === "GET" && url.pathname === "/api/meta") return send(res, 200, await meta());
+    if (req.method === "GET" && url.pathname === "/api/overview") return send(res, 200, await overview());
     if (req.method === "GET" && url.pathname === "/api/songs") return send(res, 200, await findSongs(url.searchParams.get("q") ?? ""));
     if (req.method === "GET" && url.pathname === "/api/job") {
       if (!current) return send(res, 200, null);
